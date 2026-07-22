@@ -72,6 +72,40 @@ const runInitSql = async (client: Client) => {
 			"description" TEXT
 		)`);
 
+		await client.execute(`CREATE TABLE IF NOT EXISTS media_genres (
+			"mediaId" TEXT NOT NULL REFERENCES media("id") ON DELETE CASCADE,
+			"genreId" INTEGER NOT NULL REFERENCES genres("id") ON DELETE CASCADE,
+			PRIMARY KEY ("mediaId", "genreId")
+		)`);
+		try { await client.execute('CREATE INDEX IF NOT EXISTS idx_media_genres_media ON media_genres("mediaId")'); } catch {}
+		try { await client.execute('CREATE INDEX IF NOT EXISTS idx_media_genres_genre ON media_genres("genreId")'); } catch {}
+
+		await client.execute(`CREATE TABLE IF NOT EXISTS people (
+			"id" TEXT PRIMARY KEY NOT NULL,
+			"tmdbId" INTEGER NOT NULL UNIQUE,
+			"name" TEXT NOT NULL,
+			"biography" TEXT,
+			"birthday" TEXT,
+			"deathday" TEXT,
+			"placeOfBirth" TEXT,
+			"profilePath" TEXT,
+			"popularity" REAL,
+			"knownForDepartment" TEXT,
+			"createdAt" INTEGER NOT NULL,
+			"updatedAt" INTEGER NOT NULL
+		)`);
+
+		await client.execute(`CREATE TABLE IF NOT EXISTS media_people (
+			"mediaId" TEXT NOT NULL REFERENCES media("id") ON DELETE CASCADE,
+			"personId" TEXT NOT NULL REFERENCES people("id") ON DELETE CASCADE,
+			"role" TEXT NOT NULL,
+			"character" TEXT,
+			"job" TEXT,
+			"order" INTEGER,
+			"createdAt" INTEGER NOT NULL,
+			PRIMARY KEY ("mediaId", "personId", "role")
+		)`);
+
 		await client.execute(`CREATE TABLE IF NOT EXISTS cache (
 			"key" TEXT PRIMARY KEY NOT NULL,
 			"data" TEXT NOT NULL,

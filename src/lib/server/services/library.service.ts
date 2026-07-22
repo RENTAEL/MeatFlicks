@@ -314,22 +314,18 @@ export async function fetchHomeLibrary(
 				if (!hasContent) {
 					logger.info('[library] DB returned empty library, falling back to TMDB');
 					const fallback = await buildFallbackHomeLibrary(HOME_LIBRARY_ITEMS_LIMIT);
-					return fallback ?? data;
+					return fallback ?? null;
 				}
 				return data;
-			}
+			},
+			{ cacheOnError: false }
 		);
-	} catch (error) {
-		logger.error({ error }, '[library] Failed to fetch home library from source');
-		try {
-			result = await withCache(HOME_LIBRARY_CACHE_KEY, CACHE_TTL_MEDIUM_SECONDS, async () => {
-				const fallback = await buildFallbackHomeLibrary(HOME_LIBRARY_ITEMS_LIMIT);
-				return fallback ?? { trendingMovies: [], trendingTv: [], collections: [], genres: [] };
-			});
-		} catch (fallbackError) {
-			logger.error({ error: fallbackError }, '[library] Failed to build fallback library');
+		if (!result) {
 			result = { trendingMovies: [], trendingTv: [], collections: [], genres: [] };
 		}
+	} catch (error) {
+		logger.error({ error }, '[library] Failed to fetch home library from source');
+		result = { trendingMovies: [], trendingTv: [], collections: [], genres: [] };
 	}
 
 	if (forceRefresh) {

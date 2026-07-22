@@ -303,6 +303,7 @@ export function csrfMiddleware() {
 				}
 			}
 
+			if (!event.url.pathname.startsWith('/api/')) {
 			const csrfValidation = await validateSecureCsrfToken(event);
 
 			if (!csrfValidation.valid) {
@@ -317,9 +318,10 @@ export function csrfMiddleware() {
 					}
 				});
 			}
+		}
 
-			const response = await resolve(event);
-			return response;
+		const response = await resolve(event);
+		return response;
 		}
 	};
 }
