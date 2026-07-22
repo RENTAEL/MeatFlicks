@@ -43,21 +43,19 @@ import { Loader2, RefreshCw } from '@lucide/svelte';
 
 	let { data }: { data: PageData } = $props();
 
-	let refreshPromise = $state<Promise<HomeLibrary | null> | null>(null);
-	const homeLibraryPromise = $derived(
-		refreshPromise ?? (data.streamed?.homeLibrary as Promise<HomeLibrary | null>) ?? null
-	);
 	let isRefreshing = $state(false);
 	let refreshError = $state<string | null>(null);
-	let lastResolvedLibrary = $state<HomeLibrary | null>(null);
-	let activePromise: Promise<HomeLibrary | null> | null = null;
+
+	let homeLibraryPromise = $derived(
+		data.streamed?.homeLibrary as Promise<HomeLibrary | null> ?? null
+	);
 
 	async function refreshHomeLibrary() {
 		if (isRefreshing) return;
 		isRefreshing = true;
 		refreshError = null;
 
-		const loadPromise = (async () => {
+		try {
 			const response = await fetch('/api/home-library/refresh', { method: 'POST' });
 			if (!response.ok) {
 				const message = await response.text();
@@ -72,44 +70,13 @@ import { Loader2, RefreshCw } from '@lucide/svelte';
 			if (!payload.success || !payload.data) {
 				throw new Error(payload.error ?? 'No spotlight data returned.');
 			}
-
-			lastResolvedLibrary = payload.data;
-			return payload.data;
-		})();
-
-		refreshPromise = loadPromise;
-
-		try {
-			await loadPromise;
 		} catch (error) {
 			console.error('Failed to refresh home library data', error);
 			refreshError = error instanceof Error ? error.message : 'Failed to refresh spotlight.';
-			if (lastResolvedLibrary) {
-				refreshPromise = Promise.resolve(lastResolvedLibrary);
-			}
 		} finally {
 			isRefreshing = false;
 		}
 	}
-
-	$effect(() => {
-		refreshPromise = null;
-	});
-	$effect(() => {
-		const promise = homeLibraryPromise;
-		if (!promise) return;
-
-		activePromise = promise;
-		promise
-			.then((value) => {
-				if (activePromise === promise && value) {
-					lastResolvedLibrary = value;
-				}
-			})
-			.catch(() => {
-				/* ignore error */
-			});
-	});
 </script>
 
 <SEOHead

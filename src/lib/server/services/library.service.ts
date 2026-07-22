@@ -314,15 +314,13 @@ export async function fetchHomeLibrary(
 				if (!hasContent) {
 					logger.info('[library] DB returned empty library, falling back to TMDB');
 					const fallback = await buildFallbackHomeLibrary(HOME_LIBRARY_ITEMS_LIMIT);
-					return fallback ?? null;
+					if (fallback) return fallback;
+					throw new Error('Fallback returned no data');
 				}
 				return data;
 			},
 			{ cacheOnError: false }
 		);
-		if (!result) {
-			result = { trendingMovies: [], trendingTv: [], collections: [], genres: [] };
-		}
 	} catch (error) {
 		logger.error({ error }, '[library] Failed to fetch home library from source');
 		result = { trendingMovies: [], trendingTv: [], collections: [], genres: [] };
