@@ -12,8 +12,8 @@
 </script>
 
 <svelte:head>
-	<title>Explore - MeatFlicks</title>
-	<meta name="description" content="Explore movies and TV shows on MeatFlicks" />
+	<title>Explore - Streamium</title>
+	<meta name="description" content="Explore movies and TV shows on Streamium" />
 </svelte:head>
 
 <div class="container mx-auto px-4 py-8 md:py-12">

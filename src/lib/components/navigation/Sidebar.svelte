@@ -17,16 +17,26 @@
 	import SettingsDialog from '$lib/components/global/SettingsDialog.svelte';
 	import NavigationMenu from '$lib/components/navigation/NavigationMenu.svelte';
 	import UserProfile from '$lib/components/navigation/UserProfile.svelte';
+	import { browser } from '$app/environment';
 	import { browseNav, primaryNav, type NavigationItem } from '$lib/components/navigation';
-	import { media } from 'svelte-match-media';
 
 	let isSettingsOpen = $state(false);
 	let { children } = $props<{ children?: () => Snippet }>();
 
 	const primaryNavItems = primaryNav;
 	const browseNavItems = browseNav;
-	const isDesktop = $derived(() => Boolean($media?.desktop));
+	let isDesktop = $state(false);
 	const sidebarLabel = 'Primary navigation';
+
+	$effect(() => {
+		if (browser) {
+			const mql = window.matchMedia('(min-width: 768px)');
+			isDesktop = mql.matches;
+			const handler = (e: MediaQueryListEvent) => { isDesktop = e.matches; };
+			mql.addEventListener('change', handler);
+			return () => mql.removeEventListener('change', handler);
+		}
+	});
 
 	const handleItemSelect = (item: NavigationItem) => {
 		if (item.onSelect) {
@@ -45,8 +55,8 @@
 <SidebarProvider open={false}>
 	<Sidebar
 		aria-label={sidebarLabel}
-		collapsible={isDesktop() ? 'icon' : 'offcanvas'}
-		class="min-h-svh bg-background group-data-[side=right]:border-l-0 md:sticky md:top-0"
+		collapsible={isDesktop ? 'icon' : 'offcanvas'}
+		class="min-h-svh border-r border-border/30 bg-background/40 backdrop-blur-xl group-data-[side=right]:border-l-0 md:sticky md:top-0"
 	>
 		<SidebarContent class="px-2 pt-0 pb-2">
 			<div class="flex flex-1 flex-col justify-center rounded-lg">

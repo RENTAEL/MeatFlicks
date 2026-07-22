@@ -25,21 +25,40 @@
 </script>
 
 <svelte:head>
-	<title>MeatFlicks - Your Ultimate Streaming</title>
+	<title>Streamium - Your Ultimate Streaming Universe</title>
 	<meta
 		name="description"
-		content="Discover and stream your favorite movies and TV shows on MeatFlicks."
+		content="Discover and stream your favorite movies and TV shows on Streamium."
 	/>
 </svelte:head>
 
-<ModeWatcher defaultMode="dark" themeColors={{ dark: '#030712', light: '#f8fafc' }} />
+<ModeWatcher defaultMode="dark" themeColors={{ dark: '#0a0a1a', light: '#0a0a1a' }} />
 <ThemeContext>
 	<WatchlistContext>
 		<ErrorContext>
 			<AppShell>
-				<div class="flex min-h-svh flex-col text-foreground">
-					<slot />
-					<Footer />
+				<div class="relative flex min-h-svh flex-col text-foreground">
+					<div class="pointer-events-none fixed inset-0 z-0 overflow-hidden">
+						{#each Array.from({ length: 20 }) as _, i}
+							<div
+								class="absolute animate-float-up"
+								style="
+									left: {Math.random() * 100}%;
+									width: {2 + Math.random() * 4}px;
+									height: {2 + Math.random() * 4}px;
+									animation-duration: {10 + Math.random() * 20}s;
+									animation-delay: {Math.random() * 15}s;
+									background: radial-gradient(circle, oklch({0.7 + Math.random() * 0.3} {0.1 + Math.random() * 0.15} {280 + Math.random() * 50}) 0%, transparent 100%);
+									border-radius: 50%;
+									opacity: {0.3 + Math.random() * 0.5};
+								"
+							></div>
+						{/each}
+					</div>
+					<div class="relative z-10 flex-1">
+						<slot />
+					</div>
+					<Footer class="relative z-10" />
 				</div>
 			</AppShell>
 			<GlobalErrorDisplay />

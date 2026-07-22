@@ -16,7 +16,7 @@ export default defineConfig({
 		}
 	},
 	ssr: {
-		external: ['better-sqlite3']
+		external: ['better-sqlite3', 'sqlite3', 'libsql', '@neon-rs/load']
 	},
 	test: {
 		expect: { requireAssertions: true },

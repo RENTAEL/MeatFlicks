@@ -307,7 +307,17 @@ export async function fetchHomeLibrary(
 		result = await withCache(
 			HOME_LIBRARY_CACHE_KEY,
 			CACHE_TTL_MEDIUM_SECONDS,
-			fetchHomeLibraryFromSource
+			async () => {
+				const data = await fetchHomeLibraryFromSource();
+				const hasContent = data.trendingMovies?.length || data.trendingTv?.length
+					|| data.collections?.length || data.genres?.length;
+				if (!hasContent) {
+					logger.info('[library] DB returned empty library, falling back to TMDB');
+					const fallback = await buildFallbackHomeLibrary(HOME_LIBRARY_ITEMS_LIMIT);
+					return fallback ?? data;
+				}
+				return data;
+			}
 		);
 	} catch (error) {
 		logger.error({ error }, '[library] Failed to fetch home library from source');

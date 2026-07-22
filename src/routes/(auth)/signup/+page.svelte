@@ -5,8 +5,8 @@
 	let { data, form } = $props();
 </script>
 
-<div class="flex min-h-screen items-center justify-center bg-background p-4">
-	<div class="w-full max-w-sm rounded-lg border border-border bg-card p-6 shadow-lg">
+<div class="flex min-h-screen items-center justify-center p-4">
+	<div class="glass-strong w-full max-w-sm rounded-xl p-8 shadow-2xl">
 		<h1 class="mb-6 text-center text-2xl font-bold">Create an Account</h1>
 
 		<form method="POST" use:enhance class="space-y-4">

@@ -14,7 +14,7 @@
 {#if MediaDetailsPage}
 	<MediaDetailsPage {data} />
 {:else}
-	<div class="min-h-screen bg-background text-foreground">
+	<div class="page-transition min-h-screen text-foreground">
 		<main class="mx-auto max-w-7xl px-4 py-8">
 			<div class="animate-pulse">
 				<div class="mb-8 h-96 rounded-lg bg-muted"></div>

@@ -1,7 +1,11 @@
 import '../app.css';
-import { setup } from 'svelte-match-media';
+import { browser } from '$app/environment';
 
-setup({
-	desktop: 'screen and (min-width: 768px)',
-	mobile: 'screen and (max-width: 767px)'
-});
+if (browser) {
+	import('svelte-match-media').then(({ setup }) => {
+		setup({
+			desktop: 'screen and (min-width: 768px)',
+			mobile: 'screen and (max-width: 767px)'
+		});
+	});
+}

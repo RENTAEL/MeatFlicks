@@ -93,7 +93,6 @@ import { Loader2, RefreshCw } from '@lucide/svelte';
 	}
 
 	$effect(() => {
-		// Reset manual refresh promise when page data changes (navigation)
 		refreshPromise = null;
 	});
 	$effect(() => {
@@ -114,8 +113,8 @@ import { Loader2, RefreshCw } from '@lucide/svelte';
 </script>
 
 <SEOHead
-	title="MeatFlicks - Your Ultimate Free Streaming Platform"
-	description="Discover and stream your favorite movies and TV shows for free on MeatFlicks. Watch trending content, explore collections, and enjoy unlimited entertainment."
+	title="Streamium - Your Ultimate Streaming Universe"
+	description="Discover and stream your favorite movies and TV shows for free on Streamium. Watch trending content, explore collections, and enjoy unlimited entertainment."
 	canonical="/"
 	ogType="website"
 	keywords={[
@@ -129,11 +128,9 @@ import { Loader2, RefreshCw } from '@lucide/svelte';
 	]}
 />
 
-<div class="min-h-screen text-foreground">
+<div class="page-transition min-h-screen text-foreground">
 	<div class="mx-auto w-full py-2 pr-2 pl-0 sm:pr-2 sm:pl-0 lg:pr-2 lg:pl-0">
-		<main
-			class="flex min-h-[calc(100vh-2rem)] flex-col gap-12 overflow-hidden rounded-lg bg-card/80 shadow-xl backdrop-blur"
-		>
+		<main class="flex min-h-[calc(100vh-2rem)] flex-col gap-12 overflow-hidden rounded-2xl glass shadow-xl">
 			{#if homeLibraryPromise}
 				{#await homeLibraryPromise}
 					<HomePageSkeleton />

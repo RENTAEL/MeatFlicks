@@ -26,6 +26,7 @@
 
 	let searchHistory = $state(getSearchHistory(browser));
 	let showHistory = $state(false);
+	let isFocused = $state(false);
 
 	function handleQuickSearch(term: string) {
 		query = term;
@@ -45,7 +46,7 @@
 			Find something to watch right now
 		</h1>
 		<p class="max-w-2xl text-base text-muted-foreground sm:text-lg">
-			Search every movie, series, and anime available on MeatFlicks. Filter by quality, jump back
+			Search every movie, series, and anime available on Streamium. Filter by quality, jump back
 			into recent searches, and start streaming in seconds.
 		</p>
 	</div>
@@ -55,19 +56,26 @@
 			<SearchIcon
 				class="pointer-events-none absolute top-1/2 left-4 size-5 -translate-y-1/2 text-muted-foreground"
 			/>
-			<Input
-				type="search"
-				placeholder="Search titles, people, or keywords..."
-				class="h-12 w-full rounded-2xl border border-border/60 bg-background/60 pl-12 text-base shadow-sm focus-visible:border-primary focus-visible:ring-primary/40"
-				bind:value={query}
-				onkeydown={(e) => {
-					if (e.key === 'Enter') {
-						e.preventDefault();
-						handleQuickSearch(query);
-					}
-				}}
-				aria-label="Search the MeatFlicks library"
-			/>
+			<div
+				class="aurora-border rounded-2xl transition-all duration-300"
+				style={isFocused ? 'transform: scale(1.02);' : ''}
+			>
+				<Input
+					type="search"
+					placeholder="Search titles, people, or keywords..."
+					class="h-12 w-full rounded-2xl border-0 bg-background/60 pl-12 text-base shadow-sm backdrop-blur-md focus-visible:ring-2 focus-visible:ring-primary/40"
+					bind:value={query}
+					onfocus={() => (isFocused = true)}
+					onblur={() => (isFocused = false)}
+					onkeydown={(e) => {
+						if (e.key === 'Enter') {
+							e.preventDefault();
+							handleQuickSearch(query);
+						}
+					}}
+					aria-label="Search the Streamium library"
+				/>
+			</div>
 		</div>
 
 		{#if sortOptions.length > 0 && qualityOptions.length > 0}
@@ -114,7 +122,7 @@
 				type="button"
 				variant="secondary"
 				size="sm"
-				class="h-8 rounded-full border border-border/60 bg-background/70 px-3 text-xs font-medium hover:bg-background"
+				class="glass-light h-8 rounded-full px-3 text-xs font-medium hover:bg-background/60"
 				onclick={() => handleQuickSearch(item)}
 			>
 				{item}
@@ -137,7 +145,7 @@
 		</div>
 
 		{#if showHistory}
-			<div class="space-y-2 rounded-2xl border border-border/40 bg-background/50 p-4">
+			<div class="glass space-y-2 rounded-2xl p-4">
 				<div class="flex items-center justify-between text-sm font-medium text-foreground">
 					<span class="flex items-center gap-2">
 						<HistoryIcon class="size-4 text-muted-foreground" />
@@ -159,7 +167,7 @@
 							type="button"
 							variant="ghost"
 							size="sm"
-							class="h-8 rounded-full border border-transparent bg-background/80 px-3 text-xs font-medium text-foreground hover:border-border/40 hover:bg-background"
+							class="glass h-8 rounded-full px-3 text-xs font-medium text-foreground hover:bg-background/60"
 							onclick={() => handleQuickSearch(term)}
 						>
 							{term}

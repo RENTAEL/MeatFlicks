@@ -5,12 +5,21 @@
 		<meta name="viewport" content="width=device-width, initial-scale=1" />
 		<link rel="icon" href="/favicon.png" />
 		<link rel="manifest" href="/manifest.json" />
-		<meta name="theme-color" content="#030712" />
+		<meta name="theme-color" content="#0a0a1a" />
 		<link rel="apple-touch-icon" href="/favicon.png" />
-
+		<link rel="preconnect" href="https://fonts.googleapis.com" />
+		<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+		<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
 		%sveltekit.head%
 	</head>
 	<body data-sveltekit-preload-data="hover">
+		<div id="cosmic-bg">
+			<div id="nebula-1"></div>
+			<div id="nebula-2"></div>
+			<div id="nebula-3"></div>
+			<div id="stars-canvas"></div>
+			<div id="parallax-layer"></div>
+		</div>
 		<div style="display: contents">%sveltekit.body%</div>
 	</body>
 </html>

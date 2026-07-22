@@ -246,7 +246,7 @@ async function fetchItems(searchTerm: string, pageToLoad: number, isInitial = fa
 	const skeletonCount = $derived(items.length > 0 ? SKELETON_COUNT_MORE : SKELETON_COUNT_INITIAL);
 </script>
 
-<div class="min-h-screen pt-20">
+<div class="page-transition min-h-screen pt-20">
 	<main class="container mx-auto px-4 py-8">
 		<div class="flex flex-col gap-8 lg:flex-row">
 			<aside class="w-full shrink-0 lg:w-64 xl:w-80">

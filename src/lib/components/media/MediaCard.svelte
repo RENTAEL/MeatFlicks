@@ -51,9 +51,9 @@
 	rel="external"
 	href={movie ? detailsHref : '/'}
 	aria-label={movie ? `View details for ${movie.title}` : 'Loading movie'}
-	class="group relative h-72 w-48 cursor-pointer overflow-hidden rounded-xl transition-transform duration-300 ease-in-out hover:z-10 hover:scale-105 hover:shadow-lg"
+	class="card-cosmic group relative h-72 w-48 cursor-pointer overflow-hidden rounded-xl"
 >
-	<Card class="h-full w-full gap-0 overflow-hidden bg-background p-0">
+	<Card class="h-full w-full gap-0 overflow-hidden rounded-xl bg-background/40 p-0 shadow-lg shadow-purple-900/10 backdrop-blur-sm">
 		<div class="relative h-full w-full flex-1">
 			{#if movie?.posterPath}
 				<img
@@ -63,7 +63,7 @@
 					class="h-full w-full object-cover transition-opacity duration-400 ease-in-out"
 				/>
 			{:else if movie}
-				<div class="flex h-full w-full flex-1 items-center justify-center bg-muted">
+				<div class="flex h-full w-full flex-1 items-center justify-center bg-muted/50">
 					<span class="text-lg text-muted-foreground">No Image</span>
 				</div>
 			{:else}
@@ -72,27 +72,21 @@
 		</div>
 
 		{#if movie}
-			<div
-				class="absolute inset-0 p-4 opacity-0 transition-opacity duration-400 ease-in-out group-hover:opacity-100"
-			>
-				<div
-					class="absolute top-4 left-4 opacity-0 transition-opacity duration-400 ease-in-out group-hover:opacity-100"
-				>
-					<Badge variant="secondary" class="flex items-center gap-1 bg-black/70 text-white">
+			<div class="absolute inset-0 rounded-xl bg-linear-to-t from-background/90 via-background/20 to-transparent p-4 opacity-0 transition-all duration-400 ease-in-out group-hover:opacity-100">
+				<div class="absolute top-4 left-4 opacity-0 transition-opacity duration-400 ease-in-out group-hover:opacity-100">
+					<Badge variant="secondary" class="flex items-center gap-1 bg-black/70 text-white backdrop-blur-sm">
 						<Star class="size-4 text-yellow-500" fill="currentColor" stroke="currentColor" />
 						{movie.rating && typeof movie.rating === 'number' ? movie.rating.toFixed(1) : 'N/A'}
 					</Badge>
 				</div>
 
-				<div
-					class="absolute top-4 right-4 opacity-0 transition-all duration-400 ease-in-out group-hover:scale-100 group-hover:opacity-100"
-				>
+				<div class="absolute top-4 right-4 opacity-0 transition-all duration-400 ease-in-out group-hover:scale-100 group-hover:opacity-100">
 					<Button
 						type="button"
 						size="icon"
 						variant={isInWatchlist ? 'destructive' : 'secondary'}
 						onclick={handleWatchlistToggle}
-						class="size-8 rounded-full border border-border shadow-md backdrop-blur-sm"
+						class="glass size-8 rounded-full shadow-md"
 					>
 						{#if isInWatchlist}
 							<Minus class="size-4" />

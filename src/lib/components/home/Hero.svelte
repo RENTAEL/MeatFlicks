@@ -253,10 +253,8 @@
 </script>
 
 {#if hasSlides && activeMovie}
-	<!-- svelte-ignore a11y_no_noninteractive_tabindex -->
-	<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
 	<section
-		class="relative min-h-[60vh] overflow-hidden border-0 bg-black p-0 outline-none md:min-h-[65vh] lg:min-h-[70vh]"
+		class="relative min-h-[60vh] overflow-hidden rounded-2xl border-0 p-0 outline-none md:min-h-[65vh] lg:min-h-[70vh]"
 		aria-label="Featured content spotlight"
 		tabindex="0"
 		onkeydown={handleKeydown}
@@ -285,12 +283,8 @@
 				{/if}
 			{/each}
 
-			<div
-				class="absolute inset-0 rounded-lg bg-linear-to-t from-background via-background/60 to-transparent"
-			></div>
-			<div
-				class="absolute inset-0 bg-linear-to-r from-background/90 via-transparent to-transparent"
-			></div>
+			<div class="absolute inset-0 rounded-2xl bg-linear-to-t from-background via-background/60 to-transparent"></div>
+			<div class="absolute inset-0 rounded-2xl bg-linear-to-r from-background/90 via-transparent to-transparent"></div>
 
 			{#if isMultiSlide}
 				<div class="absolute top-8 right-[5%] z-20 flex items-center gap-2">
@@ -299,7 +293,7 @@
 							type="button"
 							variant="secondary"
 							size="icon"
-							class="rounded-full border border-foreground/20 bg-background/50 text-foreground shadow-sm backdrop-blur transition-colors hover:border-primary/40 hover:text-primary"
+							class="glass-light rounded-full text-foreground shadow-sm transition-colors hover:border-primary/40 hover:text-primary"
 							onclick={toggleAutoplay}
 							aria-pressed={isAutoPlaying}
 							aria-label={isAutoPlaying ? 'Pause autoplay' : 'Resume autoplay'}
@@ -320,7 +314,7 @@
 					type="button"
 					variant="secondary"
 					size="icon"
-					class="absolute top-1/2 left-[3%] hidden -translate-y-1/2 rounded-full border border-foreground/20 bg-background/60 text-foreground shadow-lg backdrop-blur transition hover:border-primary/40 hover:text-primary md:flex"
+					class="glass-light absolute top-1/2 left-[3%] hidden -translate-y-1/2 rounded-full text-foreground shadow-lg transition hover:border-primary/40 hover:text-primary md:flex"
 					onclick={showPrevious}
 					aria-label="Previous slide (Left arrow)"
 					title="Previous slide (Left arrow)"
@@ -332,7 +326,7 @@
 					type="button"
 					variant="secondary"
 					size="icon"
-					class="absolute top-1/2 right-[3%] hidden -translate-y-1/2 rounded-full border border-foreground/20 bg-background/60 text-foreground shadow-lg backdrop-blur transition hover:border-primary/40 hover:text-primary md:flex"
+					class="glass-light absolute top-1/2 right-[3%] hidden -translate-y-1/2 rounded-full text-foreground shadow-lg transition hover:border-primary/40 hover:text-primary md:flex"
 					onclick={showNext}
 					aria-label="Next slide (Right arrow)"
 					title="Next slide (Right arrow)"
@@ -344,7 +338,7 @@
 			<div class="relative z-10 flex h-full items-end px-[10%] py-12">
 				{#key activeMovie.id}
 					<div in:fly={{ y: 20, duration: 600, delay: 300 }}>
-						<CardContent class="max-w-2xl space-y-6 px-0 text-foreground">
+						<CardContent class="glass max-w-2xl space-y-6 rounded-2xl p-8 text-foreground">
 							<CardHeader class="space-y-4 px-0">
 								<CardTitle class="text-4xl leading-tight font-bold sm:text-5xl">
 									{activeMovie.title}
@@ -395,7 +389,7 @@
 									variant={isInWatchlist ? 'destructive' : 'secondary'}
 									onclick={handleWatchlistToggle}
 									aria-label={isInWatchlist ? 'Remove from watchlist' : 'Add to watchlist'}
-									class="size-11 cursor-pointer rounded-full border border-foreground/20 bg-background/40 text-foreground backdrop-blur transition-transform duration-300 hover:-translate-y-0.5"
+									class="glass size-11 cursor-pointer rounded-full text-foreground transition-transform duration-300 hover:-translate-y-0.5"
 								>
 									{#if isInWatchlist}
 										<Check class="size-4" aria-hidden="true" />
@@ -435,8 +429,8 @@
 							aria-label={`Go to slide ${index + 1}`}
 							class={`group flex max-w-56 items-center gap-2 rounded-full px-4 py-1 text-xs font-semibold tracking-wide uppercase backdrop-blur transition-colors duration-300 ${
 								index === activeIndex
-									? 'bg-background/70 text-primary shadow-sm'
-									: 'bg-background/40 text-foreground/80 hover:text-foreground'
+									? 'glass-strong text-primary shadow-sm'
+									: 'glass-light text-foreground/80 hover:text-foreground'
 							}`}
 							onclick={() => goToSlide(index)}
 						>
@@ -456,7 +450,7 @@
 	</section>
 {:else}
 	<Card
-		class="relative flex min-h-[50vh] items-center justify-center overflow-hidden border-0 bg-linear-to-br from-background via-background/90 to-background px-[5%] py-24 text-center text-foreground/70"
+		class="glass relative flex min-h-[50vh] items-center justify-center overflow-hidden rounded-2xl border-0 px-[5%] py-24 text-center text-foreground/70"
 	>
 		<div class="space-y-3">
 			<h2 class="text-3xl font-semibold">Stay tuned</h2>
@@ -469,14 +463,9 @@
 
 <style>
 	@keyframes ken-burns {
-		0% {
-			transform: scale(1);
-		}
-		100% {
-			transform: scale(1.15);
-		}
+		0% { transform: scale(1); }
+		100% { transform: scale(1.15); }
 	}
-
 	.animate-ken-burns {
 		animation: ken-burns 20s ease-out infinite alternate;
 		will-change: transform;

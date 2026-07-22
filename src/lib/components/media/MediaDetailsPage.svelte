@@ -441,7 +441,7 @@
 	<SEOHead
 		title={movie.title}
 		description={movie.overview ||
-			`Watch ${movie.title} on MeatFlicks - Free streaming of movies and TV shows`}
+			`Watch ${movie.title} on Streamium - Free streaming of movies and TV shows`}
 		canonical={canonicalPath ?? undefined}
 		ogType={mediaType === 'tv' || mediaType === 'anime' ? 'video.tv_show' : 'video.movie'}
 		ogImage={ogImage ?? undefined}
@@ -467,7 +467,7 @@
 		<p class="text-lg">{notFoundDescription}</p>
 	</div>
 {:else}
-	<div class="min-h-screen bg-background text-foreground">
+	<div class="page-transition min-h-screen text-foreground">
 		<main class="mx-auto">
 			<MediaHeader
 				{movie}

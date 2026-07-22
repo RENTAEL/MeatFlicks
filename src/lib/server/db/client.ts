@@ -10,78 +10,82 @@ import { sql } from 'drizzle-orm';
 let clientInstance: Client | null = null;
 let dbInstance: LibSQLDatabase<typeof schema> | null = null;
 let connectionAttempts = 0;
-const MAX_CONNECTION_ATTEMPTS = 3;
+let initFailed = false;
+const MAX_CONNECTION_ATTEMPTS = 1;
 
 const resolveDatabasePath = () => {
-	const target = env.SQLITE_DB_PATH;
+	let target = env.SQLITE_DB_PATH;
+	if (process.env.VERCEL === '1') {
+		target = '/tmp/streamium.db';
+	}
 	const absPath = isAbsolute(target) ? target : resolve(process.cwd(), target);
 	return `file:${absPath}`;
 };
 
 const ensureDirectory = (dbPath: string) => {
-	const folder = dirname(dbPath.replace(/^file:/, ''));
-	mkdirSync(folder, { recursive: true });
+	try {
+		const folder = dirname(dbPath.replace(/^file:/, ''));
+		mkdirSync(folder, { recursive: true });
+	} catch {
+	}
 };
 
 const runInitSql = async (client: Client) => {
 	try {
-		// Performance pragmas
 		await client.execute('PRAGMA journal_mode = WAL');
 		await client.execute('PRAGMA synchronous = NORMAL');
-		await client.execute('PRAGMA cache_size = -64000'); // 64MB cache
+		await client.execute('PRAGMA cache_size = -64000');
 		await client.execute('PRAGMA foreign_keys = ON');
 
-		await client.executeMultiple(`
-			CREATE TABLE IF NOT EXISTS schema_info (key TEXT PRIMARY KEY, value TEXT NOT NULL);
+		await client.execute(`CREATE TABLE IF NOT EXISTS media (
+			"numericId" INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+			"id" TEXT NOT NULL,
+			"tmdbId" INTEGER NOT NULL,
+			"imdbId" TEXT, "title" TEXT NOT NULL,
+			"overview" TEXT, "posterPath" TEXT, "backdropPath" TEXT,
+			"releaseDate" TEXT, "rating" REAL, "durationMinutes" INTEGER,
+			"is4K" INTEGER NOT NULL DEFAULT 0, "isHD" INTEGER NOT NULL DEFAULT 0,
+			"language" TEXT, "popularity" REAL, "collectionId" INTEGER,
+			"trailerUrl" TEXT, "canonicalPath" TEXT, "addedAt" INTEGER,
+			"mediaType" TEXT NOT NULL DEFAULT 'movie',
+			"streamingProviders" TEXT, "status" TEXT,
+			"numberOfSeasons" INTEGER, "numberOfEpisodes" INTEGER,
+			"productionCompanies" TEXT,
+			"createdAt" INTEGER NOT NULL, "updatedAt" INTEGER NOT NULL
+		)`);
+		try { await client.execute('CREATE UNIQUE INDEX IF NOT EXISTS idx_media_id ON media("id")'); } catch {}
+		try { await client.execute('CREATE UNIQUE INDEX IF NOT EXISTS idx_media_tmdbId ON media("tmdbId")'); } catch {}
+		try { await client.execute('CREATE INDEX IF NOT EXISTS idx_media_rating ON media("rating")'); } catch {}
+		try { await client.execute('CREATE INDEX IF NOT EXISTS idx_media_mediaType ON media("mediaType")'); } catch {}
+		try { await client.execute('CREATE INDEX IF NOT EXISTS idx_media_popularity ON media("popularity")'); } catch {}
+		try { await client.execute('CREATE INDEX IF NOT EXISTS idx_media_releaseDate ON media("releaseDate")'); } catch {}
 
-			CREATE VIRTUAL TABLE IF NOT EXISTS movie_fts USING fts5(
-				title,
-				overview,
-				mediaId UNINDEXED
-			);
+		await client.execute(`CREATE TABLE IF NOT EXISTS genres (
+			"id" INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+			"name" TEXT NOT NULL UNIQUE
+		)`);
 
-			CREATE TRIGGER IF NOT EXISTS media_ai AFTER INSERT ON media BEGIN
-				INSERT INTO movie_fts(rowid, title, overview, mediaId)
-				VALUES (new.numericId, new.title, coalesce(new.overview, ''), new.id);
-			END;
+		await client.execute(`CREATE TABLE IF NOT EXISTS collections (
+			"id" INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+			"name" TEXT NOT NULL UNIQUE,
+			"slug" TEXT NOT NULL UNIQUE,
+			"description" TEXT
+		)`);
 
-			CREATE TRIGGER IF NOT EXISTS media_ad AFTER DELETE ON media BEGIN
-				INSERT INTO movie_fts(movie_fts, rowid, title, overview, mediaId)
-				VALUES ('delete', old.numericId, old.title, coalesce(old.overview, ''), old.id);
-			END;
+		await client.execute(`CREATE TABLE IF NOT EXISTS cache (
+			"key" TEXT PRIMARY KEY NOT NULL,
+			"data" TEXT NOT NULL,
+			"expiresAt" INTEGER NOT NULL
+		)`);
 
-			CREATE TRIGGER IF NOT EXISTS media_au AFTER UPDATE ON media BEGIN
-				INSERT INTO movie_fts(movie_fts, rowid, title, overview, mediaId)
-				VALUES ('delete', old.numericId, old.title, coalesce(old.overview, ''), old.id);
-				INSERT INTO movie_fts(rowid, title, overview, mediaId)
-				VALUES (new.numericId, new.title, coalesce(new.overview, ''), new.id);
-			END;
-
-			CREATE TRIGGER IF NOT EXISTS media_set_updated_at
-			AFTER UPDATE ON media
-			BEGIN
-				UPDATE media
-				SET updatedAt = (strftime('%s','now') * 1000)
-				WHERE numericId = new.numericId;
-			END;
-
-			INSERT INTO movie_fts(movie_fts) VALUES('rebuild');
-		`);
-
-		// Optimization
 		await client.execute('PRAGMA optimize');
 
-		logger.info('Database initialization and optimization completed successfully');
+		logger.info('Database initialization completed successfully');
 	} catch (err) {
-		logger.error({ err }, 'Failed to initialize database extensions');
-		throw err;
+		logger.warn({ err }, 'Database init SQL warning (non-fatal)');
 	}
 };
 
-/**
- * Runs background maintenance on the database.
- * Should be called occasionally or on app start.
- */
 export const runMaintenance = async () => {
 	if (!clientInstance) return;
 	try {
@@ -95,109 +99,65 @@ export const runMaintenance = async () => {
 };
 
 const createDatabaseClient = (): Client => {
-	try {
-		const url = resolveDatabasePath();
-		ensureDirectory(url);
-
-		const client = createClient({
-			url
-		});
-
-		client.execute('PRAGMA busy_timeout = 30000');
-
-		return client;
-	} catch (error) {
-		logger.error({ error }, 'Failed to create database client');
-		throw error;
-	}
+	if (initFailed) throw new Error('Previous DB init failed');
+	const url = resolveDatabasePath();
+	ensureDirectory(url);
+	const client = createClient({ url });
+	client.execute('PRAGMA busy_timeout = 30000');
+	runInitSql(client).catch((e) => logger.warn({ error: e }, 'Init SQL warning'));
+	return client;
 };
 
-const getDatabaseClient = (): Client => {
-	if (clientInstance) {
-		return clientInstance;
-	}
-
-	let lastError: unknown;
+export function getClient(): Client {
+	if (clientInstance) return clientInstance;
+	if (initFailed) throw new Error('DB unavailable');
 
 	while (connectionAttempts < MAX_CONNECTION_ATTEMPTS) {
 		try {
 			connectionAttempts++;
 			clientInstance = createDatabaseClient();
-			runInitSql(clientInstance);
 			connectionAttempts = 0;
 			return clientInstance;
 		} catch (error) {
-			lastError = error;
-			logger.warn(
-				{
-					attempt: connectionAttempts,
-					maxAttempts: MAX_CONNECTION_ATTEMPTS,
-					error: error instanceof Error ? error.message : String(error)
-				},
-				'Database client creation failed, retrying...'
-			);
+			initFailed = true;
+			logger.error({ error }, 'DB init failed, will be unavailable');
+			throw error;
 		}
 	}
+	throw new Error('DB unavailable');
+}
 
-	logger.error({ error: lastError }, 'Failed to create database client after all retry attempts');
-	throw lastError;
-};
-
-const getDatabaseInstance = (): LibSQLDatabase<typeof schema> => {
-	if (dbInstance) {
-		return dbInstance;
-	}
-
-	try {
-		const client = getDatabaseClient();
-		dbInstance = drizzle(client, { schema });
-		return dbInstance;
-	} catch (error) {
-		logger.error({ error }, 'Failed to get database instance');
-		throw error;
-	}
-};
+export function getDB(): LibSQLDatabase<typeof schema> {
+	if (dbInstance) return dbInstance;
+	const c = getClient();
+	dbInstance = drizzle(c, { schema });
+	return dbInstance;
+}
 
 export const executeWithRetry = async <T>(
 	operation: () => Promise<T>,
-	maxAttempts: number = 3,
+	maxAttempts: number = 1,
 	delay: number = 1000
 ): Promise<T> => {
-	let lastError: unknown;
-
-	for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-		try {
-			return await operation();
-		} catch (error) {
-			lastError = error;
-			logger.warn(
-				{ attempt, maxAttempts, error: error instanceof Error ? error.message : String(error) },
-				'Database operation failed, retrying...'
-			);
-
-			if (attempt < maxAttempts) {
-				await new Promise((resolve) => setTimeout(resolve, delay));
-			}
-		}
-	}
-
-	logger.error({ error: lastError }, 'Database operation failed after retries');
-	throw lastError;
+	return await operation();
 };
 
 export const checkDatabaseHealth = async (): Promise<boolean> => {
 	try {
-		const db = getDatabaseInstance();
+		const db = getDB();
 		await db.all(sql`SELECT 1`);
 		return true;
-	} catch (error) {
-		logger.error({ error }, 'Database health check failed');
+	} catch {
 		return false;
 	}
 };
 
-export const client: Client = getDatabaseClient();
-export const db: LibSQLDatabase<typeof schema> = getDatabaseInstance();
-export const sqlite = client;
+export function isDbReady(): boolean {
+	return clientInstance !== null && !initFailed;
+}
 
+import { createDbProxy } from './db-proxy';
+
+const { client, db, sqlite } = createDbProxy(getClient, getDB);
+export { client, db, sqlite };
 export default db;
