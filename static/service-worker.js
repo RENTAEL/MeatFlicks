@@ -41,12 +41,13 @@ self.addEventListener('install', (event) => {
 });
 
 self.addEventListener('activate', (event) => {
+	const currentCaches = [STATIC_CACHE, API_CACHE, IMAGE_CACHE];
 	event.waitUntil(
 		Promise.all([
 			caches.keys().then((cacheNames) => {
 				return Promise.all(
 					cacheNames
-						.filter((name) => !name.startsWith('meatflicks-'))
+						.filter((name) => !currentCaches.includes(name))
 						.map((name) => {
 							console.log('[SW] Deleting old cache:', name);
 							return caches.delete(name);
@@ -54,9 +55,7 @@ self.addEventListener('activate', (event) => {
 				);
 			}),
 			self.clients.claim()
-		]).then(() => {
-			// Ignore
-		})
+		])
 	);
 });
 
