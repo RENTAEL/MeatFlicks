@@ -4,13 +4,13 @@ import { searchHistoryRepository } from '$lib/server/repositories/search-history
 import type { MovieFilters } from '$lib/types/filters';
 import { z } from 'zod';
 import { validateRequestBody } from '$lib/server/validation';
-import { errorHandler, UnauthorizedError } from '$lib/server';
+import { errorHandler } from '$lib/server';
 
 export const GET: RequestHandler = async ({ locals }) => {
 	try {
 		const user = locals.user;
 		if (!user) {
-			throw new UnauthorizedError('User must be logged in to view search history');
+			return json({ searches: [] });
 		}
 
 		const limit = 10;
@@ -26,7 +26,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 	try {
 		const user = locals.user;
 		if (!user) {
-			throw new UnauthorizedError('User must be logged in to save search history');
+			return json({ success: false });
 		}
 
 		const body = await request.json();
@@ -55,7 +55,7 @@ export const DELETE: RequestHandler = async ({ request, locals }) => {
 	try {
 		const user = locals.user;
 		if (!user) {
-			throw new UnauthorizedError('User must be logged in to delete search history');
+			return json({ success: false });
 		}
 
 		const body = await request.json().catch(() => ({}));

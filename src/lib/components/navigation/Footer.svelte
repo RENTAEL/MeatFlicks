@@ -1,8 +1,10 @@
 <script lang="ts">
 	import { Separator } from '$lib/components/ui/separator';
+
+	let { class: className = '' }: { class?: string } = $props();
 </script>
 
-<footer class="bg-background/30 px-12 pt-12 backdrop-blur-sm transition-colors duration-400">
+<footer class="bg-background/30 px-12 pt-12 backdrop-blur-sm transition-colors duration-400 {className}">
 	<Separator class="mb-6 bg-border/50" />
 
 	<p class="py-4 text-center text-sm text-muted-foreground">

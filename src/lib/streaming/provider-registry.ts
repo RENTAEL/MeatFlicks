@@ -2,11 +2,13 @@ import type { StreamingProvider, StreamingProviderContext, StreamingSource } fro
 import { primaryProvider } from './providers/primary';
 import { secondaryProvider } from './providers/secondary';
 import { tertiaryProvider } from './providers/tertiary';
+import { superEmbedProvider } from './providers/superembed';
 
 const providers: StreamingProvider[] = [
 	tertiaryProvider, // vidlink - priority 40
 	primaryProvider, // vidsrc - priority 30
-	secondaryProvider // hnembed - priority 25
+	secondaryProvider, // 2embed/hnembed - priority 25
+	superEmbedProvider // superembed/autoembed/multiembed - priority 20
 ];
 
 function orderProviders(

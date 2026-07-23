@@ -2,6 +2,7 @@
 	import '../../app.css';
 
 	import AppShell from '$lib/components/navigation/Sidebar.svelte';
+	import BottomNav from '$lib/components/navigation/BottomNav.svelte';
 	import Footer from '$lib/components/navigation/Footer.svelte';
 	import GlobalErrorDisplay from '$lib/components/global/GlobalErrorDisplay.svelte';
 	import { NotificationPortal } from '$lib/components/global';
@@ -11,8 +12,11 @@
 	import ErrorContext from '$lib/state/contexts/ErrorContext.svelte';
 	import { ModeWatcher } from 'mode-watcher';
 	import { onMount } from 'svelte';
+	import { setupCloudSync } from '$lib/firebase/sync';
 
 	onMount(() => {
+		const cleanup = setupCloudSync();
+
 		if ('serviceWorker' in navigator) {
 			navigator.serviceWorker
 				.register('/service-worker.js')
@@ -21,6 +25,8 @@
 					console.error('Service Worker registration failed:', error);
 				});
 		}
+
+		return () => cleanup();
 	});
 </script>
 
@@ -55,10 +61,11 @@
 							></div>
 						{/each}
 					</div>
-					<div class="relative z-10 flex-1">
+					<div class="relative z-10 flex-1 pb-16 md:pb-0">
 						<slot />
 					</div>
-					<Footer class="relative z-10" />
+					<BottomNav />
+					<Footer class="relative z-10 hidden md:block" />
 				</div>
 			</AppShell>
 			<GlobalErrorDisplay />

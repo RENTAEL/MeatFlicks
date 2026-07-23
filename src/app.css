@@ -114,6 +114,9 @@
 	--animate-float-up: float-up 12s linear infinite;
 	--animate-aurora: aurora 3s ease-in-out infinite alternate;
 	--animate-fade-in-up: fade-in-up 0.6s ease-out forwards;
+	--animate-shimmer: shimmer 2s infinite linear;
+	--animate-scale-in: scale-in 0.3s ease-out forwards;
+	--animate-slide-up-fade: slide-up-fade 0.5s ease-out forwards;
 }
 
 @layer base {
@@ -288,6 +291,26 @@
 	0% { opacity: 0; transform: translateY(10px); }
 	100% { opacity: 1; transform: translateY(0); }
 }
+@keyframes shimmer {
+	0% { background-position: -200% 0; }
+	100% { background-position: 200% 0; }
+}
+@keyframes scale-in {
+	0% { opacity: 0; transform: scale(0.95); }
+	100% { opacity: 1; transform: scale(1); }
+}
+@keyframes slide-up-fade {
+	0% { opacity: 0; transform: translateY(16px); }
+	100% { opacity: 1; transform: translateY(0); }
+}
+@keyframes pulse-dot {
+	0%, 100% { opacity: 0.4; transform: scale(1); }
+	50% { opacity: 1; transform: scale(1.3); }
+}
+@keyframes video-fade-in {
+	0% { opacity: 0; }
+	100% { opacity: 1; }
+}
 
 .glass {
 	background: oklch(0.08 0.04 270 / 0.35);
@@ -326,8 +349,71 @@
 		0 10px 40px oklch(0 0 0 / 0.3);
 }
 
+.shimmer {
+	background: linear-gradient(
+		90deg,
+		oklch(0.12 0.04 270 / 0.4) 0%,
+		oklch(0.2 0.06 280 / 0.6) 50%,
+		oklch(0.12 0.04 270 / 0.4) 100%
+	);
+	background-size: 200% 100%;
+	animation: shimmer 2s infinite linear;
+}
+
+.blur-up {
+	filter: blur(20px);
+	transition: filter 0.4s ease-out, opacity 0.4s ease-out;
+	opacity: 0.8;
+}
+.blur-up.loaded {
+	filter: blur(0);
+	opacity: 1;
+}
+
+.video-fade-in {
+	animation: video-fade-in 0.5s ease-out forwards;
+}
+
+.pulse-dot {
+	animation: pulse-dot 2s ease-in-out infinite;
+}
+
 .page-transition {
 	animation: fade-in-up 0.5s ease-out forwards;
+}
+
+.hover-lift {
+	transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275), box-shadow 0.3s ease;
+}
+.hover-lift:hover {
+	transform: translateY(-4px);
+	box-shadow: 0 8px 30px oklch(0 0 0 / 0.3);
+}
+
+.card-glow {
+	transition: box-shadow 0.4s ease, transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+.card-glow:hover {
+	box-shadow:
+		0 0 25px oklch(0.6 0.2 300 / 0.35),
+		0 0 60px oklch(0.5 0.18 280 / 0.15),
+		0 15px 50px oklch(0 0 0 / 0.4);
+	transform: translateY(-8px) scale(1.04);
+}
+
+.scrollbar-thin::-webkit-scrollbar {
+	height: 6px;
+	width: 6px;
+}
+.scrollbar-thin::-webkit-scrollbar-track {
+	background: transparent;
+}
+.scrollbar-thin::-webkit-scrollbar-thumb {
+	background: oklch(0.6 0.15 300 / 0.3);
+	border-radius: 9999px;
+}
+.scrollbar-thin::-webkit-scrollbar-thumb:hover {
+	background: oklch(0.6 0.15 300 / 0.5);
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -336,5 +422,64 @@
 	[class*="animate-"] {
 		animation: none !important;
 		transition: none !important;
+	}
+}
+
+@media (max-width: 767px) {
+	:root {
+		--radius: 0.5rem;
+	}
+	.glass {
+		background: oklch(0.08 0.04 270 / 0.5);
+		backdrop-filter: blur(12px);
+	}
+	.media-card .card-inner {
+		width: 160px !important;
+		height: 240px !important;
+	}
+	.media-card .card-inner.expanded {
+		width: 260px !important;
+	}
+	h1 { font-size: 1.75rem !important; }
+	h2 { font-size: 1.35rem !important; }
+	.page-transition { animation-duration: 0.3s; }
+	#cosmic-bg { background: oklch(0.02 0.04 270); }
+	#nebula-1, #nebula-2, #nebula-3 { opacity: 0.5; }
+	.shimmer {
+		background: linear-gradient(
+			90deg,
+			oklch(0.12 0.06 270 / 0.3) 0%,
+			oklch(0.2 0.08 280 / 0.5) 50%,
+			oklch(0.12 0.06 270 / 0.3) 100%
+		);
+		background-size: 200% 100%;
+	}
+	.mobile-full {
+		margin-left: calc(-1 * 5%);
+		margin-right: calc(-1 * 5%);
+		width: calc(100% + 10%);
+		border-radius: 0;
+	}
+	.mobile-stack {
+		flex-direction: column !important;
+	}
+	.mobile-text-sm { font-size: 0.875rem !important; }
+	.mobile-p-4 { padding: 1rem !important; }
+	.snap-scroll {
+		scroll-snap-type: x mandatory;
+		-webkit-overflow-scrolling: touch;
+	}
+	.snap-scroll > * {
+		scroll-snap-align: start;
+	}
+	.safe-bottom {
+		padding-bottom: max(1rem, env(safe-area-inset-bottom));
+	}
+}
+
+@media (min-width: 768px) and (max-width: 1023px) {
+	.media-card .card-inner {
+		width: 200px !important;
+		height: 300px !important;
 	}
 }

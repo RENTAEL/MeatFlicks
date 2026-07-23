@@ -356,7 +356,15 @@ export const libraryRepository = {
 			};
 		} catch (error) {
 			console.error('Error finding media with filters:', error);
-			throw new Error('Failed to find media with filters');
+			return {
+				items: [],
+				pagination: {
+					page: pagination.page,
+					pageSize: pagination.pageSize,
+					totalItems: 0,
+					totalPages: 0
+				}
+			};
 		}
 	},
 

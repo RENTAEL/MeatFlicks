@@ -91,6 +91,25 @@
 
 	const runtimeLabel = $derived(getRuntimeLabel());
 
+	const defaultProviders = [
+		{ providerId: 'vidlink', label: 'VidLink', success: true },
+		{ providerId: 'vidsrc', label: 'VidSrc', success: true },
+		{ providerId: '2embed', label: '2Embed', success: true },
+		{ providerId: 'superembed', label: 'SuperEmbed', success: true },
+		{ providerId: 'autoembed', label: 'AutoEmbed', success: true },
+		{ providerId: 'multiembed', label: 'MultiEmbed', success: true }
+	];
+
+	type BasicProvider = { providerId: string; label?: string; success?: boolean };
+	let allProviders = $derived.by(() => {
+		const existing = providers as BasicProvider[];
+		if (existing.length > 0) {
+			const existingIds = new Set(existing.map((p) => p.providerId));
+			return [...existing, ...defaultProviders.filter((dp) => !existingIds.has(dp.providerId))];
+		}
+		return defaultProviders;
+	});
+
 	let showFullOverview = $state(false);
 
 	function toggleOverview() {
@@ -181,17 +200,13 @@
 								</Button>
 							</DropdownMenu.Trigger>
 							<DropdownMenu.Content align="start" class="glass-strong w-56 border-border/50">
-								{#if providers.length > 0}
-									<DropdownMenu.Label>Select Provider</DropdownMenu.Label>
-									<DropdownMenu.Separator />
-									{#each providers as provider (provider.providerId)}
-										<DropdownMenu.Item onclick={() => onProviderSelect?.(provider.providerId)}>
-											{provider.providerId.charAt(0).toUpperCase() + provider.providerId.slice(1)}
-										</DropdownMenu.Item>
-									{/each}
-								{:else}
-									<DropdownMenu.Item disabled>No providers available</DropdownMenu.Item>
-								{/if}
+								<DropdownMenu.Label>Select Provider</DropdownMenu.Label>
+								<DropdownMenu.Separator />
+								{#each allProviders as provider (provider.providerId)}
+									<DropdownMenu.Item onclick={() => onProviderSelect?.(provider.providerId)}>
+										{provider.label ?? (provider.providerId.charAt(0).toUpperCase() + provider.providerId.slice(1))}
+									</DropdownMenu.Item>
+								{/each}
 							</DropdownMenu.Content>
 						</DropdownMenu.Root>
 

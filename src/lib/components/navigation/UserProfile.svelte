@@ -4,53 +4,28 @@
 	import { SidebarMenuButton } from '$lib/components/ui/sidebar';
 	import { Button } from '$lib/components/ui/button';
 	import { Separator } from '$lib/components/ui/separator';
-	import { History, Bookmark, Settings, LogIn, LogOut } from '@lucide/svelte';
-	import { onMount } from 'svelte';
+	import { History, Bookmark, Settings, LogIn, LogOut, User } from '@lucide/svelte';
 	import { goto } from '$app/navigation';
-	import { page } from '$app/state';
+	import { authStore } from '$lib/state/stores/authStore.svelte';
+	import AuthModal from '$lib/components/auth/AuthModal.svelte';
 
 	let { onOpenSettings } = $props<{ onOpenSettings: () => void }>();
 
-	let pfpUrl = $state('');
-	type UserRecord = Record<string, unknown> | null | undefined;
-	const resolveDisplayName = (user: UserRecord) => {
-		if (!user) return 'Guest';
-		const candidate =
-			(typeof user.name === 'string' && user.name) ||
-			(typeof user.username === 'string' && user.username) ||
-			(typeof user.email === 'string' && user.email);
-		return candidate || 'User';
-	};
+	let showAuthModal = $state(false);
 
-	onMount(() => {
-		const storedPfp = localStorage.getItem('userParams');
-		if (storedPfp) {
-			try {
-				const data = JSON.parse(storedPfp);
-				if (data.avatar) pfpUrl = data.avatar;
-			} catch (e) {
-				console.error('Error parsing user data', e);
-			}
-		}
-
-		if (!pfpUrl) {
-			const seed = Math.random().toString(36).substring(7);
-			pfpUrl = `https://api.dicebear.com/9.x/avataaars/svg?seed=${seed}`;
-			localStorage.setItem('userParams', JSON.stringify({ avatar: pfpUrl }));
-		}
-	});
+	const currentUser = $derived(authStore.state.user);
+	const isLoggedIn = $derived(Boolean(currentUser));
+	const displayName = $derived(currentUser?.displayName || currentUser?.email?.split('@')[0] || 'User');
+	const avatarUrl = $derived(currentUser?.photoURL || `https://api.dicebear.com/9.x/avataaars/svg?seed=${currentUser?.email || 'guest'}`);
 
 	async function handleNavigate(path: string) {
-		const getResolvedPath = (p: string) => (p.startsWith('/') ? p : `/${p}`);
-		// eslint-disable-next-line svelte/no-navigation-without-resolve
-		await goto(getResolvedPath(path));
+		await goto(path.startsWith('/') ? path : `/${path}`);
 	}
 </script>
 
+<AuthModal open={showAuthModal} onClose={() => (showAuthModal = false)} />
+
 <Popover.Root>
-	{@const currentUser = page.data.user as UserRecord}
-	{@const isAuthenticated = Boolean(currentUser)}
-	{@const displayName = resolveDisplayName(currentUser)}
 	<Popover.Trigger>
 		{#snippet child({ props })}
 			<SidebarMenuButton
@@ -58,8 +33,10 @@
 				class="h-12 w-12 overflow-hidden rounded-full p-0 hover:bg-transparent data-[state=open]:bg-transparent"
 			>
 				<Avatar.Root class="h-12 w-12 cursor-pointer transition-transform hover:scale-105">
-					<Avatar.Image src={pfpUrl} alt="User" />
-					<Avatar.Fallback>HU</Avatar.Fallback>
+					<Avatar.Image src={avatarUrl} alt={displayName} />
+					<Avatar.Fallback>
+						<User class="size-5" />
+					</Avatar.Fallback>
 				</Avatar.Root>
 			</SidebarMenuButton>
 		{/snippet}
@@ -67,12 +44,12 @@
 	<Popover.Content side="right" align="end" class="w-56 p-2">
 		<div class="mb-2 flex items-center gap-2 p-2">
 			<Avatar.Root class="h-8 w-8">
-				<Avatar.Image src={pfpUrl} alt="User" />
-				<Avatar.Fallback>HU</Avatar.Fallback>
+				<Avatar.Image src={avatarUrl} alt={displayName} />
+				<Avatar.Fallback>U</Avatar.Fallback>
 			</Avatar.Root>
 			<div class="flex flex-col">
 				<span class="text-sm font-medium">{displayName}</span>
-				{#if isAuthenticated}
+				{#if isLoggedIn}
 					<span class="text-xs text-muted-foreground">Signed in</span>
 				{:else}
 					<span class="text-xs text-muted-foreground">Sign in to sync</span>
@@ -80,45 +57,37 @@
 			</div>
 		</div>
 
-		{#if !isAuthenticated}
+		{#if isLoggedIn}
+			<Button variant="ghost" class="mb-1 w-full justify-start" size="sm" onclick={() => handleNavigate('/profile')}>
+				<User class="mr-2 h-4 w-4" />
+				Profile
+			</Button>
+		{/if}
+
+		{#if !isLoggedIn}
 			<Button
 				variant="default"
 				class="mb-2 w-full justify-start"
 				size="sm"
-				onclick={() => handleNavigate('/login')}
+				onclick={() => (showAuthModal = true)}
 			>
 				<LogIn class="mr-2 h-4 w-4" />
-				Login
+				Sign In
 			</Button>
 		{:else}
-			<form method="post" action="/auth/logout" class="mb-2 w-full">
-					{#if page.data.csrfToken}
-						<input type="hidden" name="csrf_token" value={page.data.csrfToken} />
-					{/if}
-				<Button variant="ghost" class="w-full justify-start" size="sm" type="submit">
-					<LogOut class="mr-2 h-4 w-4" />
-					Logout
-				</Button>
-			</form>
+			<Button variant="ghost" class="mb-2 w-full justify-start" size="sm" onclick={() => authStore.logout()}>
+				<LogOut class="mr-2 h-4 w-4" />
+				Sign Out
+			</Button>
 		{/if}
 		<Separator class="my-2" />
 
 		<div class="grid gap-1">
-			<Button
-				variant="ghost"
-				class="w-full justify-start text-foreground"
-				size="sm"
-				onclick={() => handleNavigate('/history')}
-			>
+			<Button variant="ghost" class="w-full justify-start text-foreground" size="sm" onclick={() => handleNavigate('/history')}>
 				<History class="mr-2 h-4 w-4" />
 				History
 			</Button>
-			<Button
-				variant="ghost"
-				class="w-full justify-start text-foreground"
-				size="sm"
-				onclick={() => handleNavigate('/watchlist')}
-			>
+			<Button variant="ghost" class="w-full justify-start text-foreground" size="sm" onclick={() => handleNavigate('/watchlist')}>
 				<Bookmark class="mr-2 h-4 w-4" />
 				Watchlist
 			</Button>

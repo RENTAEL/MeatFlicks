@@ -1,12 +1,5 @@
 <script lang="ts">
 	import { ChevronRight } from '@lucide/svelte';
-	import {
-		Carousel,
-		CarouselContent,
-		CarouselItem,
-		CarouselNext,
-		CarouselPrevious
-	} from '$lib/components/ui/carousel';
 	import MediaCard from './MediaCard.svelte';
 	import type { LibraryMedia } from '$lib/types/library';
 
@@ -21,9 +14,6 @@
 	} = $props();
 
 	let itemsCount = $derived(items?.length ?? 0);
-	let hasMultipleItems = $derived(itemsCount > 1);
-
-	const carouselOpts = { align: 'start' } as const;
 
 	function getLinkHref(path?: string): string {
 		if (!path) return '/';
@@ -32,9 +22,9 @@
 	}
 </script>
 
-<div class="px-[10%] py-8">
-	<div class="mb-6 flex items-center gap-2">
-		<h2 class="text-3xl font-semibold text-foreground">{title}</h2>
+<div class="px-[5%] py-6 sm:px-[10%] sm:py-8">
+	<div class="mb-4 flex items-center gap-2 sm:mb-6">
+		<h2 class="text-xl font-semibold text-foreground sm:text-3xl">{title}</h2>
 		{#if linkTo}
 			<a
 				rel="external"
@@ -43,28 +33,27 @@
 				class="group flex items-center text-foreground transition-colors duration-300 hover:text-primary"
 			>
 				<span
-					class="text-small font-medium opacity-0 transition-opacity duration-300 group-hover:opacity-100"
+					class="text-[11px] font-medium opacity-0 transition-opacity duration-300 group-hover:opacity-100 sm:text-small"
 				>
 					See All
 				</span>
-				<ChevronRight class="size-4 transition-transform duration-300 group-hover:translate-x-1" />
+				<ChevronRight class="size-3 transition-transform duration-300 group-hover:translate-x-1 sm:size-4" />
 			</a>
 		{/if}
 	</div>
 
-	<Carousel class="w-full" opts={carouselOpts}>
-		<CarouselContent class="pb-4">
-			{#each items as item (item.id)}
-				<CarouselItem class="basis-auto pl-4">
-					<div class="flex justify-center">
-						<MediaCard movie={item} />
-					</div>
-				</CarouselItem>
-			{/each}
-		</CarouselContent>
-		{#if hasMultipleItems}
-			<CarouselPrevious class="hidden md:inline-flex" />
-			<CarouselNext class="hidden md:inline-flex" />
-		{/if}
-	</Carousel>
+	<div
+		class="-mx-[5%] flex snap-x snap-mandatory gap-2 overflow-x-auto px-[5%] pb-4 sm:mx-0 sm:gap-4 sm:px-0 md:gap-4"
+		style="-webkit-overflow-scrolling: touch; scrollbar-width: none;"
+	>
+		{#each items as item, i (item.id)}
+			<div class="shrink-0 snap-start">
+				<MediaCard movie={item} priority={i < 4} />
+			</div>
+		{/each}
+	</div>
 </div>
+
+<style>
+	div::-webkit-scrollbar { display: none; }
+</style>

@@ -274,7 +274,8 @@
 							<img
 								{src}
 								alt=""
-								loading={index === 0 ? 'eager' : 'lazy'}
+								loading="eager"
+								fetchpriority="high"
 								aria-hidden="true"
 								class="animate-ken-burns h-full w-full object-cover"
 							/>

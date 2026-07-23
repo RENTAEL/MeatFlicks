@@ -200,18 +200,20 @@ async function staleWhileRevalidate(request, cacheName) {
 	const cache = await caches.open(cacheName);
 	const cachedResponse = await cache.match(request);
 
-	const fetchPromise = fetch(request).then(async (networkResponse) => {
-		if (networkResponse.ok && networkResponse.status !== 206) {
-			try {
-				await cache.put(request, networkResponse.clone());
-			} catch (err) {
-				console.warn('[SW] Failed to background cache response:', err);
+	const fetchPromise = fetch(request, { signal: AbortSignal.timeout(5000) })
+		.then(async (networkResponse) => {
+			if (networkResponse.ok && networkResponse.status !== 206) {
+				try {
+					await cache.put(request, networkResponse.clone());
+				} catch (err) {
+					if (self?.location?.hostname === 'localhost') {
+						console.debug('[SW] Background cache put failed:', err);
+					}
+				}
 			}
-		}
-		return networkResponse;
-	}).catch((error) => {
-		console.warn(`[SW] Background refresh failed for: ${request.url}`, error);
-	});
+			return networkResponse;
+		})
+		.catch(() => {});
 
 	if (cachedResponse) {
 		return cachedResponse;

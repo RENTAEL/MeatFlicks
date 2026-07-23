@@ -31,7 +31,7 @@
 	}
 </script>
 
-<div class="px-[10%] py-8">
+<div class="px-[10%] py-8 group/row">
 	{#if linkTo}
 		<a
 			rel="external"
@@ -66,8 +66,8 @@
 			{/each}
 		</CarouselContent>
 		{#if hasMultipleItems}
-			<CarouselPrevious class="hidden md:inline-flex" />
-			<CarouselNext class="hidden md:inline-flex" />
+			<CarouselPrevious class="hidden md:inline-flex -left-4 opacity-0 transition-all duration-300 group-hover/row:opacity-100" />
+			<CarouselNext class="hidden md:inline-flex -right-4 opacity-0 transition-all duration-300 group-hover/row:opacity-100" />
 		{/if}
 	</Carousel>
 </div>

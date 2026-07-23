@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { onMount, untrack } from 'svelte';
 	import { page } from '$app/state';
 	import type { ProviderResolution } from '$lib/streaming/provider-registry';
 	import type { StreamingSource } from '$lib/streaming';
@@ -17,6 +18,7 @@
 	import MediaOverview from '$lib/components/media/MediaOverview.svelte';
 	import { Separator } from '$lib/components/ui/separator';
 	import { playbackStore } from '$lib/state/stores/playbackStore.svelte';
+	import InlinePlayer from '$lib/components/player/InlinePlayer.svelte';
 
 	type MediaGenre = { id: number; name: string };
 	type MediaCastMember = {
@@ -84,13 +86,10 @@
 	let selectedEpisode = $state<number>(1);
 	let subOrDub = $state<'sub' | 'dub'>('sub');
 	let activeTab = $state<'suggested' | 'details'>('suggested');
+	let activeEmbedUrl = $state<string | null>(null);
 
-	$effect(() => {
+	onMount(() => {
 		playerService.init();
-		return () => playerService.destroy();
-	});
-
-	$effect(() => {
 		if (movie) {
 			streamingService.setCurrentMedia({
 				mediaId: movie.id,
@@ -99,7 +98,6 @@
 				season: mediaType === 'tv' || mediaType === 'anime' ? selectedSeason : undefined,
 				episode: mediaType === 'tv' || mediaType === 'anime' ? selectedEpisode : undefined
 			});
-
 			if (data.streaming) {
 				streamingService.initializeFromServerData({
 					source: data.streaming.source ?? null,
@@ -109,6 +107,7 @@
 				});
 			}
 		}
+		return () => playerService.destroy();
 	});
 
 	async function handlePlayClick() {
@@ -145,23 +144,38 @@
 			startAt: savedProgress?.progress ? Math.floor(savedProgress.progress) : undefined
 		};
 
-		await streamingService.resolveProvider(streamingService.currentProviderId, resolveParams);
+		try {
+			await streamingService.resolveProvider(streamingService.currentProviderId, resolveParams);
+		} catch (e) {
+			console.error('[play] Resolve failed, will use fallback:', e);
+		}
 	}
 
 	function handleEpisodeSelect(episodeNum: number) {
 		selectedEpisode = episodeNum;
-
+		activeEmbedUrl = null;
 		streamingService.reset();
 		playerService.cleanup();
 
-		if (streamingService.currentProviderId) {
-			handlePlayClick();
+		const pid = streamingService.currentProviderId;
+		if (pid) {
+			const embedUrl = buildDirectEmbedUrl(pid);
+			if (embedUrl) {
+				activeEmbedUrl = embedUrl;
+			} else {
+				handlePlayClick();
+			}
 		}
+	}
+
+	function closePlayer() {
+		activeEmbedUrl = null;
 	}
 
 	function handleSeasonChange(value: string) {
 		selectedSeason = Number(value);
 		selectedEpisode = 1;
+		activeEmbedUrl = null;
 
 		streamingService.reset();
 		playerService.cleanup();
@@ -179,6 +193,7 @@
 			if (next.season !== selectedSeason) {
 				selectedSeason = next.season;
 				selectedEpisode = 1;
+				activeEmbedUrl = null;
 				streamingService.reset();
 				playerService.cleanup();
 				streamingService.state.qualities = [];
@@ -191,8 +206,87 @@
 		}
 	}
 
+	const EMBED_PROVIDERS = [
+		{ id: 'vidlink', label: 'VidLink' },
+		{ id: 'vidsrc', label: 'VidSrc' },
+		{ id: '2embed', label: '2Embed' },
+		{ id: 'superembed', label: 'SuperEmbed' },
+		{ id: 'autoembed', label: 'AutoEmbed' },
+		{ id: 'multiembed', label: 'MultiEmbed' }
+	] as const;
+
+	function buildDirectEmbedUrl(providerId: string): string | null {
+		if (!movie?.tmdbId) return null;
+		const customParams = `primaryColor=63b8bc&secondaryColor=a2a2a2&iconColor=eefdec&icons=default&player=default&title=false&poster=true&autoplay=true&nextbutton=false`;
+
+		if (providerId === 'vidlink') {
+			if (mediaType === 'anime') {
+				const episode = selectedEpisode ?? 1;
+				const type = subOrDub ?? 'sub';
+				return `https://vidlink.pro/anime/${movie.malId ?? movie.tmdbId}/${episode}/${type}?${customParams}&fallback=true`;
+			}
+			if (mediaType === 'tv') {
+				return `https://vidlink.pro/tv/${movie.tmdbId}/${selectedSeason}/${selectedEpisode}?${customParams}`;
+			}
+			return `https://vidlink.pro/movie/${movie.tmdbId}?${customParams}`;
+		}
+
+		if (providerId === 'vidsrc') {
+			const baseUrls = [
+				'https://vidsrcme.su',
+				'https://vidsrc-embed.su',
+				'https://vidsrc-embed.ru',
+				'https://vidsrc.me',
+				'https://vsrc.su'
+			];
+			for (const base of baseUrls) {
+				const url = mediaType === 'movie'
+					? `${base}/embed/movie?tmdb=${movie.tmdbId}`
+					: `${base}/embed/tv?tmdb=${movie.tmdbId}&season=${selectedSeason}&episode=${selectedEpisode}`;
+				return url;
+			}
+			return null;
+		}
+
+		if (providerId === '2embed') {
+			const mediaId = movie.imdbId || movie.tmdbId;
+			const embedBase = 'https://hnembed.cc';
+			if (mediaType === 'movie') return `${embedBase}/embed/movie/${mediaId}`;
+			if (mediaType === 'tv') return `${embedBase}/embed/tv/${mediaId}/${selectedSeason}/${selectedEpisode}`;
+			return `https://player.autoembed.cc/embed/anime/${movie.malId ?? movie.tmdbId}/${selectedEpisode ?? 1}${subOrDub === 'dub' ? '/dub' : ''}`;
+		}
+
+		if (providerId === 'superembed' || providerId === 'autoembed') {
+			if (mediaType === 'anime') {
+				return `https://player.autoembed.cc/embed/anime/${movie.malId ?? movie.tmdbId}/${selectedEpisode ?? 1}${subOrDub === 'dub' ? '/dub' : ''}`;
+			}
+			return `https://player.autoembed.cc/embed/${mediaType === 'movie' ? 'movie' : 'tv'}/${movie.tmdbId}${mediaType !== 'movie' ? `/${selectedSeason}/${selectedEpisode}` : ''}`;
+		}
+
+		if (providerId === 'multiembed') {
+			const source = movie.imdbId ? 'imdb' : 'tmdb';
+			const id = movie.imdbId ?? movie.tmdbId.toString();
+			if (mediaType === 'movie') return `https://multiembed.mov/movie?${source}=${id}`;
+			return `https://multiembed.mov/tv?${source}=${id}&s=${selectedSeason}&e=${selectedEpisode}`;
+		}
+
+		return null;
+	}
+
+	function tryPlayWithFallback(providerId: string): string | null {
+		const providersToTry = providerId
+			? [providerId, ...EMBED_PROVIDERS.map((p) => p.id).filter((id) => id !== providerId)]
+			: EMBED_PROVIDERS.map((p) => p.id);
+
+		for (const pid of providersToTry) {
+			const embedUrl = buildDirectEmbedUrl(pid);
+			if (embedUrl) return embedUrl;
+		}
+
+		return null;
+	}
+
 	async function handleHeaderPlay(providerId: string) {
-		// For TV series, check if we need to default to S1E1
 		if (mediaType !== 'movie' && movie?.id) {
 			const savedProgress = playbackStore.getProgress(
 				movie.id,
@@ -200,17 +294,11 @@
 				selectedSeason,
 				selectedEpisode
 			);
-
-			// If no saved progress for current selection, check if there's any progress at all
 			if (!savedProgress) {
-				const anyProgress = playbackStore.getProgress(movie.id, mediaType);
-
-				// If no progress at all, default to S1E1
+				const anyProgress = playbackStore.getProgress(movie.id, mediaType as 'movie' | 'tv' | 'anime');
 				if (!anyProgress) {
 					selectedSeason = 1;
 					selectedEpisode = 1;
-
-					// Fetch episodes for season 1 if needed
 					if (movie.tmdbId && episodeService.episodesList.length === 0) {
 						await episodeService.fetchEpisodes(movie.tmdbId, 1);
 					}
@@ -219,107 +307,54 @@
 		}
 
 		streamingService.selectProvider(providerId);
+		await handlePlayClick();
 
-		const win = window.open('about:blank', '_blank', 'noopener,noreferrer');
-
-		try {
-			await handlePlayClick();
-
-			const playbackUrl =
-				streamingService.state.source?.embedUrl ?? streamingService.state.source?.streamUrl ?? null;
-
-			if (win && playbackUrl) {
-				win.location.href = playbackUrl;
-			} else if (win) {
-				win.close();
-			}
-		} catch (e) {
-			console.error('[Play] Play failed:', e);
-			win?.close();
+		const embedUrl = tryPlayWithFallback(providerId);
+		if (embedUrl) {
+			activeEmbedUrl = embedUrl;
+			return;
 		}
+
+		const playbackUrl =
+			streamingService.state.source?.embedUrl ?? streamingService.state.source?.streamUrl ?? null;
+		if (playbackUrl) {
+			activeEmbedUrl = playbackUrl;
+			return;
+		}
+
+		streamingService.state.error = 'No working stream found. Please try a different provider.';
 	}
 
 	$effect(() => {
-		if (!streamingService.currentProviderId && streamingService.hasResolutions) {
-			streamingService.selectProvider(
+		if (!streamingService.hasResolutions) return;
+		untrack(() => {
+			const id =
 				streamingService.state.source?.providerId ??
-					streamingService.state.resolutions.find((r) => r.success)?.providerId ??
-					streamingService.state.resolutions[0]?.providerId ??
-					null
-			);
-		}
-	});
-
-	$effect(() => {
-		if (
-			streamingService.currentProviderId &&
-			streamingService.hasResolutions &&
-			!streamingService.state.resolutions.some(
-				(r) => r.providerId === streamingService.currentProviderId
-			)
-		) {
-			streamingService.selectProvider(
 				streamingService.state.resolutions.find((r) => r.success)?.providerId ??
-					streamingService.state.resolutions[0]?.providerId ??
-					null
-			);
-		}
+				streamingService.state.resolutions[0]?.providerId;
+			if (id) streamingService.selectProvider(id);
+		});
 	});
 
 	$effect(() => {
 		if (streamingService.isResolved && movie) {
-			playerService.startProgressTracking(movie.durationMinutes, async (progress) => {
-				if (!movie) return;
-
-				playbackStore.saveProgress({
-					mediaId: movie.id,
-					mediaType,
-					progress,
-					duration: movie.durationMinutes ? movie.durationMinutes * 60 : 0,
-					seasonNumber: mediaType !== 'movie' ? selectedSeason : undefined,
-					episodeNumber: mediaType !== 'movie' ? selectedEpisode : undefined,
-					updatedAt: Date.now(),
-					mediaData: { ...movie, mediaType } as LibraryMedia
+			untrack(() => {
+				playerService.startProgressTracking(movie.durationMinutes, async (progress) => {
+					if (!movie) return;
+					playbackStore.saveProgress({
+						mediaId: movie.id,
+						mediaType,
+						progress,
+						duration: movie.durationMinutes ? movie.durationMinutes * 60 : 0,
+						seasonNumber: mediaType !== 'movie' ? selectedSeason : undefined,
+						episodeNumber: mediaType !== 'movie' ? selectedEpisode : undefined,
+						updatedAt: Date.now(),
+						mediaData: { ...movie, mediaType } as LibraryMedia
+					});
 				});
-
-				try {
-					const duration = movie.durationMinutes ? movie.durationMinutes * 60 : 0;
-					if (duration > 0 && page.data.user) {
-						const response = await fetch('/api/playback/progress', {
-							method: 'POST',
-							headers: {
-								'Content-Type': 'application/json',
-								...(data.csrfToken ? { 'X-CSRF-Token': data.csrfToken } : {})
-							},
-							body: JSON.stringify({
-								mediaId: movie.id,
-								mediaType,
-								progress,
-								duration,
-								seasonNumber: mediaType !== 'movie' ? selectedSeason : undefined,
-								episodeNumber: mediaType !== 'movie' ? selectedEpisode : undefined
-							}),
-							credentials: 'include'
-						});
-
-						if (!response.ok && response.status !== 401 && response.status !== 403) {
-							console.error(`Failed to save progress: ${response.status}`);
-						}
-					}
-				} catch (error) {
-					console.error('Failed to save playback progress:', error);
-				}
 			});
 		} else {
 			playerService.stopProgressTracking();
-		}
-	});
-
-	$effect(() => {
-		if (streamingService.isResolved && movie?.durationMinutes && mediaType !== 'movie') {
-			playerService.setupAutoPlayTimer(movie.durationMinutes, goToNextEpisode);
-		} else {
-			playerService.cancelAutoPlay();
 		}
 	});
 
@@ -372,8 +407,8 @@
 		return () => window.removeEventListener('keydown', handleKeyDown);
 	});
 
-	$effect(() => {
-		if (typeof window !== 'undefined' && movie?.id) {
+	onMount(() => {
+		if (movie?.id) {
 			const normalizedGenres = movie.genres?.map((g: MediaGenre) => g.name || String(g)) ?? [];
 
 			watchHistory.recordWatch({
@@ -401,9 +436,7 @@
 					: {})
 			});
 		}
-	});
 
-	$effect(() => {
 		if (mediaType !== 'movie' && movie?.tmdbId) {
 			episodeService.fetchEpisodes(movie.tmdbId, selectedSeason);
 		}
@@ -572,4 +605,8 @@
 			</div>
 		</main>
 	</div>
+
+	{#if activeEmbedUrl}
+		<InlinePlayer src={activeEmbedUrl} title={movie?.title ?? 'Player'} onClose={closePlayer} />
+	{/if}
 {/if}
