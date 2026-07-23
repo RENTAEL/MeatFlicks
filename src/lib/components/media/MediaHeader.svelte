@@ -92,12 +92,14 @@
 	const runtimeLabel = $derived(getRuntimeLabel());
 
 	const defaultProviders = [
+		{ providerId: 'vidcore', label: 'VidCore', success: true },
+		{ providerId: 'vixsrc', label: 'VixSrc', success: true },
 		{ providerId: 'vidlink', label: 'VidLink', success: true },
 		{ providerId: 'vidsrc', label: 'VidSrc', success: true },
 		{ providerId: '2embed', label: '2Embed', success: true },
 		{ providerId: 'superembed', label: 'SuperEmbed', success: true },
-		{ providerId: 'autoembed', label: 'AutoEmbed', success: true },
-		{ providerId: 'multiembed', label: 'MultiEmbed', success: true }
+		{ providerId: 'streamsrc', label: 'StreamSrc', success: true },
+		{ providerId: '2embed.skin', label: '2Embed.Skin', success: true }
 	];
 
 	type BasicProvider = { providerId: string; label?: string; success?: boolean };
@@ -189,7 +191,7 @@
 
 					<div class="mt-6 flex flex-wrap items-center gap-4">
 						<DropdownMenu.Root>
-							<DropdownMenu.Trigger>
+							<DropdownMenu.Trigger asChild>
 								<Button
 									variant="default"
 									size="lg"

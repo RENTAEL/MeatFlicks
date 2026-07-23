@@ -249,14 +249,14 @@
 	const EMBED_PROVIDERS = [
 		{ id: 'vidcore', label: 'VidCore' },
 		{ id: 'vixsrc', label: 'VixSrc' },
+		{ id: 'streamsrc', label: 'StreamSrc' },
+		{ id: '2embed.skin', label: '2Embed.Skin' },
 		{ id: 'vidlink', label: 'VidLink' },
 		{ id: 'vidsrc', label: 'VidSrc' },
 		{ id: '2embed', label: '2Embed' },
 		{ id: 'superembed', label: 'SuperEmbed' },
 		{ id: 'autoembed', label: 'AutoEmbed' },
-		{ id: 'multiembed', label: 'MultiEmbed' },
-		{ id: 'streamsrc', label: 'StreamSrc' },
-		{ id: '2embed.skin', label: '2Embed.Skin' }
+		{ id: 'multiembed', label: 'MultiEmbed' }
 	] as const;
 
 	function buildDirectEmbedUrl(providerId: string): string | null {
