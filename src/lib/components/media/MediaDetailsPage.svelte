@@ -763,18 +763,6 @@
 		</main>
 	</div>
 
-	<!-- Provider Selector Modal -->
-	<ProviderSelector
-		bind:open={showProviderSelector}
-		{providers}
-		isTv={mediaType !== 'movie'}
-		season={selectedSeason}
-		episode={selectedEpisode}
-		on:select={handleProviderSelect}
-		on:testProvider={handleProviderTest}
-		on:close={() => (showProviderSelector = false)}
-	/>
-
 	<!-- Player Container -->
 	{#if activeEmbedUrl}
 		<div class="player-container fixed inset-0 z-50 bg-black/95 backdrop-blur-sm">
@@ -790,14 +778,15 @@
 		</div>
 	{/if}
 
+	<!-- Provider Selector Modal -->
 	<ProviderSelector
-		{providers}
 		bind:open={showProviderSelector}
-		{isTv}
-		{selectedSeason}
-		{selectedEpisode}
-		onselect={handleProviderSelect}
-		ontestProvider={handleProviderTest}
-		onclose={() => (showProviderSelector = false)}
+		{providers}
+		isTv={mediaType !== 'movie'}
+		season={selectedSeason}
+		episode={selectedEpisode}
+		on:select={handleProviderSelect}
+		on:testProvider={handleProviderTest}
+		on:close={() => (showProviderSelector = false)}
 	/>
 {/if}
