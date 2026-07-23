@@ -780,7 +780,7 @@
 		<div class="player-container fixed inset-0 z-50 bg-black/95 backdrop-blur-sm">
 			<button
 				class="absolute top-4 right-4 z-10 rounded-full bg-black/60 p-2 text-white hover:bg-black/80 transition"
-				on:click={closePlayer}
+				onclick={closePlayer}
 			>
 				<svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
 					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
@@ -796,8 +796,8 @@
 		{isTv}
 		{selectedSeason}
 		{selectedEpisode}
-		on:select={handleProviderSelect}
-		on:testProvider={handleProviderTest}
-		on:close={() => (showProviderSelector = false)}
+		onselect={handleProviderSelect}
+		ontestProvider={handleProviderTest}
+		onclose={() => (showProviderSelector = false)}
 	/>
 {/if}
