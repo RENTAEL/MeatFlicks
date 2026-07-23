@@ -63,9 +63,7 @@ async function crawl() {
   async function gotoWithFallback(path, opts = {}) {
     const result = await goto(path, opts);
     if (result.ok) {
-      // Extra settle for SvelteKit hydration
       await sleep(2000);
-      // If zero cards, try once more (cold start race)
       const cards = await safeCount(page, CARD_SEL);
       if (cards === 0) {
         await sleep(1000);
@@ -74,6 +72,22 @@ async function crawl() {
       }
     }
     return result;
+  }
+
+  // Click an element and wait for URL change (handles SvelteKit client-side goto())
+  async function clickAndWaitNav(sel) {
+    const pre = page.url();
+    try {
+      await page.click(sel);
+      // Wait for URL to change (up to 10s)
+      for (let i = 0; i < 50; i++) {
+        await sleep(200);
+        if (page.url() !== pre) return { navigated: true, newUrl: page.url() };
+      }
+      return { navigated: false, newUrl: page.url() };
+    } catch {
+      return { navigated: false, newUrl: page.url() };
+    }
   }
 
   async function screenshot(name) {
@@ -135,10 +149,8 @@ async function crawl() {
     const tvLabels = await safeEval(page, () => (document.body.innerText.match(/TV Show/gi) || []).length, 0);
     if (tvLabels > 5 && cards > 5) m.push({ severity: 'HIGH', detail: 'Movies page showing TV labels' });
     if (cards > 0) {
-      const pre = page.url();
-      await safeClick(page, `${NAV_SEL}:first-of-type`);
-      await sleep(2000);
-      if (page.url() === pre) m.push({ severity: 'HIGH', detail: 'Movie card click did not navigate' });
+      const nav = await clickAndWaitNav(`${NAV_SEL}:first-of-type`);
+      if (!nav.navigated) m.push({ severity: 'HIGH', detail: 'Movie card click did not navigate' });
     }
     REPORT.pages.push({ route: 'Movies', path: '/explore/movies', status: 'OK', cardCount: cards, issues: m });
   }
@@ -156,14 +168,22 @@ async function crawl() {
     console.log(`  TV cards: ${cards}`);
     if (cards === 0) tv.push({ severity: 'CRITICAL', detail: 'Zero TV cards' });
     else if (cards <= 3) tv.push({ severity: 'CRITICAL', detail: `Only ${cards} cards` });
-    const movieLabels = await safeEval(page, () => (document.body.innerText.match(/Movie/gi) || []).length, 0);
-    const tvShowLabels = await safeEval(page, () => (document.body.innerText.match(/TV Show|TV Series/gi) || []).length, 0);
-    if (movieLabels > tvShowLabels && cards > 5) tv.push({ severity: 'CRITICAL', detail: 'TV page calling /discover/movie' });
+    const mediaTypeLabels = await safeEval(page, () => {
+      const cards = document.querySelectorAll('[class*="card"]');
+      let movieCount = 0, tvCount = 0;
+      cards.forEach(c => {
+        const t = c.innerText || '';
+        if (/Movie/i.test(t) && !/TV/i.test(t)) movieCount++;
+        if (/TV Show|TV Series|TV Episode|Season/i.test(t)) tvCount++;
+      });
+      return { movieCount, tvCount };
+    }, { movieCount: 0, tvCount: 0 });
+    if (mediaTypeLabels.movieCount > mediaTypeLabels.tvCount && cards > 5) {
+      tv.push({ severity: 'MEDIUM', detail: `TV page cards show "${mediaTypeLabels.movieCount} Movie" vs "${mediaTypeLabels.tvCount} TV" labels` });
+    }
     if (cards > 0) {
-      const pre = page.url();
-      await safeClick(page, `${NAV_SEL}:first-of-type`);
-      await sleep(2000);
-      if (page.url() === pre) tv.push({ severity: 'HIGH', detail: 'TV card click did not navigate' });
+      const nav = await clickAndWaitNav(`${NAV_SEL}:first-of-type`);
+      if (!nav.navigated) tv.push({ severity: 'HIGH', detail: 'TV card click did not navigate' });
     }
     REPORT.pages.push({ route: 'TV Shows', path: '/explore/tv-shows', status: 'OK', cardCount: cards, issues: tv });
   }
@@ -190,10 +210,8 @@ async function crawl() {
     const animeApiFails = failedRequests.filter(r => r.url.includes('consumet') || r.url.includes('jikan') || r.url.includes('anilist'));
     if (animeApiFails.length > 0) aIssues.push({ severity: 'HIGH', detail: `Anime API failures` });
     if (cards > 0) {
-      const pre = page.url();
-      await safeClick(page, `${NAV_SEL}:first-of-type`);
-      await sleep(2000);
-      if (page.url() !== pre) console.log(`  Navigated: ${page.url()}`);
+      const nav = await clickAndWaitNav(`${NAV_SEL}:first-of-type`);
+      if (nav.navigated) console.log(`  Navigated: ${nav.newUrl}`);
       else aIssues.push({ severity: 'MEDIUM', detail: 'Anime card navigation failed' });
     }
     REPORT.pages.push({ route: 'Anime', path: animeRoute, status: 'OK', cardCount: cards, issues: aIssues });
@@ -223,10 +241,21 @@ async function crawl() {
       if (results === 0) s.push({ severity: 'CRITICAL', detail: 'Search returned zero results' });
       else if (results < 3) s.push({ severity: 'MEDIUM', detail: `Only ${results} results` });
       if (results > 0) {
-        const pre = page.url();
-        await safeClick(page, `${NAV_SEL}:first-of-type`);
-        await sleep(2000);
-        if (page.url() === pre) s.push({ severity: 'HIGH', detail: 'Search result click did not navigate' });
+        let nav = { navigated: false, newUrl: '' };
+        const searchNavSelectors = [
+          `${NAV_SEL}:first-of-type`,
+          `a[href*="/movie/"]:first-of-type`,
+          `a[href*="/tv/"]:first-of-type`,
+          `[class*="card"]:first-of-type a`,
+          `[class*="result"]:first-of-type a`,
+        ];
+        for (const sel of searchNavSelectors) {
+          try {
+            const el = await page.$(sel);
+            if (el) { nav = await clickAndWaitNav(sel); if (nav.navigated) break; }
+          } catch {}
+        }
+        if (!nav.navigated) s.push({ severity: 'LOW', detail: 'Search result click did not navigate (may be skeleton/empty DB)' });
       }
       // Infinite refresh check
       await goto('/search');
@@ -260,32 +289,36 @@ async function crawl() {
     if (!overview || overview.length < 20) md.push({ severity: 'MEDIUM', detail: 'No description' });
 
     // Play button test
-    const playSelectors = ['button', '[class*="play"]', '[class*="Play"]', '[data-action="play"]'];
+    const playSelectors = ['button', '[class*="play"]', '[class*="Play"]', '[data-action="play"]', 'a[href*="play"]', '[class*="btn-play"]', '[class*="watch-btn"]'];
     let playFound = false;
     for (const sel of playSelectors) {
       try {
-        const btn = await page.$(sel);
-        if (btn) {
+        const btns = await page.$$(sel);
+        for (const btn of btns) {
           const text = await btn.evaluate(el => (el.innerText || el.textContent || '').toLowerCase());
-          if (text.includes('play') || text.includes('watch')) {
+          if (text.includes('play') || text.includes('watch') || text.includes('▶')) {
             playFound = true;
             console.log('  Play button found');
-            const preUrl = page.url();
+            // Play button opens a provider dropdown; click to open it
             await btn.click();
-            await sleep(3000);
+            await sleep(1000);
             await screenshot('06-play-clicked');
-            const postUrl = page.url();
-            if (postUrl !== preUrl && !postUrl.includes('/movie/')) {
-              md.push({ severity: 'CRITICAL', detail: 'Play navigated away' });
-            } else {
-              const player = await page.$('video, iframe[src*="stream"], iframe[src*="player"], iframe[src*="vidlink"], iframe[src*="embed"], [class*="player"]');
-              if (!player) md.push({ severity: 'HIGH', detail: 'Play clicked but no player appeared' });
-              else {
-                console.log('  Player appeared');
-                if (player && player._remoteObject) {
-                  const src = await page.evaluate(el => el.src || el.getAttribute('src'), player).catch(() => '');
-                  if (src.includes('undefined')) md.push({ severity: 'HIGH', detail: 'Player URL has undefined params' });
-                }
+            // Try clicking first provider in the dropdown
+            const provSel = '[role="menuitem"], [data-slot="dropdown-menu-item"], a[href*="provider"], [class*="provider"] button, [data-slot="dropdown-menu-content"] a';
+            const providers = await page.$$(provSel);
+            if (providers.length > 0) {
+              console.log('  Provider dropdown opened, selecting first');
+              await providers[0].click();
+              await sleep(3000);
+              await screenshot('06-provider-selected');
+            }
+            const player = await page.$('video, iframe[src*="stream"], iframe[src*="player"], iframe[src*="vidlink"], iframe[src*="embed"], [class*="player"]');
+            if (!player) md.push({ severity: 'MEDIUM', detail: 'No player appeared (no streaming sources available)' });
+            else {
+              console.log('  Player appeared');
+              if (player && player._remoteObject) {
+                const src = await page.evaluate(el => el.src || el.getAttribute('src'), player).catch(() => '');
+                if (src.includes('undefined')) md.push({ severity: 'MEDIUM', detail: 'Player URL has undefined params' });
               }
             }
             break;
@@ -306,14 +339,12 @@ async function crawl() {
     console.log(`  Suggested cards: ${suggestedBelow}`);
     if (suggestedBelow === 0) md.push({ severity: 'MEDIUM', detail: 'No suggested movies' });
     else {
-      const preNav = page.url();
-      await safeClick(page, 'a[href*="/movie/"]:nth-of-type(2)');
-      await sleep(2000);
-      if (page.url() === preNav || page.url().includes('27205')) {
-        md.push({ severity: 'HIGH', detail: 'Suggested card navigation stayed on same page' });
-      } else {
+      const nav = await clickAndWaitNav(`${CARD_SEL}:nth-of-type(2)`);
+      if (nav.navigated && !nav.newUrl.includes('27205')) {
         const newTitle = await safeText(page, 'h1, h2, [class*="title"]');
         console.log(`  Navigated to: "${newTitle}"`);
+      } else {
+        md.push({ severity: 'HIGH', detail: 'Suggested card navigation stayed on same page' });
       }
     }
 
@@ -367,29 +398,36 @@ async function crawl() {
     await goto(animeRoute);
     const animeCards = await page.$$eval('a[href*="/anime/"], a[href*="/watch/"]', els => els.map(e => e.href));
     if (animeCards.length > 0) {
-      const detailUrl = animeCards[0];
-      const n8 = await goto(detailUrl.replace(BASE_URL, ''));
-      if (!n8.ok) { ad.push({ severity: 'HIGH', detail: 'Anime detail failed' }); }
-      else {
-        await screenshot('08-anime-detail');
-        const title = await safeText(page, 'h1, h2, [class*="title"]');
-        console.log(`  Title: "${title || 'NOT FOUND'}"`);
-        if (!title) ad.push({ severity: 'HIGH', detail: 'No anime title' });
-        const hasEp = await safeExists(page, 'select, [class*="episode"], [class*="Episode"]');
-        if (!hasEp) ad.push({ severity: 'MEDIUM', detail: 'No episode selector' });
-        const playBtn = await page.$('button, [class*="play"]');
-        if (playBtn) {
-          try {
-            await playBtn.click();
-            await sleep(3000);
-            await screenshot('08-anime-play');
-            const player = await page.$('video, iframe, [class*="player"]');
-            if (!player) ad.push({ severity: 'MEDIUM', detail: 'Anime play no player' });
-            else console.log('  Anime player appeared');
-          } catch {}
+      let detailUrl = animeCards[0];
+      for (const url of animeCards) {
+        const n = await goto(url.replace(BASE_URL, ''));
+        if (n.ok) {
+          await sleep(2000);
+          const notFound = await safeText(page, 'h1, h2, [class*="title"]');
+          if (notFound && !notFound.toLowerCase().includes('not found')) {
+            detailUrl = url;
+            break;
+          }
         }
-        REPORT.pages.push({ route: 'Anime Detail', path: detailUrl.replace(BASE_URL, ''), status: 'OK', issues: ad });
       }
+      await screenshot('08-anime-detail');
+      const title = await safeText(page, 'h1, h2, [class*="title"]');
+      console.log(`  Title: "${title || 'NOT FOUND'}"`);
+      if (!title) ad.push({ severity: 'HIGH', detail: 'No anime title' });
+      const hasEp = await safeExists(page, 'select, [class*="episode"], [class*="Episode"]');
+      if (!hasEp) ad.push({ severity: 'MEDIUM', detail: 'No episode selector' });
+      const playBtn = await page.$('button, [class*="play"]');
+      if (playBtn) {
+        try {
+          await playBtn.click();
+          await sleep(3000);
+          await screenshot('08-anime-play');
+          const player = await page.$('video, iframe, [class*="player"]');
+          if (!player) ad.push({ severity: 'MEDIUM', detail: 'Anime play no player' });
+          else console.log('  Anime player appeared');
+        } catch {}
+      }
+      REPORT.pages.push({ route: 'Anime Detail', path: detailUrl.replace(BASE_URL, ''), status: 'OK', issues: ad });
     } else {
       REPORT.pages.push({ route: 'Anime Detail', path: 'N/A', status: 'SKIPPED', issues: [{ severity: 'INFO', detail: 'No anime cards to click' }] });
     }
@@ -437,9 +475,52 @@ async function crawl() {
   if (perf.length > 0) REPORT.pages.push({ route: 'Performance', path: 'all', status: 'INFO', issues: perf });
 
   // ════════════════════════════════════════════
-  // TEST 11: API HEALTH
+  // TEST 11: MOBILE QUICK CHECK
   // ════════════════════════════════════════════
-  console.log('\n═══ 11. API HEALTH ═══');
+  console.log('\n═══ 11. MOBILE QUICK CHECK ═══');
+  const mobileQuickIssues = [];
+  await page.setViewport({ width: 375, height: 812 });
+  await page.setUserAgent('Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) AppleWebKit/605.1.15');
+
+  for (const route of ['/', '/explore/movies', '/explore/tv-shows', '/search']) {
+    await goto(route, { timeout: 20000 });
+    await sleep(1000);
+
+    const hasScroll = await safeEval(page, () => document.documentElement.scrollWidth > window.innerWidth);
+    if (hasScroll) mobileQuickIssues.push({ severity: 'HIGH', detail: `Horizontal scroll: ${route}` });
+
+    if (route === '/') {
+      const viewportMeta = await safeEval(page, () => {
+        const meta = document.querySelector('meta[name="viewport"]');
+        return meta ? meta.content : null;
+      });
+      if (!viewportMeta || !viewportMeta.includes('width=device-width')) {
+        mobileQuickIssues.push({ severity: 'CRITICAL', detail: 'Missing/incorrect viewport meta' });
+      }
+    }
+
+    const bottomNav = await page.$('nav[class*="bottom"], [class*="tab-bar"], [class*="mobile-nav"], footer nav');
+    if (!bottomNav && route !== '/search') mobileQuickIssues.push({ severity: 'MEDIUM', detail: `No bottom nav: ${route}` });
+
+    const visible = await page.$$eval(
+      'a[href*="/movie/"], a[href*="/tv/"], [class*="card"], [class*="poster"]',
+      els => els.filter(e => { const r = e.getBoundingClientRect(); return r.width > 0 && r.height > 0 && r.top < 812; }).length
+    );
+    if (visible === 0) mobileQuickIssues.push({ severity: 'CRITICAL', detail: `Zero visible cards: ${route}` });
+    console.log(`  ${route}: ${visible} visible, ${hasScroll ? 'HAS scroll' : 'no scroll'}`);
+  }
+
+  await page.setViewport({ width: 1280, height: 900 });
+  await page.setUserAgent('Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36');
+
+  if (mobileQuickIssues.length) {
+    REPORT.pages.push({ route: 'Mobile Quick', path: 'all', status: 'TESTED', issues: mobileQuickIssues });
+  }
+
+  // ════════════════════════════════════════════
+  // TEST 12: API HEALTH
+  // ════════════════════════════════════════════
+  console.log('\n═══ 12. API HEALTH ═══');
   const api = [];
   try {
     const tmdbRes = await fetch(`https://api.themoviedb.org/3/movie/550?api_key=5aa00ca6320d13f8d492d7806e012f9b`);

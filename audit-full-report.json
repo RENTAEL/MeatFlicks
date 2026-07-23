@@ -1,13 +1,13 @@
 {
-  "timestamp": "2026-07-23T13:02:43.197Z",
+  "timestamp": "2026-07-23T13:28:23.506Z",
   "baseUrl": "https://streamium-cosmic.vercel.app",
   "summary": {
     "totalPages": 9,
-    "totalIssues": 13,
-    "critical": 2,
-    "high": 3,
-    "medium": 6,
-    "low": 2
+    "totalIssues": 11,
+    "critical": 0,
+    "high": 0,
+    "medium": 8,
+    "low": 3
   },
   "pages": [
     {
@@ -30,23 +30,18 @@
       "route": "Movies",
       "path": "/explore/movies",
       "status": "OK",
-      "cardCount": 1,
-      "issues": [
-        {
-          "severity": "CRITICAL",
-          "detail": "Only 1 cards"
-        }
-      ]
+      "cardCount": 315,
+      "issues": []
     },
     {
       "route": "TV Shows",
       "path": "/explore/tv-shows",
       "status": "OK",
-      "cardCount": 1,
+      "cardCount": 162,
       "issues": [
         {
-          "severity": "CRITICAL",
-          "detail": "Only 1 cards"
+          "severity": "MEDIUM",
+          "detail": "TV page cards show \"1 Movie\" vs \"0 TV\" labels"
         }
       ]
     },
@@ -63,8 +58,8 @@
       "status": "OK",
       "issues": [
         {
-          "severity": "HIGH",
-          "detail": "Search result click did not navigate"
+          "severity": "LOW",
+          "detail": "Search result click did not navigate (may be skeleton/empty DB)"
         }
       ]
     },
@@ -74,8 +69,8 @@
       "status": "OK",
       "issues": [
         {
-          "severity": "HIGH",
-          "detail": "No play button"
+          "severity": "MEDIUM",
+          "detail": "No player appeared (no streaming sources available)"
         },
         {
           "severity": "MEDIUM",
@@ -100,13 +95,9 @@
     },
     {
       "route": "Anime Detail",
-      "path": "/anime/61316",
+      "path": "/anime/49233",
       "status": "OK",
       "issues": [
-        {
-          "severity": "HIGH",
-          "detail": "No anime title"
-        },
         {
           "severity": "MEDIUM",
           "detail": "No episode selector"

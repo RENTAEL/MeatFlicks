@@ -1,0 +1,30 @@
+Fix these MOBILE-specific issues.
+
+## HIGH — Fix SECOND (4)
+
+1. **[Movies]** Tap did not navigate
+2. **[Movie Detail + Player]** No player appeared after tapping play
+3. **[Movie Detail + Player]** Suggested card tap did not navigate
+4. **[Anime]** No anime title on mobile
+
+## MEDIUM — Fix THIRD (8)
+
+1. **[Homepage]** 1 cards below 44px touch target
+2. **[Movie Detail + Player]** Poster too wide: 413px — should be ~150px on mobile
+3. **[Movie Detail + Player]** Play button narrow: 97px — should be full-width on mobile
+4. **[TV Detail + Player]** No season selector on mobile
+5. **[TV Detail + Player]** No player on TV mobile
+6. **[Anime]** No anime player on mobile
+7. **[Touch Interactions]** 2 overlapping touch targets
+8. **[Mobile Performance]** No responsive images (no srcset, no mobile-specific sizes)
+
+## LOW — Polish (5)
+
+1. **[Homepage]** 20 elements with font-size < 12px
+2. **[Search]** Keyboard may not shift viewport properly
+3. **[TV Detail + Player]** No episode buttons visible
+4. **[Touch Interactions]** No back button on detail page (mobile users expect one)
+5. **[Mobile Performance]** No user-scalable=no — may have 300ms tap delay
+
+## After fixing, run: node audit-mobile.js
+## Repeat until: Critical: 0, High: 0

@@ -1,0 +1,158 @@
+{
+  "timestamp": "2026-07-23T13:27:25.898Z",
+  "device": "iPhone X (375x812)",
+  "baseUrl": "https://streamium-cosmic.vercel.app",
+  "summary": {
+    "totalTests": 9,
+    "totalIssues": 17,
+    "critical": 0,
+    "high": 4,
+    "medium": 8,
+    "low": 5
+  },
+  "pages": [
+    {
+      "route": "Homepage",
+      "path": "/",
+      "device": "mobile",
+      "status": "OK",
+      "cardCount": 10,
+      "issues": [
+        {
+          "severity": "MEDIUM",
+          "detail": "1 cards below 44px touch target"
+        },
+        {
+          "severity": "LOW",
+          "detail": "20 elements with font-size < 12px"
+        }
+      ]
+    },
+    {
+      "route": "Movies",
+      "path": "/explore/movies",
+      "device": "mobile",
+      "status": "OK",
+      "cardCount": 89,
+      "issues": [
+        {
+          "severity": "HIGH",
+          "detail": "Tap did not navigate"
+        }
+      ]
+    },
+    {
+      "route": "TV Shows",
+      "path": "/explore/tv-shows",
+      "device": "mobile",
+      "status": "OK",
+      "cardCount": 23,
+      "issues": []
+    },
+    {
+      "route": "Search",
+      "path": "/search",
+      "device": "mobile",
+      "status": "OK",
+      "issues": [
+        {
+          "severity": "LOW",
+          "detail": "Keyboard may not shift viewport properly"
+        }
+      ]
+    },
+    {
+      "route": "Movie Detail + Player",
+      "path": "/movie/27205",
+      "device": "mobile",
+      "status": "OK",
+      "issues": [
+        {
+          "severity": "MEDIUM",
+          "detail": "Poster too wide: 413px — should be ~150px on mobile"
+        },
+        {
+          "severity": "MEDIUM",
+          "detail": "Play button narrow: 97px — should be full-width on mobile"
+        },
+        {
+          "severity": "HIGH",
+          "detail": "No player appeared after tapping play"
+        },
+        {
+          "severity": "HIGH",
+          "detail": "Suggested card tap did not navigate"
+        }
+      ]
+    },
+    {
+      "route": "TV Detail + Player",
+      "path": "/tv/1399",
+      "device": "mobile",
+      "status": "OK",
+      "issues": [
+        {
+          "severity": "MEDIUM",
+          "detail": "No season selector on mobile"
+        },
+        {
+          "severity": "LOW",
+          "detail": "No episode buttons visible"
+        },
+        {
+          "severity": "MEDIUM",
+          "detail": "No player on TV mobile"
+        }
+      ]
+    },
+    {
+      "route": "Anime",
+      "path": "/anime",
+      "device": "mobile",
+      "status": "OK",
+      "cardCount": 1,
+      "issues": [
+        {
+          "severity": "HIGH",
+          "detail": "No anime title on mobile"
+        },
+        {
+          "severity": "MEDIUM",
+          "detail": "No anime player on mobile"
+        }
+      ]
+    },
+    {
+      "route": "Touch Interactions",
+      "path": "all",
+      "device": "mobile",
+      "status": "TESTED",
+      "issues": [
+        {
+          "severity": "LOW",
+          "detail": "No back button on detail page (mobile users expect one)"
+        },
+        {
+          "severity": "MEDIUM",
+          "detail": "2 overlapping touch targets"
+        }
+      ]
+    },
+    {
+      "route": "Mobile Performance",
+      "path": "all",
+      "device": "mobile",
+      "status": "INFO",
+      "issues": [
+        {
+          "severity": "MEDIUM",
+          "detail": "No responsive images (no srcset, no mobile-specific sizes)"
+        },
+        {
+          "severity": "LOW",
+          "detail": "No user-scalable=no — may have 300ms tap delay"
+        }
+      ]
+    }
+  ]
+}
