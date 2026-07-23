@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { Button } from '$lib/components/ui/button';
 	import * as DropdownMenu from '$lib/components/ui/dropdown-menu';
+	import { DropdownMenu as DropdownMenuPrimitive } from 'bits-ui';
 	import { Star, Film, Play, Bookmark, BookmarkMinus } from '@lucide/svelte';
 	import { watchlist } from '$lib/state/stores/watchlistStore.svelte';
 	import { error as errorStore } from '$lib/state/stores/errorStore';
@@ -191,16 +192,18 @@
 
 					<div class="mt-6 flex flex-wrap items-center gap-4">
 						<DropdownMenu.Root>
-							<DropdownMenu.Trigger asChild>
-								<Button
-									variant="default"
-									size="lg"
-									class="h-12 gap-2 bg-primary px-8 text-lg font-semibold hover:bg-primary/90"
-								>
-									<Play class="size-5 fill-current" />
-									Play
-								</Button>
-							</DropdownMenu.Trigger>
+							<DropdownMenuPrimitive.Trigger>
+								{#snippet child({ props })}
+									<button
+										type="button"
+										{...props}
+										class="inline-flex shrink-0 items-center justify-center whitespace-nowrap outline-none transition-all cursor-pointer focus-visible:ring-[3px] disabled:pointer-events-none disabled:opacity-50 text-primary-foreground shadow-xs rounded-md has-[>svg]:px-4 h-12 gap-2 bg-primary px-8 text-lg font-semibold hover:bg-primary/90"
+									>
+										<Play class="size-5 fill-current" />
+										Play
+									</button>
+								{/snippet}
+							</DropdownMenuPrimitive.Trigger>
 							<DropdownMenu.Content align="start" class="glass-strong w-56 border-border/50">
 								<DropdownMenu.Label>Select Provider</DropdownMenu.Label>
 								<DropdownMenu.Separator />
