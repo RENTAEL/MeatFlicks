@@ -11,7 +11,7 @@
 		working: boolean | null;
 	}
 
-	const { providers = [], open = $bindable(false), isTv = false, season = 1, episode = 1 } = $props();
+	let { providers = [], open = $bindable(false), isTv = false, season = 1, episode = 1 } = $props();
 
 	const dispatch = createEventDispatcher();
 
