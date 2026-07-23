@@ -1,8 +1,7 @@
 <script lang="ts">
-	import { Button, buttonVariants } from '$lib/components/ui/button';
+	import { Button } from '$lib/components/ui/button';
 	import * as DropdownMenu from '$lib/components/ui/dropdown-menu';
 	import { Star, Film, Play, Bookmark, BookmarkMinus } from '@lucide/svelte';
-	import { cn } from '$lib/utils.js';
 	import { watchlist } from '$lib/state/stores/watchlistStore.svelte';
 	import { error as errorStore } from '$lib/state/stores/errorStore';
 	import type { ProviderResolution } from '$lib/streaming/provider-registry';
@@ -114,6 +113,7 @@
 	});
 
 	let showFullOverview = $state(false);
+	let dropdownOpen = $state(false);
 
 	function toggleOverview() {
 		showFullOverview = !showFullOverview;
@@ -191,11 +191,16 @@
 					{/if}
 
 					<div class="mt-6 flex flex-wrap items-center gap-4">
-						<DropdownMenu.Root>
-							<DropdownMenu.Trigger class="p-2 bg-blue-500 text-white rounded">
+						<DropdownMenu.Root bind:open={dropdownOpen}>
+							<Button
+								variant="default"
+								size="lg"
+								class="h-12 gap-2 bg-primary px-8 text-lg font-semibold hover:bg-primary/90"
+								onclick={() => (dropdownOpen = !dropdownOpen)}
+							>
 								<Play class="size-5 fill-current" />
 								Play
-							</DropdownMenu.Trigger>
+							</Button>
 							<DropdownMenu.Content align="start" class="glass-strong w-56 border-border/50">
 								<DropdownMenu.Label>Select Provider</DropdownMenu.Label>
 								<DropdownMenu.Separator />
