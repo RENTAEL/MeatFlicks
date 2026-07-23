@@ -1,11 +1,10 @@
 Fix these MOBILE-specific issues.
 
-## HIGH — Fix SECOND (4)
+## HIGH — Fix SECOND (3)
 
-1. **[Movies]** Tap did not navigate
-2. **[Movie Detail + Player]** No player appeared after tapping play
-3. **[Movie Detail + Player]** Suggested card tap did not navigate
-4. **[Anime]** No anime title on mobile
+1. **[Movie Detail + Player]** No player appeared after tapping play
+2. **[Movie Detail + Player]** Suggested card tap did not navigate
+3. **[Anime]** No anime title on mobile
 
 ## MEDIUM — Fix THIRD (8)
 
@@ -20,7 +19,7 @@ Fix these MOBILE-specific issues.
 
 ## LOW — Polish (5)
 
-1. **[Homepage]** 20 elements with font-size < 12px
+1. **[Homepage]** 13 elements with font-size < 12px
 2. **[Search]** Keyboard may not shift viewport properly
 3. **[TV Detail + Player]** No episode buttons visible
 4. **[Touch Interactions]** No back button on detail page (mobile users expect one)

@@ -1,0 +1,10 @@
+{
+  "data-slot": "dropdown-menu-trigger",
+  "class": "focus-visible:border-ring focus-visible:ring-ring/50 aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive inline-flex shrink-0 items-center justify-center whitespace-nowrap outline-none transition-all cursor-pointer focus-visible:ring-[3px] disabled:pointer-events-none disabled:opacity-50 aria-disabled:pointer-events-none aria-disabled:opacity-50 [&_svg:not([class*='size-'])]:size-4 [&_svg]:pointer-events-none [&_svg]:shrink-0 text-primary-foreground shadow-xs rounded-md has-[>svg]:px-4 h-12 gap-2 bg-primary px-8 text-lg font-semibold hover:bg-primary/90",
+  "id": "bits-c9",
+  "aria-haspopup": "menu",
+  "aria-expanded": "false",
+  "data-state": "closed",
+  "data-dropdown-menu-trigger": "",
+  "type": "button"
+}

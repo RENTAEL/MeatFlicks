@@ -1,9 +1,8 @@
 <script lang="ts">
 	import { Button } from '$lib/components/ui/button';
 	import { Star, Film, Play, Bookmark, BookmarkMinus } from '@lucide/svelte';
+	import { createEventDispatcher } from 'svelte';
 	import { watchlist } from '$lib/state/stores/watchlistStore.svelte';
-	import { error as errorStore } from '$lib/state/stores/errorStore';
-	import type { ProviderResolution } from '$lib/streaming/provider-registry';
 
 	import { getImageUrl } from '$lib/utils/image';
 
@@ -35,6 +34,8 @@
 	const isInWatchlist = $derived(movie ? watchlist.isInWatchlist(movie.id) : false);
 	const backdropUrl = $derived(getImageUrl(movie?.backdropPath, 'w1280'));
 	const logoUrl = $derived(getImageUrl(logoPath, 'w500'));
+
+	const dispatch = createEventDispatcher();
 
 	function handleWatchlistToggle() {
 		if (!movie) return;
@@ -193,7 +194,7 @@
 							variant="default"
 							size="lg"
 							class="h-12 gap-2 bg-primary px-8 text-lg font-semibold hover:bg-primary/90"
-							onclick={() => onProviderSelect?.(allProviders[0]?.providerId ?? 'vidcore')}
+							onclick={() => dispatch('play')}
 						>
 							<Play class="size-5 fill-current" />
 							Play

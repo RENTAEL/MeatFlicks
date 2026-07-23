@@ -113,7 +113,6 @@
 			onload={handleIframeLoad}
 			onerror={handleIframeError}
 			referrerpolicy="no-referrer-when-downgrade"
-			sandbox="allow-scripts allow-same-origin allow-presentation allow-forms"
 		></iframe>
 	</div>
 </div>

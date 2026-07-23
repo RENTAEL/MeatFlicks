@@ -1,8 +1,8 @@
 {
-  "timestamp": "2026-07-23T13:28:23.506Z",
+  "timestamp": "2026-07-23T13:43:58.612Z",
   "baseUrl": "https://streamium-cosmic.vercel.app",
   "summary": {
-    "totalPages": 9,
+    "totalPages": 10,
     "totalIssues": 11,
     "critical": 0,
     "high": 0,
@@ -14,7 +14,7 @@
       "route": "Homepage",
       "path": "/",
       "status": "OK",
-      "cardCount": 323,
+      "cardCount": 14,
       "issues": [
         {
           "severity": "LOW",
@@ -30,20 +30,15 @@
       "route": "Movies",
       "path": "/explore/movies",
       "status": "OK",
-      "cardCount": 315,
+      "cardCount": 63,
       "issues": []
     },
     {
       "route": "TV Shows",
       "path": "/explore/tv-shows",
       "status": "OK",
-      "cardCount": 162,
-      "issues": [
-        {
-          "severity": "MEDIUM",
-          "detail": "TV page cards show \"1 Movie\" vs \"0 TV\" labels"
-        }
-      ]
+      "cardCount": 63,
+      "issues": []
     },
     {
       "route": "Anime",
@@ -95,7 +90,7 @@
     },
     {
       "route": "Anime Detail",
-      "path": "/anime/49233",
+      "path": "/anime/55809",
       "status": "OK",
       "issues": [
         {
@@ -105,6 +100,17 @@
         {
           "severity": "MEDIUM",
           "detail": "Anime play no player"
+        }
+      ]
+    },
+    {
+      "route": "Performance",
+      "path": "all",
+      "status": "INFO",
+      "issues": [
+        {
+          "severity": "MEDIUM",
+          "detail": "Most images not lazy-loaded"
         }
       ]
     },

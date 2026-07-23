@@ -1,12 +1,12 @@
 {
-  "timestamp": "2026-07-23T13:27:25.898Z",
+  "timestamp": "2026-07-23T13:42:52.659Z",
   "device": "iPhone X (375x812)",
   "baseUrl": "https://streamium-cosmic.vercel.app",
   "summary": {
     "totalTests": 9,
-    "totalIssues": 17,
+    "totalIssues": 16,
     "critical": 0,
-    "high": 4,
+    "high": 3,
     "medium": 8,
     "low": 5
   },
@@ -24,7 +24,7 @@
         },
         {
           "severity": "LOW",
-          "detail": "20 elements with font-size < 12px"
+          "detail": "13 elements with font-size < 12px"
         }
       ]
     },
@@ -33,20 +33,15 @@
       "path": "/explore/movies",
       "device": "mobile",
       "status": "OK",
-      "cardCount": 89,
-      "issues": [
-        {
-          "severity": "HIGH",
-          "detail": "Tap did not navigate"
-        }
-      ]
+      "cardCount": 21,
+      "issues": []
     },
     {
       "route": "TV Shows",
       "path": "/explore/tv-shows",
       "device": "mobile",
       "status": "OK",
-      "cardCount": 23,
+      "cardCount": 21,
       "issues": []
     },
     {
@@ -110,7 +105,7 @@
       "path": "/anime",
       "device": "mobile",
       "status": "OK",
-      "cardCount": 1,
+      "cardCount": 11,
       "issues": [
         {
           "severity": "HIGH",

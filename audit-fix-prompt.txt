@@ -2,12 +2,12 @@
 
 ### MEDIUM (8)
 1. [Homepage] Missing nav: /explore/movies, /explore/tv-shows, /anime, /search
-2. [TV Shows] TV page cards show "1 Movie" vs "0 TV" labels
-3. [Movie Detail] No player appeared (no streaming sources available)
-4. [Movie Detail] No suggested movies
-5. [TV Detail] No season/episode selector
-6. [Anime Detail] No episode selector
-7. [Anime Detail] Anime play no player
+2. [Movie Detail] No player appeared (no streaming sources available)
+3. [Movie Detail] No suggested movies
+4. [TV Detail] No season/episode selector
+5. [Anime Detail] No episode selector
+6. [Anime Detail] Anime play no player
+7. [Performance] Most images not lazy-loaded
 8. [API Health] Consumet: 451
 
 ### LOW (3)

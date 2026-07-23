@@ -16,9 +16,11 @@
 	import MediaHeader from '$lib/components/media/MediaHeader.svelte';
 	import EpisodeGrid from '$lib/components/episodes/EpisodeGrid.svelte';
 	import MediaOverview from '$lib/components/media/MediaOverview.svelte';
+	import ProviderSelector, { type Provider } from '$lib/components/media/ProviderSelector.svelte';
 	import { Separator } from '$lib/components/ui/separator';
 	import { playbackStore } from '$lib/state/stores/playbackStore.svelte';
 	import InlinePlayer from '$lib/components/player/InlinePlayer.svelte';
+	import ProviderSelector, { type Provider } from '$lib/components/media/ProviderSelector.svelte';
 
 	type MediaGenre = { id: number; name: string };
 	type MediaCastMember = {
@@ -103,6 +105,10 @@
 	let activeEmbedUrl = $state<string | null>(null);
 	let fallbackQueue = $state<string[]>([]);
 	let currentFallbackProvider = $state<string | null>(null);
+
+	// Provider selector state
+	let showProviderSelector = $state(false);
+	let providers: Provider[] = $state([]);
 
 	$effect(() => {
 		if (!movie) return;
@@ -351,6 +357,80 @@
 		return null;
 	}
 
+	function buildProviderList(): Provider[] {
+		const list: Provider[] = [];
+		for (const p of EMBED_PROVIDERS) {
+			const url = buildDirectEmbedUrl(p.id);
+			if (url) {
+				list.push({
+					id: p.id,
+					name: p.label,
+					type: 'iframe',
+					working: null
+				});
+			}
+		}
+		return list;
+	}
+
+	function handleProviderSelect(e: CustomEvent<{ providerId: string; season: number; episode: number }>) {
+		const { providerId, season, episode } = e.detail;
+		loadProvider(providerId, season, episode);
+	}
+
+	function handleProviderTest(e: CustomEvent<{
+		providerId: string;
+		season: number;
+		episode: number;
+		callback: (working: boolean) => void;
+	}>) {
+		const { providerId, season, episode, callback } = e.detail;
+		testProvider(providerId, season, episode, callback);
+	}
+
+	async function loadProvider(providerId: string, season: number, episode: number) {
+		if (!movie?.tmdbId) return;
+
+		const embedUrl = buildDirectEmbedUrl(providerId);
+		if (embedUrl) {
+			activeEmbedUrl = embedUrl;
+			showProviderSelector = false;
+		}
+	}
+
+	async function testProvider(
+		providerId: string,
+		season: number,
+		episode: number,
+		callback: (working: boolean) => void
+	) {
+		const embedUrl = buildDirectEmbedUrl(providerId);
+		if (!embedUrl) {
+			callback(false);
+			return;
+		}
+
+		try {
+			const resp = await fetch(embedUrl, {
+				method: 'HEAD',
+				signal: AbortSignal.timeout(5000),
+				headers: { 'User-Agent': 'Mozilla/5.0' }
+			});
+			callback(resp.ok || resp.status < 500);
+		} catch {
+			callback(false);
+		}
+	}
+
+	function handlePlayClick() {
+		providers = buildProviderList();
+		showProviderSelector = true;
+	}
+
+	function closePlayer() {
+		activeEmbedUrl = null;
+	}
+
 	async function handleHeaderPlay(providerId: string) {
 		console.log('[PLAY] handleHeaderPlay called with provider:', providerId, 'tmdbId:', movie?.tmdbId, 'mediaType:', mediaType);
 
@@ -589,8 +669,7 @@
 			<MediaHeader
 				{movie}
 				logoPath={movie.logoPath}
-				providers={availableProviders}
-				onProviderSelect={handleHeaderPlay}
+				on:play={handlePlayClick}
 			/>
 
 			{#if mediaType === 'anime'}
@@ -744,7 +823,41 @@
 		</main>
 	</div>
 
+	<!-- Provider Selector Modal -->
+	<ProviderSelector
+		bind:open={showProviderSelector}
+		{providers}
+		isTv={mediaType !== 'movie'}
+		season={selectedSeason}
+		episode={selectedEpisode}
+		on:select={handleProviderSelect}
+		on:testProvider={handleProviderTest}
+		on:close={() => (showProviderSelector = false)}
+	/>
+
+	<!-- Player Container -->
 	{#if activeEmbedUrl}
-		<InlinePlayer src={activeEmbedUrl} title={movie?.title ?? 'Player'} onClose={closePlayer} />
+		<div class="player-container fixed inset-0 z-50 bg-black/95 backdrop-blur-sm">
+			<button
+				class="absolute top-4 right-4 z-10 rounded-full bg-black/60 p-2 text-white hover:bg-black/80 transition"
+				on:click={closePlayer}
+			>
+				<svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+				</svg>
+			</button>
+			<InlinePlayer src={activeEmbedUrl} title={movie?.title ?? 'Player'} onClose={closePlayer} />
+		</div>
 	{/if}
+
+	<ProviderSelector
+		{providers}
+		bind:open={showProviderSelector}
+		{isTv}
+		{selectedSeason}
+		{selectedEpisode}
+		on:select={handleProviderSelect}
+		on:testProvider={handleProviderTest}
+		on:close={() => (showProviderSelector = false)}
+	/>
 {/if}
