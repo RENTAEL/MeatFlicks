@@ -1,6 +1,6 @@
-const STATIC_CACHE = 'meatflicks-static-v4';
-const API_CACHE = 'meatflicks-api-v4';
-const IMAGE_CACHE = 'meatflicks-images-v4';
+const STATIC_CACHE = 'meatflicks-static-v5';
+const API_CACHE = 'meatflicks-api-v5';
+const IMAGE_CACHE = 'meatflicks-images-v5';
 
 const STATIC_ASSETS = [
 	'/',
@@ -18,6 +18,7 @@ const CACHE_STRATEGIES = {
 
 const CACHEABLE_ROUTES = [
 	{ pattern: /\.(js|css|png|jpg|jpeg|svg|woff|woff2)$/i, strategy: CACHE_STRATEGIES.CACHE_FIRST },
+	{ pattern: /^\/_app\/version\.json$/, strategy: CACHE_STRATEGIES.NETWORK_FIRST },
 	{ pattern: /^\/api\/genres/, strategy: CACHE_STRATEGIES.NETWORK_FIRST },
 	{ pattern: /^\/api\/search\/autocomplete/, strategy: CACHE_STRATEGIES.NETWORK_FIRST }
 ];
@@ -108,6 +109,10 @@ function getCacheStrategy(request) {
 
 	if (/\.(png|jpg|jpeg|svg|webp)$/i.test(url.pathname)) {
 		return CACHE_STRATEGIES.CACHE_FIRST;
+	}
+
+	if (event.request.mode === 'navigate') {
+		return CACHE_STRATEGIES.NETWORK_FIRST;
 	}
 
 	return CACHE_STRATEGIES.STALE_WHILE_REVALIDATE;

@@ -20,13 +20,47 @@
 		if ('serviceWorker' in navigator) {
 			navigator.serviceWorker
 				.register('/service-worker.js')
-				.then(() => {})
+				.then((reg) => {
+					reg.addEventListener('updatefound', () => {
+						const newWorker = reg.installing;
+						if (newWorker) {
+							newWorker.addEventListener('statechange', () => {
+								if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+									if (confirm('A new version is available. Refresh to update?')) {
+										window.location.reload();
+									}
+								}
+							});
+						}
+					});
+				})
 				.catch((error) => {
 					console.error('Service Worker registration failed:', error);
 				});
 		}
 
-		return () => cleanup();
+		const checkVersion = async () => {
+			try {
+				const res = await fetch('/_app/version.json', { cache: 'no-cache' });
+				if (res.ok) {
+					const { version } = await res.json();
+					const current = localStorage.getItem('app-version');
+					if (current && current !== version) {
+						localStorage.removeItem('app-version');
+						window.location.reload();
+					}
+					localStorage.setItem('app-version', version);
+				}
+			} catch {}
+		};
+
+		const interval = setInterval(checkVersion, 60000);
+		checkVersion();
+
+		return () => {
+			clearInterval(interval);
+			cleanup();
+		};
 	});
 </script>
 
