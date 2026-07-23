@@ -20,7 +20,6 @@
 	import { Separator } from '$lib/components/ui/separator';
 	import { playbackStore } from '$lib/state/stores/playbackStore.svelte';
 	import InlinePlayer from '$lib/components/player/InlinePlayer.svelte';
-	import ProviderSelector, { type Provider } from '$lib/components/media/ProviderSelector.svelte';
 
 	type MediaGenre = { id: number; name: string };
 	type MediaCastMember = {
