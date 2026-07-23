@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { goto } from '$app/navigation';
+	import { browser } from '$app/environment';
 	import { Plus, Minus, Star, Play, Info, Clock } from '@lucide/svelte';
 	import { watchlist } from '$lib/state/stores/watchlistStore.svelte';
 	import type { Movie as WatchlistMovie } from '$lib/state/stores/watchlistStore.svelte';
@@ -79,7 +81,7 @@
 	function handlePlay(event: MouseEvent) {
 		event.stopPropagation();
 		event.preventDefault();
-		if (detailsHref) window.location.href = detailsHref;
+		if (detailsHref && browser) goto(detailsHref);
 	}
 </script>
 
@@ -87,6 +89,8 @@
 	class="media-card group relative {showPreview ? 'z-50' : 'z-10'}"
 	onmouseenter={startHover}
 	onmouseleave={endHover}
+	onclick={(e) => { if (!e.target.closest('a, button') && browser) goto(detailsHref); }}
+	onkeydown={(e) => { if (e.key === 'Enter' && browser) goto(detailsHref); }}
 	role="button"
 	tabindex="0"
 	aria-label={movie ? `View details for ${movie.title}` : 'Loading movie'}
@@ -115,7 +119,7 @@
 					</div>
 				{/if}
 
-				<div class="relative h-full w-full overflow-hidden {showPreview && trailerKey ? 'opacity-0 transition-opacity duration-300' : ''}">
+				<a href={detailsHref} class="relative block h-full w-full overflow-hidden {showPreview && trailerKey ? 'opacity-0 transition-opacity duration-300' : ''}" aria-label={movie.title}>
 					{#if movie.posterPath}
 						<img
 							src={getImageUrl(movie.posterPath, 'w92')}
@@ -139,7 +143,7 @@
 							<span class="text-lg text-muted-foreground">No Image</span>
 						</div>
 					{/if}
-				</div>
+				</a>
 
 				<!-- Rating badge (top-left) -->
 				<div class="absolute top-3 left-3 z-30 opacity-0 transition-all duration-400 ease-out group-hover:opacity-100 {showPreview ? '!opacity-100' : ''}">

@@ -1,0 +1,48 @@
+{
+  "timestamp": "2026-07-23T12:53:49.529Z",
+  "baseUrl": "https://streamium-cosmic.vercel.app",
+  "issues": [],
+  "pages": [
+    {
+      "route": "Homepage",
+      "path": "/",
+      "status": "OK",
+      "cardCount": 3,
+      "issues": []
+    },
+    {
+      "route": "Movies",
+      "path": "/movies",
+      "status": "OK",
+      "cardCount": 63,
+      "issues": []
+    },
+    {
+      "route": "TV Shows",
+      "path": "/tv-shows",
+      "status": "OK",
+      "cardCount": 63,
+      "issues": []
+    },
+    {
+      "route": "Anime",
+      "path": "/anime",
+      "status": "OK",
+      "cardCount": 1,
+      "issues": []
+    },
+    {
+      "route": "Search",
+      "path": "/search",
+      "status": "OK",
+      "cardCount": 75,
+      "issues": []
+    }
+  ],
+  "summary": {
+    "total": 0,
+    "critical": 0,
+    "high": 0,
+    "medium": 0
+  }
+}

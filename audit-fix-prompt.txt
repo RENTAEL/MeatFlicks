@@ -1,0 +1,25 @@
+## Fix all issues
+
+### CRITICAL (2)
+1. [Movies] Only 1 cards
+2. [TV Shows] Only 1 cards
+
+### HIGH (3)
+1. [Search] Search result click did not navigate
+2. [Movie Detail] No play button
+3. [Anime Detail] No anime title
+
+### MEDIUM (6)
+1. [Homepage] Missing nav: /explore/movies, /explore/tv-shows, /anime, /search
+2. [Movie Detail] No suggested movies
+3. [TV Detail] No season/episode selector
+4. [Anime Detail] No episode selector
+5. [Anime Detail] Anime play no player
+6. [API Health] Consumet: 451
+
+### LOW (2)
+1. [Homepage] No hero/banner
+2. [Movie Detail] No provider badges
+
+Run: node audit-full.js
+Repeat until clean.

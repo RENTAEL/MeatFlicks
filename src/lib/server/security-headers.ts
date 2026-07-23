@@ -8,12 +8,12 @@ import { env } from '$lib/config/env';
 export const SECURITY_HEADERS = {
 	'Content-Security-Policy': `
 		default-src 'self';
-		script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://unpkg.com;
+		script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://unpkg.com blob:;
 		style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
 		img-src 'self' data: https: blob:;
 		font-src 'self' https://fonts.gstatic.com;
 		connect-src 'self' https: wss:;
-		frame-src 'self' https://www.youtube.com https://player.vimeo.com;
+		frame-src 'self' https: blob:;
 		media-src 'self' https: blob:;
 		object-src 'none';
 		base-uri 'self';
@@ -40,7 +40,9 @@ export const SECURITY_HEADERS = {
 		accelerometer=(),
 		ambient-light-sensor=(),
 		battery=(),
-		screen-wake-lock=()
+		screen-wake-lock=(),
+		popup=(),
+		window-placement=()
 	`
 		.replace(/\s+/g, ' ')
 		.trim(),

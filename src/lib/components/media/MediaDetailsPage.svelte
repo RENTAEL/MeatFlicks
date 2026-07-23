@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { onMount, untrack } from 'svelte';
+	import { untrack } from 'svelte';
 	import { page } from '$app/state';
 	import type { ProviderResolution } from '$lib/streaming/provider-registry';
 	import type { StreamingSource } from '$lib/streaming';
@@ -104,26 +104,38 @@
 	let fallbackQueue = $state<string[]>([]);
 	let currentFallbackProvider = $state<string | null>(null);
 
-	onMount(() => {
+	$effect(() => {
+		if (!movie) return;
+		const currentMovieId = movie.id;
+		selectedSeason = 1;
+		selectedEpisode = 1;
+		activeEmbedUrl = null;
+		fallbackQueue = [];
+		currentFallbackProvider = null;
+		activeTab = 'suggested';
+		streamingService.reset();
+		playerService.cleanup();
 		playerService.init();
-		if (movie) {
-			streamingService.setCurrentMedia({
-				mediaId: movie.id,
-				tmdbId: movie.tmdbId,
-				mediaType: mediaType,
-				season: mediaType === 'tv' || mediaType === 'anime' ? selectedSeason : undefined,
-				episode: mediaType === 'tv' || mediaType === 'anime' ? selectedEpisode : undefined
+
+		streamingService.setCurrentMedia({
+			mediaId: movie.id,
+			tmdbId: movie.tmdbId,
+			mediaType: mediaType,
+			season: mediaType === 'tv' || mediaType === 'anime' ? 1 : undefined,
+			episode: mediaType === 'tv' || mediaType === 'anime' ? 1 : undefined
+		});
+		if (data.streaming) {
+			streamingService.initializeFromServerData({
+				source: data.streaming.source ?? null,
+				resolutions: Array.isArray(data.streaming.resolutions)
+					? [...data.streaming.resolutions]
+					: []
 			});
-			if (data.streaming) {
-				streamingService.initializeFromServerData({
-					source: data.streaming.source ?? null,
-					resolutions: Array.isArray(data.streaming.resolutions)
-						? [...data.streaming.resolutions]
-						: []
-				});
-			}
 		}
-		return () => playerService.destroy();
+
+		return () => {
+			if (currentMovieId) playerService.destroy();
+		};
 	});
 
 	async function handlePlayClick() {
@@ -478,38 +490,39 @@
 		return () => window.removeEventListener('keydown', handleKeyDown);
 	});
 
-	onMount(() => {
-		if (movie?.id) {
-			const normalizedGenres = movie.genres?.map((g: MediaGenre) => g.name || String(g)) ?? [];
+	$effect(() => {
+		if (!movie?.id) return;
+		const normalizedGenres = movie.genres?.map((g: MediaGenre) => g.name || String(g)) ?? [];
 
-			watchHistory.recordWatch({
-				id: movie.id,
-				title: movie.title,
-				posterPath: movie.posterPath ?? null,
-				backdropPath: movie.backdropPath ?? null,
-				overview: movie.overview ?? null,
-				releaseDate: movie.releaseDate ? new Date(movie.releaseDate).toISOString() : null,
-				rating: movie.rating ?? 0,
-				genres: normalizedGenres,
-				trailerUrl: movie.trailerUrl ?? null,
-				mediaType: mediaType,
-				is4K: Boolean(movie.is4K),
-				isHD: movie.isHD ?? undefined,
-				tmdbId: movie.tmdbId ?? undefined,
-				imdbId: movie.imdbId ?? undefined,
-				durationMinutes: movie.durationMinutes ?? null,
-				collectionId: movie.collectionId ?? null,
-				...(mediaType !== 'movie'
-					? {
-							season: selectedSeason,
-							episode: selectedEpisode
-						}
-					: {})
-			});
-		}
+		watchHistory.recordWatch({
+			id: movie.id,
+			title: movie.title,
+			posterPath: movie.posterPath ?? null,
+			backdropPath: movie.backdropPath ?? null,
+			overview: movie.overview ?? null,
+			releaseDate: movie.releaseDate ? new Date(movie.releaseDate).toISOString() : null,
+			rating: movie.rating ?? 0,
+			genres: normalizedGenres,
+			trailerUrl: movie.trailerUrl ?? null,
+			mediaType: mediaType,
+			is4K: Boolean(movie.is4K),
+			isHD: movie.isHD ?? undefined,
+			tmdbId: movie.tmdbId ?? undefined,
+			imdbId: movie.imdbId ?? undefined,
+			durationMinutes: movie.durationMinutes ?? null,
+			collectionId: movie.collectionId ?? null,
+			...(mediaType !== 'movie'
+				? {
+						season: 1,
+						episode: 1
+					}
+				: {})
+		});
+	});
 
+	$effect(() => {
 		if (mediaType !== 'movie' && movie?.tmdbId) {
-			episodeService.fetchEpisodes(movie.tmdbId, selectedSeason);
+			episodeService.fetchEpisodes(movie.tmdbId, 1);
 		}
 	});
 

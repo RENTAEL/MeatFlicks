@@ -14,7 +14,11 @@
 	import { onMount } from 'svelte';
 	import { setupCloudSync } from '$lib/firebase/sync';
 
-	onMount(() => {
+	onMount(async () => {
+		try {
+			const { initAdBlocker } = await import('$lib/utils/adBlocker.js');
+			initAdBlocker();
+		} catch {}
 		const cleanup = setupCloudSync();
 
 		const checkVersion = async () => {

@@ -1,0 +1,132 @@
+{
+  "timestamp": "2026-07-23T13:02:43.197Z",
+  "baseUrl": "https://streamium-cosmic.vercel.app",
+  "summary": {
+    "totalPages": 9,
+    "totalIssues": 13,
+    "critical": 2,
+    "high": 3,
+    "medium": 6,
+    "low": 2
+  },
+  "pages": [
+    {
+      "route": "Homepage",
+      "path": "/",
+      "status": "OK",
+      "cardCount": 323,
+      "issues": [
+        {
+          "severity": "LOW",
+          "detail": "No hero/banner"
+        },
+        {
+          "severity": "MEDIUM",
+          "detail": "Missing nav: /explore/movies, /explore/tv-shows, /anime, /search"
+        }
+      ]
+    },
+    {
+      "route": "Movies",
+      "path": "/explore/movies",
+      "status": "OK",
+      "cardCount": 1,
+      "issues": [
+        {
+          "severity": "CRITICAL",
+          "detail": "Only 1 cards"
+        }
+      ]
+    },
+    {
+      "route": "TV Shows",
+      "path": "/explore/tv-shows",
+      "status": "OK",
+      "cardCount": 1,
+      "issues": [
+        {
+          "severity": "CRITICAL",
+          "detail": "Only 1 cards"
+        }
+      ]
+    },
+    {
+      "route": "Anime",
+      "path": "/anime",
+      "status": "OK",
+      "cardCount": 11,
+      "issues": []
+    },
+    {
+      "route": "Search",
+      "path": "/search",
+      "status": "OK",
+      "issues": [
+        {
+          "severity": "HIGH",
+          "detail": "Search result click did not navigate"
+        }
+      ]
+    },
+    {
+      "route": "Movie Detail",
+      "path": "/movie/27205",
+      "status": "OK",
+      "issues": [
+        {
+          "severity": "HIGH",
+          "detail": "No play button"
+        },
+        {
+          "severity": "MEDIUM",
+          "detail": "No suggested movies"
+        },
+        {
+          "severity": "LOW",
+          "detail": "No provider badges"
+        }
+      ]
+    },
+    {
+      "route": "TV Detail",
+      "path": "/tv/1399",
+      "status": "OK",
+      "issues": [
+        {
+          "severity": "MEDIUM",
+          "detail": "No season/episode selector"
+        }
+      ]
+    },
+    {
+      "route": "Anime Detail",
+      "path": "/anime/61316",
+      "status": "OK",
+      "issues": [
+        {
+          "severity": "HIGH",
+          "detail": "No anime title"
+        },
+        {
+          "severity": "MEDIUM",
+          "detail": "No episode selector"
+        },
+        {
+          "severity": "MEDIUM",
+          "detail": "Anime play no player"
+        }
+      ]
+    },
+    {
+      "route": "API Health",
+      "path": "external",
+      "status": "INFO",
+      "issues": [
+        {
+          "severity": "MEDIUM",
+          "detail": "Consumet: 451"
+        }
+      ]
+    }
+  ]
+}

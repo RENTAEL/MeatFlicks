@@ -78,6 +78,7 @@
 				class="h-full w-full border-none"
 				allow="autoplay; fullscreen; picture-in-picture"
 				onload={() => playerService.handleIframeLoad(currentQualities, currentSubtitles)}
+				sandbox="allow-scripts allow-same-origin allow-presentation allow-forms"
 			></iframe>
 		{:else}
 			<div class="flex h-full w-full items-center justify-center text-white">
