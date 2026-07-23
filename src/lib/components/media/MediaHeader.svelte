@@ -1,6 +1,5 @@
 <script lang="ts">
 	import { Button } from '$lib/components/ui/button';
-	import { DropdownMenu } from 'bits-ui';
 	import { Star, Film, Play, Bookmark, BookmarkMinus } from '@lucide/svelte';
 	import { watchlist } from '$lib/state/stores/watchlistStore.svelte';
 	import { error as errorStore } from '$lib/state/stores/errorStore';
@@ -113,7 +112,6 @@
 	});
 
 	let showFullOverview = $state(false);
-	let dropdownOpen = $state(false);
 
 	function toggleOverview() {
 		showFullOverview = !showFullOverview;
@@ -191,26 +189,15 @@
 					{/if}
 
 					<div class="mt-6 flex flex-wrap items-center gap-4">
-						<DropdownMenu.Root bind:open={dropdownOpen}>
-							<Button
-								variant="default"
-								size="lg"
-								class="h-12 gap-2 bg-primary px-8 text-lg font-semibold hover:bg-primary/90"
-								onclick={() => (dropdownOpen = !dropdownOpen)}
-							>
-								<Play class="size-5 fill-current" />
-								Play
-							</Button>
-							<DropdownMenu.Content align="start" class="glass-strong w-56 border-border/50">
-								<DropdownMenu.Label>Select Provider</DropdownMenu.Label>
-								<DropdownMenu.Separator />
-								{#each allProviders as provider (provider.providerId)}
-									<DropdownMenu.Item onclick={() => onProviderSelect?.(provider.providerId)}>
-										{provider.label ?? (provider.providerId.charAt(0).toUpperCase() + provider.providerId.slice(1))}
-									</DropdownMenu.Item>
-								{/each}
-							</DropdownMenu.Content>
-						</DropdownMenu.Root>
+						<Button
+							variant="default"
+							size="lg"
+							class="h-12 gap-2 bg-primary px-8 text-lg font-semibold hover:bg-primary/90"
+							onclick={() => onProviderSelect?.(allProviders[0]?.providerId ?? 'vidcore')}
+						>
+							<Play class="size-5 fill-current" />
+							Play
+						</Button>
 
 						{#if movie?.trailerUrl}
 							<Button
