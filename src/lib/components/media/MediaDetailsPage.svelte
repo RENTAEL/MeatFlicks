@@ -161,18 +161,6 @@
 		}
 	}
 
-	function closePlayer(reason?: 'error' | 'user') {
-		activeEmbedUrl = null;
-		if (reason === 'error' && fallbackQueue.length > 0) {
-			const nextProvider = fallbackQueue.shift()!;
-			currentFallbackProvider = nextProvider;
-			handleHeaderPlay(nextProvider);
-		} else {
-			fallbackQueue = [];
-			currentFallbackProvider = null;
-		}
-	}
-
 	function handleSeasonChange(value: string) {
 		selectedSeason = Number(value);
 		selectedEpisode = 1;
