@@ -1,0 +1,92 @@
+{
+  "timestamp": "2026-07-23T13:38:27.920Z",
+  "movie": "Inception (27205)",
+  "steps": [
+    {
+      "name": "Navigate to movie detail page",
+      "status": "PASS",
+      "detail": "loaded (HTTP200)"
+    },
+    {
+      "name": "Page has content (not empty/error)",
+      "status": "PASS",
+      "detail": "587 chars"
+    },
+    {
+      "name": "Movie title visible",
+      "status": "PASS",
+      "detail": "\"Inception\""
+    },
+    {
+      "name": "Poster or backdrop image loads",
+      "status": "PASS",
+      "detail": "3840px wide, from https://image.tmdb.org/t/p/original/8ZTVqvKDQ8emSGUEMjsS4yHA"
+    },
+    {
+      "name": "Movie details (overview, rating, etc.)",
+      "status": "PASS",
+      "detail": "found: overview, rating, year, genre, duration"
+    },
+    {
+      "name": "Play/watch button exists",
+      "status": "PASS",
+      "detail": "<BUTTON> \"Play\""
+    },
+    {
+      "name": "Click play button",
+      "status": "PASS",
+      "detail": "clicked"
+    },
+    {
+      "name": "Play button does NOT navigate away",
+      "status": "PASS",
+      "detail": "stayed on same page"
+    },
+    {
+      "name": "Video player or iframe appears",
+      "status": "FAIL",
+      "detail": "no player element appeared"
+    },
+    {
+      "name": "Streaming API/resolver requests made",
+      "status": "FAIL",
+      "detail": "no streaming-related network requests at all"
+    },
+    {
+      "name": "No console errors after play",
+      "status": "PASS",
+      "detail": "no errors"
+    },
+    {
+      "name": "Scroll to bottom reveals content",
+      "status": "PASS",
+      "detail": "no lazy growth (1224 → 1224px)"
+    },
+    {
+      "name": "Suggested/related section exists",
+      "status": "PASS",
+      "detail": "found heading: \"Inception\n8.4\n2010\n•\n148 min\n•\nAction\nAdventure\nScience Fiction\n\nCobb, a skilled thief who commits corporate espionage by infiltrating the subconscious of his targets is offered a chance to regain his old life as payment for a task considered to be impossible: \"inception\", the implantation of another person's idea into a target's subconscious.\n\nMore\nPlay\nTrailer\nSuggested\nDetails\n5.8\n6.6\n6.1\n6.2\n6.1\n6.3\n7.0\n6.5\n7.1\n6.1\n6.1\n6.0\n\n© 2025 Streamium. All Rights Reserved. This site does not store any files on the server, we only linked to the media which is hosted on 3rd party services.\""
+    },
+    {
+      "name": "Suggested cards are present (≥3)",
+      "status": "PASS",
+      "detail": "12 cards (e.g., )"
+    },
+    {
+      "name": "Clicking suggested card navigates to new movie",
+      "status": "FAIL",
+      "detail": "still on same page: https://streamium-cosmic.vercel.app/movie/tt1375666"
+    },
+    {
+      "name": "TMDB API calls on detail page succeed",
+      "status": "FAIL",
+      "detail": "no TMDB API calls at all — data is not being fetched from TMDB"
+    }
+  ],
+  "summary": {
+    "total": 16,
+    "passed": 12,
+    "failed": 4,
+    "errors": 0
+  }
+}
