@@ -43,8 +43,8 @@
 	</div>
 
 	<div
-		class="-mx-[5%] flex snap-x snap-mandatory gap-2 overflow-x-auto px-[5%] pb-4 sm:mx-0 sm:gap-4 sm:px-0 md:gap-4"
-		style="-webkit-overflow-scrolling: touch; scrollbar-width: none;"
+		class="-mx-[5%] flex snap-x snap-mandatory gap-2 overflow-x-auto px-[5%] pb-4 sm:mx-0 sm:gap-4 sm:px-0 md:gap-4 scrollbar-thin"
+		style="-webkit-overflow-scrolling: touch; scroll-behavior: smooth;"
 	>
 		{#each items as item, i (item.id)}
 			<div class="shrink-0 snap-start">
@@ -53,7 +53,3 @@
 		{/each}
 	</div>
 </div>
-
-<style>
-	div::-webkit-scrollbar { display: none; }
-</style>

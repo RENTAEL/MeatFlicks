@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { X, ExternalLink } from '@lucide/svelte';
+	import { X, ExternalLink, AlertCircle } from '@lucide/svelte';
 	import { Button } from '$lib/components/ui/button';
 
 	let {
@@ -14,10 +14,45 @@
 
 	let frameRef = $state<HTMLIFrameElement | null>(null);
 	let isLoading = $state(true);
+	let hasError = $state(false);
+	let loadTimeout: ReturnType<typeof setTimeout> | null = null;
 
 	function handleIframeLoad() {
 		isLoading = false;
+		hasError = false;
+		if (loadTimeout) clearTimeout(loadTimeout);
 	}
+
+	function handleIframeError() {
+		isLoading = false;
+		hasError = true;
+		if (loadTimeout) clearTimeout(loadTimeout);
+	}
+
+	function retry() {
+		isLoading = true;
+		hasError = false;
+		if (frameRef) {
+			frameRef.src = src;
+		}
+	}
+
+	$effect(() => {
+		if (src) {
+			isLoading = true;
+			hasError = false;
+			if (loadTimeout) clearTimeout(loadTimeout);
+			loadTimeout = setTimeout(() => {
+				if (isLoading) {
+					hasError = true;
+					isLoading = false;
+				}
+			}, 15000);
+		}
+		return () => {
+			if (loadTimeout) clearTimeout(loadTimeout);
+		};
+	});
 </script>
 
 <div class="fixed inset-0 z-[100] flex items-center justify-center bg-black/90">
@@ -42,15 +77,36 @@
 			</div>
 		{/if}
 
+		{#if hasError}
+			<div class="absolute inset-0 flex flex-col items-center justify-center gap-4 rounded-lg bg-card p-6 text-center">
+				<AlertCircle class="size-12 text-destructive" />
+				<p class="text-lg font-semibold text-foreground">Couldn't load this video</p>
+				<p class="max-w-md text-sm text-muted-foreground">
+					The embed provider may be unavailable. Try selecting a different source from the provider list.
+				</p>
+				<div class="flex gap-3">
+					<Button type="button" variant="default" onclick={retry}>
+						Retry
+					</Button>
+					<Button type="button" variant="outline" onclick={onClose}>
+						Close
+					</Button>
+				</div>
+			</div>
+		{/if}
+
 		<iframe
 			bind:this={frameRef}
 			src={src}
 			title={title}
 			class="h-full w-full rounded-lg"
+			class:hidden={hasError}
 			allow="autoplay; fullscreen; encrypted-media; picture-in-picture"
 			allowfullscreen
 			onload={handleIframeLoad}
-			sandbox="allow-same-origin allow-scripts allow-forms allow-presentation allow-popups"
+			onerror={handleIframeError}
+			sandbox="allow-same-origin allow-scripts allow-forms allow-presentation allow-popups allow-popups-to-escape-sandbox"
+			referrerpolicy="no-referrer-when-downgrade"
 		></iframe>
 	</div>
 </div>

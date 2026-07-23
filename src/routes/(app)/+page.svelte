@@ -97,7 +97,7 @@ import { Loader2, RefreshCw } from '@lucide/svelte';
 
 <div class="page-transition min-h-screen text-foreground">
 	<div class="mx-auto w-full py-2 pr-2 pl-0 sm:pr-2 sm:pl-0 lg:pr-2 lg:pl-0">
-		<main class="flex min-h-[calc(100vh-2rem)] flex-col gap-12 overflow-hidden rounded-2xl glass shadow-xl">
+		<main class="flex min-h-[calc(100vh-2rem)] flex-col gap-12 rounded-2xl glass shadow-xl">
 			{#if homeLibraryPromise}
 				{#await homeLibraryPromise}
 					<HomePageSkeleton />
