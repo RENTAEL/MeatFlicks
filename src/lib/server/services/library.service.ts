@@ -49,84 +49,71 @@ const buildFallbackHomeLibrary = async (limit: number): Promise<HomeLibrary | nu
 			})
 		);
 
-		const { upsertMovieWithGenres } = await import('$lib/server/db/mutations');
-		const { db } = await import('$lib/server/db/client');
-		const { media: mediaTable } = await import('$lib/server/db/schema');
-		const { eq } = await import('drizzle-orm');
-		const storedMedia: MediaSummary[] = [];
+		const validDetails = detailsList.filter((d): d is TmdbMovieDetails => Boolean(d?.found));
+		if (validDetails.length === 0) return null;
 
-		for (const details of detailsList.filter((d): d is TmdbMovieDetails => Boolean(d?.found))) {
-			try {
-				const genreNames = Array.from(
-					new Set(details.genres.map((genre) => genre.name).filter(Boolean))
-				);
-
-				logger.info(
-					{ tmdbId: details.tmdbId, title: details.title },
-					'[library][fallback] Storing media'
-				);
-
-				const storedItem = await upsertMovieWithGenres({
-					tmdbId: details.tmdbId,
-					title: details.title ?? 'Untitled',
-					overview: details.overview ?? null,
-					posterPath: details.posterPath ?? null,
-					backdropPath: details.backdropPath ?? null,
-					releaseDate: details.releaseDate ?? null,
-					rating: details.rating ?? null,
-					durationMinutes: details.runtime ?? null,
-					is4K: false,
-					isHD: true,
-					genreNames,
-					imdbId: details.imdbId ?? null,
-					trailerUrl: details.trailerUrl ?? null
-				});
-
-				if (storedItem) {
-					logger.info(
-						{ mediaId: storedItem.id, imdbId: details.imdbId },
-						'[library][fallback] Media stored, updating IMDB ID'
-					);
-
-					await db
-						.update(mediaTable)
-						.set({
-							imdbId: details.imdbId,
-							trailerUrl: details.trailerUrl,
-							updatedAt: Date.now()
-						})
-						.where(eq(mediaTable.id, storedItem.id));
-
-					storedMedia.push(storedItem);
-				} else {
-					logger.warn({ tmdbId: details.tmdbId }, '[library][fallback] Failed to store media');
-				}
-			} catch (error) {
-				logger.warn({ tmdbId: details.tmdbId, error }, '[library][fallback] failed to store media');
-			}
-		}
-
-		if (storedMedia.length === 0) {
-			return null;
-		}
-
-		const fallbackMedia = storedMedia.map((item) => {
-			const libraryItem = toLibraryMedia(item);
-			const type = libraryItem.mediaType || libraryItem.media_type || 'movie';
-			const prefix = type === 'tv' ? '/tv/' : '/movie/';
-			const canonicalPath = item.tmdbId
-				? `${prefix}${item.tmdbId}`
-				: item.imdbId
-					? `${prefix}${item.imdbId}`
-					: `${prefix}${item.id}`;
+		const fallbackMedia = validDetails.map((details) => {
+			const type = 'movie';
+			const prefix = '/movie/';
+			const canonicalPath = `${prefix}${details.tmdbId}`;
 			return {
-				...libraryItem,
+				id: String(details.tmdbId),
+				tmdbId: details.tmdbId,
+				title: details.title ?? 'Untitled',
+				overview: details.overview ?? null,
+				posterPath: details.posterPath ?? null,
+				backdropPath: details.backdropPath ?? null,
+				releaseDate: details.releaseDate ?? null,
+				rating: details.rating ?? null,
+				durationMinutes: details.runtime ?? null,
+				is4K: false,
+				isHD: true,
+				mediaType: type,
+				media_type: type,
+				genres: details.genres.map((g) => g.name).filter(Boolean),
+				imdbId: details.imdbId ?? null,
+				trailerUrl: details.trailerUrl ?? null,
 				canonicalPath
-			};
+			} as unknown as LibraryMedia;
 		});
 
+		try {
+			const { upsertMovieWithGenres } = await import('$lib/server/db/mutations');
+			await Promise.allSettled(
+				validDetails.map(async (details) => {
+					try {
+						const genreNames = Array.from(
+							new Set(details.genres.map((genre) => genre.name).filter(Boolean))
+						);
+						await upsertMovieWithGenres({
+							tmdbId: details.tmdbId,
+							title: details.title ?? 'Untitled',
+							overview: details.overview ?? null,
+							posterPath: details.posterPath ?? null,
+							backdropPath: details.backdropPath ?? null,
+							releaseDate: details.releaseDate ?? null,
+							rating: details.rating ?? null,
+							durationMinutes: details.runtime ?? null,
+							is4K: false,
+							isHD: true,
+							genreNames,
+							imdbId: details.imdbId ?? null,
+							trailerUrl: details.trailerUrl ?? null
+						});
+					} catch {
+						logger.warn({ tmdbId: details.tmdbId }, '[library][fallback] DB write failed, using TMDB data directly');
+					}
+				})
+			);
+		} catch {
+			logger.info('[library][fallback] DB unavailable, using TMDB data directly');
+		}
+
+		const extrasMap = await buildExtrasMap(fallbackMedia);
+		const decorated = fallbackMedia.map((m) => attachIdentifiers(m, extrasMap));
+
 		return {
-			trendingMovies: fallbackMedia,
+			trendingMovies: decorated,
 			trendingTv: [],
 			collections: [],
 			genres: []
