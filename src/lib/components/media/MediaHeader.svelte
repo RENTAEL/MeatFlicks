@@ -192,9 +192,7 @@
 
 					<div class="mt-6 flex flex-wrap items-center gap-4">
 						<DropdownMenu.Root>
-							<DropdownMenu.Trigger
-								class={cn(buttonVariants({ variant: 'default', size: 'lg' }), 'h-12 gap-2 bg-primary px-8 text-lg font-semibold hover:bg-primary/90')}
-							>
+							<DropdownMenu.Trigger class="p-2 bg-blue-500 text-white rounded">
 								<Play class="size-5 fill-current" />
 								Play
 							</DropdownMenu.Trigger>
