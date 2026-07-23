@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { Button } from '$lib/components/ui/button';
-	import * as DropdownMenu from '$lib/components/ui/dropdown-menu';
+	import { DropdownMenu } from 'bits-ui';
 	import { Star, Film, Play, Bookmark, BookmarkMinus } from '@lucide/svelte';
 	import { watchlist } from '$lib/state/stores/watchlistStore.svelte';
 	import { error as errorStore } from '$lib/state/stores/errorStore';
