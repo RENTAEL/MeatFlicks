@@ -10,6 +10,8 @@ import type { StreamingProvider } from '../types';
 
 const {
 	vidsrc,
+	vidsrcPm,
+	vidsrcCc,
 	vidsrcEmbedRu,
 	vidsrcEmbedSu,
 	vidsrcmeRu,
@@ -20,6 +22,8 @@ const {
 } = streamingConfig;
 
 const VIDSRC_DOMAINS = [
+	vidsrcPm.baseUrl,
+	vidsrcCc.baseUrl,
 	vidsrc.baseUrl,
 	vidsrcEmbedRu.baseUrl,
 	vidsrcEmbedSu.baseUrl,

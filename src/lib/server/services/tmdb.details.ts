@@ -15,7 +15,9 @@ import type {
 	TmdbMovieDetails,
 	TmdbMovieExtras,
 	TmdbTvDetails,
-	TmdbTvSeason
+	TmdbTvSeason,
+	TmdbWatchProviders,
+	TmdbWatchProviderResult
 } from './tmdb.types';
 
 export interface FetchTvDetailsOptions {
@@ -364,4 +366,41 @@ export async function fetchTmdbRecommendations(
 				} as LibraryMovie;
 			});
 	});
+}
+
+export async function fetchTmdbWatchProviders(
+	tmdbId: number,
+	mediaType: 'movie' | 'tv'
+): Promise<TmdbWatchProviderResult> {
+	const cacheKey = buildCacheKey('tmdb', mediaType, tmdbId, 'watch-providers');
+
+	return withCache(
+		cacheKey,
+		DETAILS_TTL,
+		async () => {
+			try {
+				const data = (await tmdbRateLimiter.schedule(`tmdb-${mediaType}-watch-providers`, () =>
+					api(`/${mediaType}/${tmdbId}/watch/providers`)
+				)) as TmdbWatchProviders;
+
+				const us = data.results?.['US'];
+
+				return {
+					flatrate: us?.flatrate ?? [],
+					rent: us?.rent ?? [],
+					buy: us?.buy ?? []
+				};
+			} catch (error) {
+				if (error instanceof ApiError && error.statusCode === 404) {
+					return { flatrate: [], rent: [], buy: [] };
+				}
+				console.error(
+					`[fetchTmdbWatchProviders] Error for ${mediaType} ${tmdbId}:`,
+					error
+				);
+				return { flatrate: [], rent: [], buy: [] };
+			}
+		},
+		{ swrSeconds: DETAILS_TTL / 2 }
+	);
 }

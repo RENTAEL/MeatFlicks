@@ -62,12 +62,26 @@
 		resolutions: ProviderResolution[] | ReadonlyArray<ProviderResolution>;
 	};
 
+	type WatchProvider = {
+		logo_path: string | null;
+		provider_id: number;
+		provider_name: string;
+		display_priority: number;
+	};
+
+	type WatchProviderResult = {
+		flatrate: WatchProvider[];
+		rent: WatchProvider[];
+		buy: WatchProvider[];
+	};
+
 	const props = $props<{
 		data: {
 			movie: MediaDetails | null;
 			streaming?: StreamingPayloadLike;
 			mediaType?: MediaType;
 			recommendations?: LibraryMedia[];
+			watchProviders?: WatchProviderResult;
 			csrfToken?: string;
 			canonicalPath?: string;
 		} & Record<string, unknown>;
@@ -221,17 +235,42 @@
 	}
 
 	const EMBED_PROVIDERS = [
+		{ id: 'vidcore', label: 'VidCore' },
+		{ id: 'vixsrc', label: 'VixSrc' },
 		{ id: 'vidlink', label: 'VidLink' },
 		{ id: 'vidsrc', label: 'VidSrc' },
 		{ id: '2embed', label: '2Embed' },
 		{ id: 'superembed', label: 'SuperEmbed' },
 		{ id: 'autoembed', label: 'AutoEmbed' },
-		{ id: 'multiembed', label: 'MultiEmbed' }
+		{ id: 'multiembed', label: 'MultiEmbed' },
+		{ id: 'streamsrc', label: 'StreamSrc' },
+		{ id: '2embed.skin', label: '2Embed.Skin' }
 	] as const;
 
 	function buildDirectEmbedUrl(providerId: string): string | null {
 		if (!movie?.tmdbId) return null;
 		const customParams = `primaryColor=63b8bc&secondaryColor=a2a2a2&iconColor=eefdec&icons=default&player=default&title=false&poster=true&autoplay=true&nextbutton=false`;
+
+		if (providerId === 'vidcore') {
+			if (mediaType === 'movie') return `https://vidcore.org/embed/movie/${movie.tmdbId}`;
+			return `https://vidcore.org/embed/tv/${movie.tmdbId}/${selectedSeason}/${selectedEpisode}`;
+		}
+
+		if (providerId === 'vixsrc') {
+			if (mediaType === 'movie') return `https://vixsrc.to/movie/${movie.tmdbId}`;
+			return `https://vixsrc.to/tv/${movie.tmdbId}/${selectedSeason}/${selectedEpisode}`;
+		}
+
+		if (providerId === 'streamsrc') {
+			if (mediaType === 'movie') return `https://streamsrc.cc/watch/movie/${movie.tmdbId}`;
+			return `https://streamsrc.cc/watch/series/${movie.tmdbId}`;
+		}
+
+		if (providerId === '2embed.skin') {
+			const mediaId = movie.imdbId || movie.tmdbId;
+			if (mediaType === 'movie') return `https://2embed.skin/embed/movie/${mediaId}`;
+			return `https://2embed.skin/embed/tv/${mediaId}/${selectedSeason}/${selectedEpisode}`;
+		}
 
 		if (providerId === 'vidlink') {
 			if (mediaType === 'anime') {
@@ -618,6 +657,60 @@
 									onSeasonChange={handleSeasonChange}
 									onEpisodeSelect={handleEpisodeSelect}
 								/>
+							</div>
+						{/if}
+
+						{#if data.watchProviders && (data.watchProviders.flatrate.length > 0 || data.watchProviders.rent.length > 0 || data.watchProviders.buy.length > 0)}
+							<div class="mb-8 px-[10%]">
+								{#if data.watchProviders.flatrate.length > 0}
+									<h3 class="mb-3 text-lg font-bold text-foreground">Streaming on</h3>
+									<div class="flex flex-wrap gap-3">
+										{#each data.watchProviders.flatrate as provider}
+											<div class="flex items-center gap-2 rounded-lg bg-muted/60 px-3 py-2 backdrop-blur-sm">
+												<img
+													src={provider.logo_path ? `https://image.tmdb.org/t/p/w45${provider.logo_path}` : ''}
+													alt={provider.provider_name}
+													title={provider.provider_name}
+													class="size-8 rounded object-contain"
+													loading="lazy"
+												/>
+												<span class="text-sm font-medium text-foreground">{provider.provider_name}</span>
+											</div>
+										{/each}
+									</div>
+								{/if}
+								{#if data.watchProviders.rent.length > 0 || data.watchProviders.buy.length > 0}
+									<div class="mt-4 flex flex-wrap gap-3">
+										{#if data.watchProviders.rent.length > 0}
+											{#each data.watchProviders.rent as provider}
+												<div class="flex items-center gap-2 rounded-lg bg-muted/30 px-3 py-2 backdrop-blur-sm opacity-60">
+													<img
+														src={provider.logo_path ? `https://image.tmdb.org/t/p/w45${provider.logo_path}` : ''}
+														alt={provider.provider_name}
+														title={'Rent on ' + provider.provider_name}
+														class="size-6 rounded object-contain"
+														loading="lazy"
+													/>
+													<span class="text-xs text-muted-foreground">Rent</span>
+												</div>
+											{/each}
+										{/if}
+										{#if data.watchProviders.buy.length > 0}
+											{#each data.watchProviders.buy as provider}
+												<div class="flex items-center gap-2 rounded-lg bg-muted/30 px-3 py-2 backdrop-blur-sm opacity-60">
+													<img
+														src={provider.logo_path ? `https://image.tmdb.org/t/p/w45${provider.logo_path}` : ''}
+														alt={provider.provider_name}
+														title={'Buy on ' + provider.provider_name}
+														class="size-6 rounded object-contain"
+														loading="lazy"
+													/>
+													<span class="text-xs text-muted-foreground">Buy</span>
+												</div>
+											{/each}
+										{/if}
+									</div>
+								{/if}
 							</div>
 						{/if}
 

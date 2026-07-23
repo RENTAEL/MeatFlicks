@@ -3,11 +3,15 @@ import { primaryProvider } from './providers/primary';
 import { secondaryProvider } from './providers/secondary';
 import { tertiaryProvider } from './providers/tertiary';
 import { superEmbedProvider } from './providers/superembed';
+import { vidcoreProvider } from './providers/vidcore';
+import { vixsrcProvider } from './providers/vixsrc';
 
 const providers: StreamingProvider[] = [
+	vidcoreProvider, // vidcore.org - priority 50
+	vixsrcProvider, // vixsrc.to - priority 45
 	tertiaryProvider, // vidlink - priority 40
 	primaryProvider, // vidsrc - priority 30
-	secondaryProvider, // 2embed/hnembed - priority 25
+	secondaryProvider, // 2embed - priority 25
 	superEmbedProvider // superembed/autoembed/multiembed - priority 20
 ];
 

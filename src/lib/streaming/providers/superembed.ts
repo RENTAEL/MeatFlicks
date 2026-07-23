@@ -1,7 +1,7 @@
 import { streamingConfig } from '$lib/config/streaming';
 import type { StreamingProvider } from '../types';
 
-const { multiEmbed, vidBinge, moviesApi, autoEmbed } = streamingConfig;
+const { multiEmbed, vidBinge, moviesApi, autoEmbed, twoEmbedSkin, streamsrc } = streamingConfig;
 
 function buildEmbedUrl(context: Parameters<StreamingProvider['fetchSource']>[0]): string {
 	if (context.mediaType === 'movie') {
@@ -27,6 +27,21 @@ function buildMultiEmbedUrl(context: Parameters<StreamingProvider['fetchSource']
 	return `${multiEmbed.baseUrl}/movie?${source}=${id}`;
 }
 
+function buildStreamsrcUrl(context: Parameters<StreamingProvider['fetchSource']>[0]): string {
+	if (context.mediaType === 'movie') {
+		return `${streamsrc.baseUrl}/watch/movie/${context.tmdbId}`;
+	}
+	return `${streamsrc.baseUrl}/watch/series/${context.tmdbId}`;
+}
+
+function buildTwoEmbedSkinUrl(context: Parameters<StreamingProvider['fetchSource']>[0]): string {
+	const mediaId = context.imdbId || context.tmdbId?.toString() || '';
+	if (context.mediaType === 'movie') {
+		return `${twoEmbedSkin.baseUrl}/embed/movie/${mediaId}`;
+	}
+	return `${twoEmbedSkin.baseUrl}/embed/tv/${mediaId}/${context.season ?? 1}/${context.episode ?? 1}`;
+}
+
 function buildVidBingeUrl(context: Parameters<StreamingProvider['fetchSource']>[0]): string {
 	if (context.mediaType === 'movie') {
 		return `${vidBinge.baseUrl}/movie/${context.tmdbId}`;
@@ -47,8 +62,10 @@ function buildMoviesApiUrl(context: Parameters<StreamingProvider['fetchSource']>
 
 async function tryFetchSource(context: Parameters<StreamingProvider['fetchSource']>[0]): Promise<{ providerId: string; streamUrl: string; embedUrl: string } | null> {
 	const buildFns = [
-		{ id: 'autoembed', fn: buildEmbedUrl },
+		{ id: 'streamsrc', fn: buildStreamsrcUrl },
+		{ id: '2embed.skin', fn: buildTwoEmbedSkinUrl },
 		{ id: 'multiembed', fn: buildMultiEmbedUrl },
+		{ id: 'autoembed', fn: buildEmbedUrl },
 		{ id: 'vidbinge', fn: buildVidBingeUrl },
 		{ id: 'moviesapi', fn: buildMoviesApiUrl }
 	];

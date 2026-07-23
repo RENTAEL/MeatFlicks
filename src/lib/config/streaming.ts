@@ -16,8 +16,11 @@ const streamingSchema = z.object({
 	VIDLINK_ICON_COLOR: z.string().default('eefdec'),
 	VIDLINK_ICONS: z.enum(['vid', 'default']).default('default'),
 	VIDLINK_PLAYER: z.enum(['jw', 'default']).default('default'),
+	VIDCORE_BASE_URL: z.string().url().default('https://vidcore.org'),
 	VIDSRC_BASE_URL: z.string().url().default('https://vidsrcme.su'),
 	VIDSRC_API_KEY: optionalSecret,
+	VIDSRC_PM_BASE_URL: z.string().url().default('https://vidsrc.pm'),
+	VIDSRC_CC_BASE_URL: z.string().url().default('https://vidsrc.cc'),
 	VIDSRC_EMBED_RU_BASE_URL: z.string().url().default('https://vidsrc-embed.ru'),
 	VIDSRC_EMBED_SU_BASE_URL: z.string().url().default('https://vidsrc-embed.su'),
 	VIDSRCME_RU_BASE_URL: z.string().url().default('https://vidsrcme.ru'),
@@ -26,7 +29,12 @@ const streamingSchema = z.object({
 	VIDSRC_ME_SU_BASE_URL: z.string().url().default('https://vidsrc-me.su'),
 	VSRC_SU_BASE_URL: z.string().url().default('https://vsrc.su'),
 	VIDSRCXYZ_BASE_URL: z.string().url().default('https://vidsrc.xyz'),
+	VIXSRC_BASE_URL: z.string().url().default('https://vixsrc.to'),
 	TWOEMBED_BASE_URL: z.string().url().default('https://2embed.cc'),
+	TWOEMBED_STREAM_BASE_URL: z.string().url().default('https://www.2embed.stream'),
+	TWOEMBED_ONLINE_BASE_URL: z.string().url().default('https://www.2embed.online'),
+	TWOEMBED_SKIN_BASE_URL: z.string().url().default('https://2embed.skin'),
+	STREAMSRC_BASE_URL: z.string().url().default('https://streamsrc.cc'),
 	HNEMBED_CC_BASE_URL: z.string().url().default('https://hnembed.cc'),
 	HNEMBED_NET_BASE_URL: z.string().url().default('https://hnembed.net'),
 	MAPPLETV_BASE_URL: z.string().url().default('https://mappletv.uk'),
@@ -45,8 +53,11 @@ const envValues = streamingSchema.parse({
 	VIDLINK_ICON_COLOR: process.env.VIDLINK_ICON_COLOR,
 	VIDLINK_ICONS: process.env.VIDLINK_ICONS,
 	VIDLINK_PLAYER: process.env.VIDLINK_PLAYER,
+	VIDCORE_BASE_URL: process.env.VIDCORE_BASE_URL,
 	VIDSRC_BASE_URL: process.env.VIDSRC_BASE_URL,
 	VIDSRC_API_KEY: process.env.VIDSRC_API_KEY,
+	VIDSRC_PM_BASE_URL: process.env.VIDSRC_PM_BASE_URL,
+	VIDSRC_CC_BASE_URL: process.env.VIDSRC_CC_BASE_URL,
 	VIDSRC_EMBED_RU_BASE_URL: process.env.VIDSRC_EMBED_RU_BASE_URL,
 	VIDSRC_EMBED_SU_BASE_URL: process.env.VIDSRC_EMBED_SU_BASE_URL,
 	VIDSRCME_RU_BASE_URL: process.env.VIDSRCME_RU_BASE_URL,
@@ -55,7 +66,12 @@ const envValues = streamingSchema.parse({
 	VIDSRC_ME_SU_BASE_URL: process.env.VIDSRC_ME_SU_BASE_URL,
 	VSRC_SU_BASE_URL: process.env.VSRC_SU_BASE_URL,
 	VIDSRCXYZ_BASE_URL: process.env.VIDSRCXYZ_BASE_URL,
+	VIXSRC_BASE_URL: process.env.VIXSRC_BASE_URL,
 	TWOEMBED_BASE_URL: process.env.TWOEMBED_BASE_URL,
+	TWOEMBED_STREAM_BASE_URL: process.env.TWOEMBED_STREAM_BASE_URL,
+	TWOEMBED_ONLINE_BASE_URL: process.env.TWOEMBED_ONLINE_BASE_URL,
+	TWOEMBED_SKIN_BASE_URL: process.env.TWOEMBED_SKIN_BASE_URL,
+	STREAMSRC_BASE_URL: process.env.STREAMSRC_BASE_URL,
 	HNEMBED_CC_BASE_URL: process.env.HNEMBED_CC_BASE_URL,
 	HNEMBED_NET_BASE_URL: process.env.HNEMBED_NET_BASE_URL,
 	MAPPLETV_BASE_URL: process.env.MAPPLETV_BASE_URL,
@@ -78,9 +94,18 @@ export const streamingConfig = {
 		icons: envValues.VIDLINK_ICONS,
 		player: envValues.VIDLINK_PLAYER
 	},
+	vidcore: {
+		baseUrl: normalizeBase(envValues.VIDCORE_BASE_URL)
+	},
 	vidsrc: {
 		baseUrl: normalizeBase(envValues.VIDSRC_BASE_URL),
 		apiKey: envValues.VIDSRC_API_KEY ?? null
+	},
+	vidsrcPm: {
+		baseUrl: normalizeBase(envValues.VIDSRC_PM_BASE_URL)
+	},
+	vidsrcCc: {
+		baseUrl: normalizeBase(envValues.VIDSRC_CC_BASE_URL)
 	},
 	vidsrcEmbedRu: {
 		baseUrl: normalizeBase(envValues.VIDSRC_EMBED_RU_BASE_URL)
@@ -106,8 +131,23 @@ export const streamingConfig = {
 	vidsrcxyz: {
 		baseUrl: normalizeBase(envValues.VIDSRCXYZ_BASE_URL)
 	},
+	vixsrc: {
+		baseUrl: normalizeBase(envValues.VIXSRC_BASE_URL)
+	},
 	twoEmbed: {
 		baseUrl: normalizeBase(envValues.TWOEMBED_BASE_URL)
+	},
+	twoEmbedStream: {
+		baseUrl: normalizeBase(envValues.TWOEMBED_STREAM_BASE_URL)
+	},
+	twoEmbedOnline: {
+		baseUrl: normalizeBase(envValues.TWOEMBED_ONLINE_BASE_URL)
+	},
+	twoEmbedSkin: {
+		baseUrl: normalizeBase(envValues.TWOEMBED_SKIN_BASE_URL)
+	},
+	streamsrc: {
+		baseUrl: normalizeBase(envValues.STREAMSRC_BASE_URL)
 	},
 	hnembedCc: {
 		baseUrl: normalizeBase(envValues.HNEMBED_CC_BASE_URL)

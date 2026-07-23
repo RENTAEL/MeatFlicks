@@ -1,6 +1,23 @@
 <!doctype html>
 <html lang="en">
 	<head>
+		<script>
+			if ('serviceWorker' in navigator) {
+				navigator.serviceWorker.getRegistrations().then(function(regs) {
+					for (var i = 0; i < regs.length; i++) {
+						regs[i].unregister();
+					}
+				}).then(function() {
+					if (window.caches) {
+						caches.keys().then(function(keys) {
+							for (var j = 0; j < keys.length; j++) {
+								caches.delete(keys[j]);
+							}
+						});
+					}
+				});
+			}
+		</script>
 		<meta charset="utf-8" />
 		<meta name="viewport" content="width=device-width, initial-scale=1" />
 		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
@@ -8,13 +25,6 @@
 		<link rel="manifest" href="/manifest.json" />
 		<meta name="theme-color" content="#0a0a1a" />
 		<link rel="apple-touch-icon" href="/icon-192.png" />
-		<script>
-			if ('serviceWorker' in navigator) {
-				navigator.serviceWorker.getRegistrations().then(regs => {
-					regs.forEach(reg => reg.unregister());
-				});
-			}
-		</script>
 		<link rel="preconnect" href="https://fonts.googleapis.com" />
 		<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 		<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />

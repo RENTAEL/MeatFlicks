@@ -1,7 +1,10 @@
 import { redirect } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
 import { resolveStreaming, getCsrfToken } from '$lib/server';
-import { fetchTmdbRecommendations } from '$lib/server/services/tmdb.service';
+import {
+	fetchTmdbRecommendations,
+	fetchTmdbWatchProviders
+} from '$lib/server/services/tmdb.service';
 
 type TvWithDetails = {
 	id: string;
@@ -51,6 +54,7 @@ export const load: PageServerLoad = async ({ params, fetch, cookies }) => {
 			mediaType: 'tv' as const,
 			movie: null,
 			streaming: { source: null, resolutions: [] },
+			watchProviders: { flatrate: [], rent: [], buy: [] },
 			csrfToken: getCsrfToken({ cookies }) ?? undefined
 		};
 	}
@@ -65,6 +69,7 @@ export const load: PageServerLoad = async ({ params, fetch, cookies }) => {
 				mediaType: 'tv' as const,
 				movie: null,
 				streaming: { source: null, resolutions: [] },
+				watchProviders: { flatrate: [], rent: [], buy: [] },
 				csrfToken: getCsrfToken({ cookies }) ?? undefined
 			};
 		}
@@ -79,6 +84,7 @@ export const load: PageServerLoad = async ({ params, fetch, cookies }) => {
 			mediaType: 'tv' as const,
 			movie: null,
 			streaming: { source: null, resolutions: [] },
+			watchProviders: { flatrate: [], rent: [], buy: [] },
 			csrfToken: getCsrfToken({ cookies }) ?? undefined
 		};
 	}
@@ -114,11 +120,21 @@ export const load: PageServerLoad = async ({ params, fetch, cookies }) => {
 			);
 		}
 
+		let watchProviders = { flatrate: [], rent: [], buy: [] };
+		if (tvShow.tmdbId) {
+			try {
+				watchProviders = await fetchTmdbWatchProviders(Number(tvShow.tmdbId), 'tv');
+			} catch (providerError) {
+				console.warn('[tv][load] Failed to fetch watch providers', providerError);
+			}
+		}
+
 		return {
 			mediaType: 'tv' as const,
 			movie: tvShow,
 			streaming,
 			recommendations,
+			watchProviders,
 			canonicalPath,
 			identifier,
 			queryMode,
@@ -131,6 +147,7 @@ export const load: PageServerLoad = async ({ params, fetch, cookies }) => {
 			movie: tvShow,
 			streaming: { source: null, resolutions: [] },
 			recommendations: [],
+			watchProviders: { flatrate: [], rent: [], buy: [] },
 			canonicalPath,
 			identifier,
 			queryMode,

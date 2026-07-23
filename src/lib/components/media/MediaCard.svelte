@@ -9,6 +9,7 @@
 	import { Skeleton } from '$lib/components/ui/skeleton';
 	import type { LibraryMovie } from '$lib/types/library';
 	import { getImageUrl } from '$lib/utils/image';
+	import ProviderBadges from '$lib/components/ProviderBadges.svelte';
 
 	let { movie, priority = false }: { movie: LibraryMovie | WatchlistMovie | null; priority?: boolean } = $props();
 
@@ -20,6 +21,7 @@
 	let showPreview = $state(false);
 	let hoverTimer: ReturnType<typeof setTimeout> | null = null;
 	let isHovering = $state(false);
+	let shouldFetchProviders = $state(false);
 
 	let trailerKey = $derived.by(() => {
 		if (!movie?.trailerUrl) return null;
@@ -50,6 +52,7 @@
 
 	function startHover() {
 		isHovering = true;
+		shouldFetchProviders = true;
 		hoverTimer = setTimeout(() => {
 			if (isHovering) showPreview = true;
 		}, 600);
@@ -215,6 +218,12 @@
 								More Info
 							</a>
 						</div>
+
+						{#if shouldFetchProviders && movie.tmdbId}
+							<div class="mt-2">
+								<ProviderBadges movieId={movie.tmdbId} size="small" />
+							</div>
+						{/if}
 					</div>
 				{/if}
 			</div>

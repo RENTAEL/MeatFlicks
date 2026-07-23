@@ -2,7 +2,10 @@ import { redirect } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
 import type { MovieRecord } from '$lib/server/db';
 import { resolveStreaming, getCsrfToken } from '$lib/server';
-import { fetchTmdbRecommendations } from '$lib/server/services/tmdb.service';
+import {
+	fetchTmdbRecommendations,
+	fetchTmdbWatchProviders
+} from '$lib/server/services/tmdb.service';
 
 type MovieWithDetails = MovieRecord & {
 	imdbId: string | null;
@@ -32,6 +35,7 @@ export const load: PageServerLoad = async ({ params, fetch, cookies }) => {
 			mediaType: 'movie' as const,
 			movie: null,
 			streaming: { source: null, resolutions: [] },
+			watchProviders: { flatrate: [], rent: [], buy: [] },
 			csrfToken: getCsrfToken({ cookies }) ?? undefined
 		} as const;
 	}
@@ -46,6 +50,7 @@ export const load: PageServerLoad = async ({ params, fetch, cookies }) => {
 				mediaType: 'movie' as const,
 				movie: null,
 				streaming: { source: null, resolutions: [] },
+				watchProviders: { flatrate: [], rent: [], buy: [] },
 				csrfToken: getCsrfToken({ cookies }) ?? undefined
 			} as const;
 		}
@@ -60,6 +65,7 @@ export const load: PageServerLoad = async ({ params, fetch, cookies }) => {
 			mediaType: 'movie' as const,
 			movie: null,
 			streaming: { source: null, resolutions: [] },
+			watchProviders: { flatrate: [], rent: [], buy: [] },
 			csrfToken: getCsrfToken({ cookies }) ?? undefined
 		} as const;
 	}
@@ -119,11 +125,22 @@ export const load: PageServerLoad = async ({ params, fetch, cookies }) => {
 			);
 		}
 
+		let watchProviders = { flatrate: [], rent: [], buy: [] };
+		if (movie.tmdbId) {
+			try {
+				const providerMediaType = actualMediaType === 'anime' ? 'movie' : (actualMediaType as 'movie' | 'tv');
+				watchProviders = await fetchTmdbWatchProviders(Number(movie.tmdbId), providerMediaType);
+			} catch (providerError) {
+				console.warn('[movie][load] Failed to fetch watch providers', providerError);
+			}
+		}
+
 		return {
 			mediaType: actualMediaType as 'movie' | 'tv' | 'anime',
 			movie,
 			streaming,
 			recommendations,
+			watchProviders,
 			canonicalPath,
 			identifier,
 			queryMode,
@@ -137,6 +154,7 @@ export const load: PageServerLoad = async ({ params, fetch, cookies }) => {
 			movie,
 			streaming: { source: null, resolutions: [] },
 			recommendations: [],
+			watchProviders: { flatrate: [], rent: [], buy: [] },
 			canonicalPath,
 			identifier,
 			queryMode,

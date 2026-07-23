@@ -8,32 +8,34 @@ import {
 } from '../provider-helpers';
 import type { StreamingProvider } from '../types';
 
-const { twoEmbed, hnembedCc, hnembedNet } = streamingConfig;
+const { twoEmbed, twoEmbedStream, twoEmbedOnline, twoEmbedSkin } = streamingConfig;
 
-const HNEMBED_DOMAINS = [hnembedCc.baseUrl, hnembedNet.baseUrl];
+const TWOEMBED_DOMAINS = [
+	twoEmbedStream.baseUrl,
+	twoEmbedOnline.baseUrl,
+	twoEmbedSkin.baseUrl,
+	twoEmbed.baseUrl
+];
 
-function buildHnEmbedUrl(context: Parameters<StreamingProvider['fetchSource']>[0]): string {
+function buildTwoEmbedUrl(context: Parameters<StreamingProvider['fetchSource']>[0], base: string): string {
 	const mediaId = context.imdbId || context.tmdbId?.toString() || '';
 
 	if (context.mediaType === 'tv') {
-		if (context.season && context.episode) {
-			return `${hnembedCc.baseUrl}/embed/tv/${mediaId}/${context.season}/${context.episode}`;
-		}
-		return `${hnembedCc.baseUrl}/embed/tv/${mediaId}/1/1`;
+		return `${base}/embed/tv/${mediaId}/${context.season ?? 1}/${context.episode ?? 1}`;
 	}
 
-	return `${hnembedCc.baseUrl}/embed/movie/${mediaId}`;
+	return `${base}/embed/movie/${mediaId}`;
 }
 
 function fallbackSource(context: Parameters<StreamingProvider['fetchSource']>[0]) {
-	for (const domain of HNEMBED_DOMAINS) {
-		const embedUrl = buildHnEmbedUrl(context).replace(hnembedCc.baseUrl, domain);
+	for (const domain of TWOEMBED_DOMAINS) {
+		const embedUrl = buildTwoEmbedUrl(context, domain);
 		return {
 			providerId: '2embed',
 			streamUrl: embedUrl,
 			embedUrl,
 			reliabilityScore: 0.5,
-			notes: `Fallback to HnEmbed player (${new URL(domain).hostname}).`
+			notes: `Fallback to 2Embed player (${new URL(domain).hostname}).`
 		} as const;
 	}
 
@@ -48,30 +50,33 @@ function fallbackSource(context: Parameters<StreamingProvider['fetchSource']>[0]
 }
 
 async function requestTwoEmbed(context: Parameters<StreamingProvider['fetchSource']>[0]) {
-	try {
-		const embedUrl = buildHnEmbedUrl(context);
+	for (const domain of TWOEMBED_DOMAINS) {
+		try {
+			const embedUrl = buildTwoEmbedUrl(context, domain);
 
-		const response = await fetchWithTimeout(embedUrl, {
-			headers: {
-				accept: 'text/html, */*',
-				'User-Agent':
-					'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
-				Referer: hnembedCc.baseUrl
-			},
-			timeoutMs: 20000
-		});
+			const response = await fetchWithTimeout(embedUrl, {
+				headers: {
+					accept: 'text/html, */*',
+					'User-Agent':
+						'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+					Referer: domain
+				},
+				timeoutMs: 15000
+			});
 
-		if (response.ok) {
-			return {
-				providerId: '2embed',
-				streamUrl: embedUrl,
-				embedUrl,
-				reliabilityScore: 0.75,
-				notes: 'Direct embed from HnEmbed.'
-			} as const;
+			if (response.ok) {
+				return {
+					providerId: '2embed',
+					streamUrl: embedUrl,
+					embedUrl,
+					reliabilityScore: 0.75,
+					notes: `Direct embed from ${new URL(domain).hostname}.`
+				} as const;
+			}
+		} catch (error) {
+			console.warn(`[streaming][2embed] ${domain} failed:`, error);
+			continue;
 		}
-	} catch (error) {
-		console.warn('[streaming][2embed] HnEmbed request failed:', error);
 	}
 
 	try {
@@ -138,7 +143,7 @@ async function requestTwoEmbed(context: Parameters<StreamingProvider['fetchSourc
 
 export const secondaryProvider: StreamingProvider = {
 	id: '2embed',
-	label: 'Tertiary',
+	label: '2Embed',
 	priority: 25,
 	supportedMedia: ['movie', 'tv'],
 	async fetchSource(context) {

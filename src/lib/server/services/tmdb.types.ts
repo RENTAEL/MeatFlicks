@@ -107,3 +107,30 @@ export interface TmdbMediaCredits {
 	cast: { id: number; name: string; character: string }[];
 	crew: { id: number; name: string; department: string; job: string }[];
 }
+
+export interface TmdbWatchProvider {
+	logo_path: string | null;
+	provider_id: number;
+	provider_name: string;
+	display_priority: number;
+}
+
+export interface TmdbWatchCountry {
+	link?: string;
+	flatrate?: TmdbWatchProvider[];
+	rent?: TmdbWatchProvider[];
+	buy?: TmdbWatchProvider[];
+	free?: TmdbWatchProvider[];
+	ads?: TmdbWatchProvider[];
+}
+
+export interface TmdbWatchProviders {
+	id: number;
+	results: Record<string, TmdbWatchCountry>;
+}
+
+export interface TmdbWatchProviderResult {
+	flatrate: TmdbWatchProvider[];
+	rent: TmdbWatchProvider[];
+	buy: TmdbWatchProvider[];
+}
