@@ -138,21 +138,29 @@ export async function resolveStreamingSource(
 	const orderedProviders = orderProviders(context, preferredProviders);
 	if (orderedProviders.length === 0) return null;
 
+	console.log('[RESOLVE] Providers ordered:', orderedProviders.map(p => `${p.id}(priority:${p.priority})`), 'context:', context);
+
 	const promises = orderedProviders.map(async (provider) => {
 		try {
 			const source = await provider.fetchSource(context);
 			if (!source) {
+				console.warn('[RESOLVE] Provider', provider.id, 'returned no source');
 				throw new Error(`Provider ${provider.id} returned no source`);
 			}
+			console.log('[RESOLVE] Provider', provider.id, 'returned source:', source.streamUrl?.substring(0, 100));
 			return source;
 		} catch (error) {
+			console.warn('[RESOLVE] Provider', provider.id, 'failed:', error instanceof Error ? error.message : error);
 			throw error;
 		}
 	});
 
 	try {
-		return await Promise.any(promises);
+		const result = await Promise.any(promises);
+		console.log('[RESOLVE] Successfully resolved with provider:', result.providerId);
+		return result;
 	} catch (error) {
+		console.error('[RESOLVE] All providers failed');
 		return null;
 	}
 }

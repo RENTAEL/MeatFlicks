@@ -87,6 +87,8 @@
 	let subOrDub = $state<'sub' | 'dub'>('sub');
 	let activeTab = $state<'suggested' | 'details'>('suggested');
 	let activeEmbedUrl = $state<string | null>(null);
+	let fallbackQueue = $state<string[]>([]);
+	let currentFallbackProvider = $state<string | null>(null);
 
 	onMount(() => {
 		playerService.init();
@@ -120,6 +122,7 @@
 			streamingService.isResolved &&
 			streamingService.state.source?.providerId === streamingService.currentProviderId
 		) {
+			console.log('[PLAY] Already resolved for provider:', streamingService.currentProviderId);
 			return;
 		}
 
@@ -144,10 +147,13 @@
 			startAt: savedProgress?.progress ? Math.floor(savedProgress.progress) : undefined
 		};
 
+		console.log('[PLAY] Resolving provider:', streamingService.currentProviderId, 'params:', resolveParams);
+
 		try {
 			await streamingService.resolveProvider(streamingService.currentProviderId, resolveParams);
+			console.log('[PLAY] Resolve result:', streamingService.state.source);
 		} catch (e) {
-			console.error('[play] Resolve failed, will use fallback:', e);
+			console.error('[PLAY] Resolve failed, will use fallback:', e);
 		}
 	}
 
@@ -168,8 +174,16 @@
 		}
 	}
 
-	function closePlayer() {
+	function closePlayer(reason?: 'error' | 'user') {
 		activeEmbedUrl = null;
+		if (reason === 'error' && fallbackQueue.length > 0) {
+			const nextProvider = fallbackQueue.shift()!;
+			currentFallbackProvider = nextProvider;
+			handleHeaderPlay(nextProvider);
+		} else {
+			fallbackQueue = [];
+			currentFallbackProvider = null;
+		}
 	}
 
 	function handleSeasonChange(value: string) {
@@ -287,6 +301,8 @@
 	}
 
 	async function handleHeaderPlay(providerId: string) {
+		console.log('[PLAY] handleHeaderPlay called with provider:', providerId, 'tmdbId:', movie?.tmdbId, 'mediaType:', mediaType);
+
 		if (mediaType !== 'movie' && movie?.id) {
 			const savedProgress = playbackStore.getProgress(
 				movie.id,
@@ -306,11 +322,17 @@
 			}
 		}
 
+		if (!currentFallbackProvider) {
+			fallbackQueue = EMBED_PROVIDERS.map((p) => p.id).filter((id) => id !== providerId);
+		}
+		currentFallbackProvider = providerId;
+
 		streamingService.selectProvider(providerId);
 		await handlePlayClick();
 
 		const embedUrl = tryPlayWithFallback(providerId);
 		if (embedUrl) {
+			console.log('[PLAY] Using embed URL for provider:', providerId, embedUrl);
 			activeEmbedUrl = embedUrl;
 			return;
 		}
@@ -318,10 +340,20 @@
 		const playbackUrl =
 			streamingService.state.source?.embedUrl ?? streamingService.state.source?.streamUrl ?? null;
 		if (playbackUrl) {
+			console.log('[PLAY] Using resolved stream URL:', playbackUrl);
 			activeEmbedUrl = playbackUrl;
 			return;
 		}
 
+		if (fallbackQueue.length > 0) {
+			const nextProvider = fallbackQueue.shift()!;
+			console.log('[PLAY] No stream from', providerId, ', trying next:', nextProvider);
+			currentFallbackProvider = nextProvider;
+			handleHeaderPlay(nextProvider);
+			return;
+		}
+
+		console.error('[PLAY] All providers failed');
 		streamingService.state.error = 'No working stream found. Please try a different provider.';
 	}
 

@@ -1,7 +1,6 @@
 import type { PageServerLoad } from './$types';
 import { fetchTrendingAnime, fetchTopAiringAnime, fetchSeasonalAnime, fetchSchedule, fetchPopularAnime, mapMiruroToAniwatch, type MiruroAnimeCard } from '$lib/server/services/anime/miruroApi.client';
-import { fallbackHome } from '$lib/server/services/anime/animeFallback';
-import type { AniwatchHome, SpotlightAnime, TrendCard, LatestEpisode } from '$lib/server/services/anime/animeApi.client';
+import { fallbackHome, type AniwatchHome, type SpotlightAnime, type TrendCard, type LatestEpisode } from '$lib/server/services/anime/animeFallback';
 
 export const load: PageServerLoad = async () => {
 	try {

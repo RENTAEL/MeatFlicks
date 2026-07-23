@@ -9,7 +9,7 @@
 	}: {
 		src: string;
 		title: string;
-		onClose: () => void;
+		onClose: (reason?: 'error' | 'user') => void;
 	} = $props();
 
 	let frameRef = $state<HTMLIFrameElement | null>(null);
@@ -27,6 +27,10 @@
 		isLoading = false;
 		hasError = true;
 		if (loadTimeout) clearTimeout(loadTimeout);
+	}
+
+	function closeWithError() {
+		onClose('error');
 	}
 
 	function retry() {
@@ -68,11 +72,11 @@
 				variant="ghost"
 				size="icon"
 				class="text-white/70 hover:text-white hover:bg-white/10"
-				onclick={onClose}
-				aria-label="Close player"
-			>
-				<X class="size-5" />
-			</Button>
+		onclick={() => onClose('user')}
+		aria-label="Close player"
+	>
+		<X class="size-5" />
+	</Button>
 		</div>
 
 		{#if isLoading}
@@ -92,7 +96,7 @@
 					<Button type="button" variant="default" onclick={retry}>
 						Retry
 					</Button>
-					<Button type="button" variant="outline" onclick={onClose}>
+					<Button type="button" variant="outline" onclick={closeWithError}>
 						Close
 					</Button>
 				</div>

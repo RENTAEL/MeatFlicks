@@ -1,4 +1,41 @@
-import type { AniwatchHome } from './animeApi.client';
+export type SpotlightAnime = {
+	rank: number;
+	id: string;
+	name: string;
+	description: string;
+	poster: string;
+	jname: string;
+	episodes: { sub: number; dub: number | null };
+	type: string;
+	otherInfo: string[];
+};
+
+export type TrendCard = {
+	rank: number;
+	id: string;
+	name: string;
+	poster: string;
+	jname: string;
+	episodes: { sub: number; dub: number | null };
+	type: string;
+};
+
+export type LatestEpisode = {
+	id: string;
+	name: string;
+	jname: string;
+	poster: string;
+	episode: { sub: number; dub: number | null };
+	type: string;
+};
+
+export type AniwatchHome = {
+	spotLightAnimes: SpotlightAnime[];
+	trendingAnimes: TrendCard[];
+	latestEpisodes: LatestEpisode[];
+	top10Animes: { day: TrendCard[]; week: TrendCard[]; month: TrendCard[] };
+	genres: string[];
+};
 
 export const fallbackHome: AniwatchHome = {
 	spotLightAnimes: [

@@ -85,6 +85,8 @@ export class StreamingService {
 		this.state.isResolving = true;
 		this.state.error = null;
 
+		console.log('[STREAMING] resolveProvider:', providerId, 'tmdbId:', options.tmdbId, 'mediaType:', options.mediaType);
+
 		try {
 			const headers = buildJsonHeadersWithCsrf(options.csrfToken);
 
@@ -112,10 +114,12 @@ export class StreamingService {
 			});
 
 			if (!response.ok) {
+				console.error('[STREAMING] API returned', response.status, response.statusText);
 				throw new Error(`Request failed with status ${response.status}`);
 			}
 
 			const payload = await response.json();
+			console.log('[STREAMING] API response:', payload);
 
 			this.state.source = payload?.source ?? null;
 			this.state.resolutions = Array.isArray(payload?.resolutions) ? [...payload.resolutions] : [];

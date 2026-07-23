@@ -18,25 +18,20 @@
 		const cleanup = setupCloudSync();
 
 		if ('serviceWorker' in navigator) {
-			navigator.serviceWorker
-				.register('/service-worker.js')
-				.then((reg) => {
-					reg.addEventListener('updatefound', () => {
-						const newWorker = reg.installing;
-						if (newWorker) {
-							newWorker.addEventListener('statechange', () => {
-								if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-									if (confirm('A new version is available. Refresh to update?')) {
-										window.location.reload();
-									}
+			navigator.serviceWorker.ready.then((reg) => {
+				reg.addEventListener('updatefound', () => {
+					const newWorker = reg.installing;
+					if (newWorker) {
+						newWorker.addEventListener('statechange', () => {
+							if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+								if (confirm('A new version is available. Refresh to update?')) {
+									window.location.reload();
 								}
-							});
-						}
-					});
-				})
-				.catch((error) => {
-					console.error('Service Worker registration failed:', error);
+							}
+						});
+					}
 				});
+			});
 		}
 
 		const checkVersion = async () => {

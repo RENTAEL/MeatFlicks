@@ -3,32 +3,75 @@
 	import type { PageData } from './$types';
 
 	let MediaDetailsPage = $state<any>(null);
+	let loadError = $state<string | null>(null);
+	let isMounted = $state(false);
 	let { data }: { data: PageData } = $props();
 
 	onMount(async () => {
-		const module = await import('$lib/components/media/MediaDetailsPage.svelte');
-		MediaDetailsPage = module.default;
+		isMounted = true;
+		try {
+			const module = await import('$lib/components/media/MediaDetailsPage.svelte');
+			MediaDetailsPage = module.default;
+		} catch (e: any) {
+			console.error('[tv] Failed to load MediaDetailsPage:', e);
+			loadError = e?.message ?? 'Failed to load page component';
+		}
 	});
 </script>
 
-{#if MediaDetailsPage}
-	<MediaDetailsPage {data} />
-{:else}
-	<div class="page-transition min-h-screen text-foreground">
-		<main class="mx-auto max-w-7xl px-4 py-8">
-			<div class="animate-pulse">
-				<div class="mb-8 h-96 rounded-lg bg-muted"></div>
-				<div class="space-y-4">
-					<div class="h-8 w-1/3 rounded bg-muted"></div>
-					<div class="h-4 w-2/3 rounded bg-muted"></div>
-					<div class="h-4 w-1/2 rounded bg-muted"></div>
-					<div class="mt-8 grid grid-cols-2 gap-4 md:grid-cols-4">
-						{#each Array(8)}
-							<div class="h-48 rounded bg-muted"></div>
-						{/each}
-					</div>
-				</div>
-			</div>
-		</main>
+{#if !isMounted}
+	<div class="loading-page">
+		<div class="spinner"></div>
+		<p>Loading...</p>
 	</div>
+{:else if loadError}
+	<div class="error-page">
+		<h2>Something went wrong</h2>
+		<p>{loadError}</p>
+		<a href="/" class="btn">Go Home</a>
+	</div>
+{:else if !data.movie}
+	<div class="error-page">
+		<h2>TV show not found</h2>
+		<a href="/" class="btn">Go Home</a>
+	</div>
+{:else if MediaDetailsPage}
+	<MediaDetailsPage {data} />
 {/if}
+
+<style>
+	.loading-page,
+	.error-page {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		justify-content: center;
+		min-height: 60vh;
+		color: white;
+		gap: 1rem;
+	}
+
+	.spinner {
+		width: 40px;
+		height: 40px;
+		border: 3px solid rgba(255, 255, 255, 0.1);
+		border-top-color: #7c3aed;
+		border-radius: 50%;
+		animation: spin 0.8s linear infinite;
+	}
+
+	@keyframes spin {
+		to {
+			transform: rotate(360deg);
+		}
+	}
+
+	.btn {
+		padding: 0.75rem 1.5rem;
+		background: linear-gradient(135deg, #7c3aed, #a855f7);
+		color: white;
+		border-radius: 8px;
+		text-decoration: none;
+		font-weight: 600;
+	}
+</style>
