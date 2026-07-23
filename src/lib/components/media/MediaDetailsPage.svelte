@@ -143,51 +143,6 @@
 		};
 	});
 
-	async function handlePlayClick() {
-		if (!streamingService.currentProviderId) {
-			streamingService.state.error = 'Select a provider before playing.';
-			return;
-		}
-
-		if (
-			streamingService.isResolved &&
-			streamingService.state.source?.providerId === streamingService.currentProviderId
-		) {
-			console.log('[PLAY] Already resolved for provider:', streamingService.currentProviderId);
-			return;
-		}
-
-		const savedProgress = playbackStore.getProgress(
-			movie?.id ?? '',
-			mediaType,
-			mediaType !== 'movie' ? selectedSeason : undefined,
-			mediaType !== 'movie' ? selectedEpisode : undefined
-		);
-
-		const resolveParams = {
-			tmdbId: Number(movie?.tmdbId),
-			mediaType: mediaType,
-			imdbId: movie?.imdbId ?? undefined,
-			malId: movie?.malId ?? undefined,
-			subOrDub: mediaType === 'anime' ? subOrDub : undefined,
-			season: mediaType !== 'movie' ? selectedSeason : undefined,
-			episode: mediaType !== 'movie' ? selectedEpisode : undefined,
-			preferredQuality: playerService.selectedQuality,
-			preferredSubtitleLanguage: playerService.selectedSubtitle,
-			csrfToken: data.csrfToken,
-			startAt: savedProgress?.progress ? Math.floor(savedProgress.progress) : undefined
-		};
-
-		console.log('[PLAY] Resolving provider:', streamingService.currentProviderId, 'params:', resolveParams);
-
-		try {
-			await streamingService.resolveProvider(streamingService.currentProviderId, resolveParams);
-			console.log('[PLAY] Resolve result:', streamingService.state.source);
-		} catch (e) {
-			console.error('[PLAY] Resolve failed, will use fallback:', e);
-		}
-	}
-
 	function handleEpisodeSelect(episodeNum: number) {
 		selectedEpisode = episodeNum;
 		activeEmbedUrl = null;
@@ -200,7 +155,8 @@
 			if (embedUrl) {
 				activeEmbedUrl = embedUrl;
 			} else {
-				handlePlayClick();
+				providers = buildProviderList();
+				showProviderSelector = true;
 			}
 		}
 	}
@@ -456,9 +412,6 @@
 			fallbackQueue = EMBED_PROVIDERS.map((p) => p.id).filter((id) => id !== providerId);
 		}
 		currentFallbackProvider = providerId;
-
-		streamingService.selectProvider(providerId);
-		await handlePlayClick();
 
 		const embedUrl = tryPlayWithFallback(providerId);
 		if (embedUrl) {
