@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { onMount, onDestroy } from 'svelte';
-	import { X, SkipForward, SkipBack, AlertCircle } from '@lucide/svelte';
+	import { X, AlertCircle } from '@lucide/svelte';
 	import { Button } from '$lib/components/ui/button';
 	import { skipSettings } from '$lib/state/stores/skipSettings.svelte';
 	import SkipNotification from './SkipNotification.svelte';
@@ -24,6 +24,7 @@
 	let skipTimes = $state<{ intro: any; outro: any; recap: any }>({ intro: null, outro: null, recap: null });
 	let activeSkip = $state<string | null>(null);
 	let skipTimer: ReturnType<typeof setTimeout> | null = null;
+	let loadError = $state<string | null>(null);
 
 	async function loadSkipTimestamps() {
 		if (!malId || !episode) return;
@@ -123,7 +124,7 @@
 </script>
 
 <div class="fixed inset-0 z-[100] flex items-center justify-center bg-black/90" role="dialog" aria-label={title}>
-	<div class="relative w-full max-w-5xl mx-4">
+	<div class="relative w-full max-w-5xl mx-4 aspect-video">
 		<div class="absolute -top-10 right-0 z-10 flex items-center gap-2">
 			{#if malId && episode}
 				<label class="flex items-center gap-1.5 text-xs text-white/60">
@@ -142,12 +143,26 @@
 			</Button>
 		</div>
 
+		{#if loadError}
+			<div class="absolute inset-0 flex flex-col items-center justify-center gap-4 rounded-lg bg-card p-6 text-center">
+				<AlertCircle class="size-12 text-destructive" />
+				<p class="text-lg font-semibold text-foreground">Failed to load video</p>
+				<p class="max-w-md text-sm text-muted-foreground">{loadError}</p>
+				<Button type="button" variant="outline" onclick={onClose}>Close</Button>
+			</div>
+		{/if}
+
 		<video
 			bind:this={videoRef}
 			class="h-full w-full rounded-lg"
+			class:hidden={!!loadError}
 			controls
 			autoplay
 			playsinline
+			onerror={(e) => {
+				const video = e.currentTarget;
+				loadError = video.error?.message || 'An unknown error occurred while loading the video.';
+			}}
 			ontimeupdate={(e) => checkSkip(e.currentTarget.currentTime)}
 		></video>
 	</div>

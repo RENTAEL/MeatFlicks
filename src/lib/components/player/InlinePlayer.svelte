@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { X, ExternalLink, AlertCircle } from '@lucide/svelte';
+	import { X, AlertCircle } from '@lucide/svelte';
 	import { Button } from '$lib/components/ui/button';
 
 	let {
@@ -33,7 +33,11 @@
 		isLoading = true;
 		hasError = false;
 		if (frameRef) {
-			frameRef.src = src;
+			const currentSrc = src;
+			frameRef.src = '';
+			requestAnimationFrame(() => {
+				frameRef!.src = currentSrc;
+			});
 		}
 	}
 
@@ -102,10 +106,8 @@
 			class="h-full w-full rounded-lg"
 			class:hidden={hasError}
 			allow="autoplay; fullscreen; encrypted-media; picture-in-picture"
-			allowfullscreen
 			onload={handleIframeLoad}
 			onerror={handleIframeError}
-			sandbox="allow-same-origin allow-scripts allow-forms allow-presentation allow-popups allow-popups-to-escape-sandbox"
 			referrerpolicy="no-referrer-when-downgrade"
 		></iframe>
 	</div>
