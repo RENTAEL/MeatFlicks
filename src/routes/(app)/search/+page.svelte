@@ -1,369 +1,270 @@
 <script lang="ts">
 	import { browser } from '$app/environment';
-	import MediaCard from '$lib/components/media/MediaCard.svelte';
-	import SearchHeader from '$lib/components/search/SearchHeader.svelte';
-	import FilterPanel from '$lib/components/filters/FilterPanel.svelte';
-	import ActiveFilters from '$lib/components/filters/ActiveFilters.svelte';
-	import MobileShell from '$lib/components/MobileShell.svelte';
-	import { Alert, AlertDescription, AlertTitle } from '$lib/components/ui/alert';
-	import type { LibraryMedia } from '$lib/types/library';
-	import { onDestroy, onMount } from 'svelte';
-	import { addToSearchHistory, type SortOption } from '$lib/utils/searchUtils';
-	import type { MovieFilters } from '$lib/types/filters';
-	import { page as pageState } from '$app/state';
-	import { SvelteURLSearchParams } from 'svelte/reactivity';
+	import { PUBLIC_TMDB_API_KEY } from '$env/static/public';
+	import { fly, fade } from 'svelte/transition';
+	import MediaCard from '$lib/components/MediaCard.svelte';
 
-const sortOptions = [
-	{ label: 'Best Match', value: 'relevance' as SortOption },
-	{ label: 'Top Rated', value: 'rating' as SortOption },
-	{ label: 'Newest', value: 'releaseDate' as SortOption },
-	{ label: 'Title', value: 'title' as SortOption }
-];
+	let query = $state('');
+	let results = $state<any[]>([]);
+	let isLoading = $state(false);
+	let hasSearched = $state(false);
+	let error = $state('');
+	let searchTimeout: ReturnType<typeof setTimeout>;
+	let recentSearches = $state<string[]>([]);
 
-const SKELETON_COUNT_INITIAL = 12;
-const SKELETON_COUNT_MORE = 6;
-const DEBOUNCE_DELAY = 600;
-const API_FETCH_LIMIT = 24;
-const LOADING_TIMEOUT_MS = 15000;
+	const genres = [
+		{ name: 'Action', id: 28 },
+		{ name: 'Comedy', id: 35 },
+		{ name: 'Horror', id: 27 },
+		{ name: 'Sci-Fi', id: 878 },
+		{ name: 'Drama', id: 18 },
+		{ name: 'Animation', id: 16 },
+		{ name: 'Thriller', id: 53 },
+		{ name: 'Romance', id: 10749 },
+	];
 
-let query = $state(pageState.url.searchParams.get('q') || '');
-let items = $state<LibraryMedia[]>([]);
-let loading = $state(false);
-let error = $state<string | null>(null);
-let debounceTimeout: ReturnType<typeof setTimeout> | null = null;
-let fetchController: AbortController | null = null;
-let page = $state(1);
-let hasMore = $state(true);
-let lastSubmittedQuery = $state('');
-let availableGenres = $state<Array<{ id: number; name: string; count: number }>>([]);
-let urlSyncTimeout: ReturnType<typeof setTimeout> | null = null;
-
-let filters = $state<MovieFilters>({
-	genres: pageState.url.searchParams.get('genres')?.split(',').filter(Boolean) || [],
-	minRating: pageState.url.searchParams.get('minRating')
-		? Number(pageState.url.searchParams.get('minRating'))
-		: undefined,
-	maxRating: pageState.url.searchParams.get('maxRating')
-		? Number(pageState.url.searchParams.get('maxRating'))
-		: undefined,
-	yearFrom: pageState.url.searchParams.get('yearFrom')
-		? Number(pageState.url.searchParams.get('yearFrom'))
-		: undefined,
-	yearTo: pageState.url.searchParams.get('yearTo')
-		? Number(pageState.url.searchParams.get('yearTo'))
-		: undefined,
-	runtimeMin: pageState.url.searchParams.get('runtimeMin')
-		? Number(pageState.url.searchParams.get('runtimeMin'))
-		: undefined,
-	runtimeMax: pageState.url.searchParams.get('runtimeMax')
-		? Number(pageState.url.searchParams.get('runtimeMax'))
-		: undefined,
-	language: pageState.url.searchParams.get('language') || undefined
-});
-
-const mediaTypeParam = pageState.url.searchParams.get('type');
-const mediaTypeValue =
-	mediaTypeParam === 'movie' || mediaTypeParam === 'tv'
-		? mediaTypeParam
-		: undefined;
-
-let mediaType = $state<'movie' | 'tv' | undefined>(mediaTypeValue);
-
-const sortParam = pageState.url.searchParams.get('sort');
-const sortByValue = sortParam && sortOptions.some((option) => option.value === sortParam)
-	? (sortParam as SortOption)
-	: 'relevance';
-
-let sortBy = $state<SortOption>(sortByValue);
-const sortOrderParam = pageState.url.searchParams.get('order');
-const sortOrderValue = sortOrderParam === 'asc' || sortOrderParam === 'desc' ? sortOrderParam : 'desc';
-let sortOrder = $state<'asc' | 'desc'>(sortOrderValue);
-
-let totalItems = $state(0);
-let sentinel: HTMLDivElement | null = $state(null);
-
-	async function fetchItems(searchTerm: string, pageToLoad: number, isInitial = false) {
-		if (loading) return;
-		if (!isInitial && pageToLoad > 1 && !hasMore) return;
-
-		if (searchTerm.trim().length < 2) {
-			items = [];
-			hasMore = false;
-			totalItems = 0;
-			return;
+	if (browser) {
+		const stored = localStorage.getItem('streamium_recent_searches');
+		if (stored) {
+			try { recentSearches = JSON.parse(stored); } catch {}
 		}
-
-		loading = true;
-		error = null;
-
-		if (isInitial || pageToLoad === 1) {
-			fetchController?.abort();
-			fetchController = new AbortController();
-			page = 1;
-		}
-
-		const timeoutId = setTimeout(() => {
-			if (loading) {
-				loading = false;
-				error = 'Search timed out. Please try again.';
-			}
-		}, LOADING_TIMEOUT_MS);
-
-		try {
-			const params = new SvelteURLSearchParams();
-			if (searchTerm) params.set('q', searchTerm);
-			params.set('offset', String((pageToLoad - 1) * API_FETCH_LIMIT));
-			params.set('limit', String(API_FETCH_LIMIT));
-
-			if (filters.genres?.length) params.set('genres', filters.genres.join(','));
-			if (filters.minRating) params.set('minRating', String(filters.minRating));
-			if (filters.maxRating) params.set('maxRating', String(filters.maxRating));
-			if (filters.yearFrom) params.set('minYear', String(filters.yearFrom));
-			if (filters.yearTo) params.set('maxYear', String(filters.yearTo));
-			if (filters.runtimeMin) params.set('runtimeMin', String(filters.runtimeMin));
-			if (filters.runtimeMax) params.set('runtimeMax', String(filters.runtimeMax));
-			if (filters.language) params.set('language', filters.language);
-			if (mediaType) params.set('mediaType', mediaType);
-
-			params.set('sortBy', sortBy);
-			params.set('sortOrder', sortOrder);
-
-			const url = `/api/search/enhanced?${params.toString()}`;
-			const res = await fetch(url, { signal: fetchController!.signal });
-
-			if (!res.ok) throw new Error('Failed to fetch search results');
-
-			const data = await res.json();
-
-			if (pageToLoad === 1) {
-				items = data.results;
-				totalItems = data.total;
-
-				availableGenres = data.genres || [];
-
-				if (searchTerm.trim()) {
-					addToSearchHistory(searchTerm.trim(), browser);
-				}
-			} else {
-				items = [...items, ...data.results];
-				totalItems = data.total;
-			}
-
-			page = pageToLoad;
-			hasMore = items.length < totalItems;
-			syncUrl();
-		} catch (err) {
-			if (err instanceof DOMException && (err.name === 'AbortError' || err.name === 'TimeoutError')) return;
-			error = err instanceof Error ? err.message : 'Unable to fetch search results.';
-		} finally {
-			clearTimeout(timeoutId);
-			loading = false;
+		const urlQuery = new URL(window.location.href).searchParams.get('q');
+		if (urlQuery) {
+			query = urlQuery;
+			performSearch(urlQuery);
 		}
 	}
 
-	function syncUrl() {
-		if (urlSyncTimeout) clearTimeout(urlSyncTimeout);
-		urlSyncTimeout = setTimeout(() => {
-			if (!browser) return;
-			const newUrl = new URL(window.location.href);
-			if (query.trim()) newUrl.searchParams.set('q', query.trim());
-			else newUrl.searchParams.delete('q');
-			if (filters.genres?.length) newUrl.searchParams.set('genres', filters.genres.join(','));
-			else newUrl.searchParams.delete('genres');
-			if (mediaType) newUrl.searchParams.set('type', mediaType);
-			else newUrl.searchParams.delete('type');
-			if (sortBy !== 'relevance') newUrl.searchParams.set('sort', sortBy);
-			else newUrl.searchParams.delete('sort');
-			window.history.replaceState({}, '', newUrl.toString());
-		}, 1000);
+	function saveRecentSearch(term: string) {
+		recentSearches = [term, ...recentSearches.filter(s => s !== term)].slice(0, 8);
+		localStorage.setItem('streamium_recent_searches', JSON.stringify(recentSearches));
+	}
+
+	function clearRecentSearches() {
+		recentSearches = [];
+		localStorage.removeItem('streamium_recent_searches');
+	}
+
+	$effect(() => {
+		const q = query;
+		clearTimeout(searchTimeout);
+		if (q.trim().length >= 2) {
+			searchTimeout = setTimeout(() => performSearch(q.trim()), 400);
+		}
+	});
+
+	function handleKeydown(e: KeyboardEvent) {
+		if (e.key === 'Enter' && query.trim().length >= 2) {
+			clearTimeout(searchTimeout);
+			performSearch(query.trim());
+		}
 	}
 
 	async function performSearch(term: string) {
-		if (term.trim().length < 2 && !term.trim()) {
-			items = [];
-			hasMore = false;
-			totalItems = 0;
-			lastSubmittedQuery = '';
-			return;
+		if (!term || term.length < 2) return;
+		isLoading = true;
+		hasSearched = true;
+		error = '';
+		results = [];
+
+		const url = new URL(window.location.href);
+		url.searchParams.set('q', term);
+		window.history.replaceState({}, '', url.toString());
+
+		try {
+			const res = await fetch(
+				`https://api.themoviedb.org/3/search/multi?query=${encodeURIComponent(term)}&include_adult=false&api_key=${PUBLIC_TMDB_API_KEY}`
+			);
+			if (!res.ok) throw new Error(`Search failed (${res.status})`);
+			const data = await res.json();
+
+			results = (data.results || [])
+				.filter((item: any) => item.media_type === 'movie' || item.media_type === 'tv')
+				.map((item: any) => ({
+					id: item.id,
+					title: item.title || item.name,
+					poster: item.poster_path
+						? `https://image.tmdb.org/t/p/w342${item.poster_path}`
+						: null,
+					rating: item.vote_average || 0,
+					year: (item.release_date || item.first_air_date)?.split('-')[0] || '—',
+					mediaType: item.media_type,
+					href: `/${item.media_type}/${item.id}`,
+				}));
+
+			saveRecentSearch(term);
+		} catch (e: any) {
+			error = e.message || 'Something went wrong. Please try again.';
+		} finally {
+			isLoading = false;
 		}
-		lastSubmittedQuery = term;
-		fetchController?.abort();
-		await fetchItems(term, 1, true);
 	}
 
-	async function loadMore() {
-		if (loading || !hasMore) return;
-		await fetchItems(lastSubmittedQuery, page + 1);
+	function handleGenreClick(_genreId: number, genreName: string) {
+		query = genreName;
+		performSearch(genreName);
 	}
 
-	function handleFiltersChange(newFilters: MovieFilters) {
-		filters = newFilters;
-		syncUrl();
-		void performSearch(query);
+	function handleRecentClick(term: string) {
+		query = term;
+		performSearch(term);
 	}
 
-	function clearAllFilters() {
-		filters = {
-			genres: [],
-			minRating: undefined,
-			maxRating: undefined,
-			yearFrom: undefined,
-			yearTo: undefined,
-			runtimeMin: undefined,
-			runtimeMax: undefined,
-			language: undefined
-		};
-		mediaType = undefined;
-		syncUrl();
-		void performSearch(query);
+	function clearSearch() {
+		query = '';
+		results = [];
+		hasSearched = false;
+		error = '';
+		const url = new URL(window.location.href);
+		url.searchParams.delete('q');
+		window.history.replaceState({}, '', url.toString());
 	}
-
-	$effect(() => {
-		const currentQuery = query;
-		if (!currentQuery.trim()) {
-			items = [];
-			lastSubmittedQuery = '';
-			hasMore = false;
-			totalItems = 0;
-			return;
-		}
-		if (debounceTimeout) clearTimeout(debounceTimeout);
-		debounceTimeout = setTimeout(() => {
-			if (currentQuery !== lastSubmittedQuery) {
-				void performSearch(currentQuery);
-			}
-		}, DEBOUNCE_DELAY);
-	});
-
-	$effect(() => {
-		if (!browser || !sentinel) return;
-
-		const observer = new IntersectionObserver(
-			(entries) => {
-				if (entries[0].isIntersecting) {
-					void loadMore();
-				}
-			},
-			{ rootMargin: '200px' }
-		);
-
-		observer.observe(sentinel);
-		return () => observer.disconnect();
-	});
-
-	onMount(() => {
-		if (query.trim()) {
-			lastSubmittedQuery = query;
-		}
-	});
-
-	onDestroy(() => {
-		if (debounceTimeout) clearTimeout(debounceTimeout);
-		fetchController?.abort();
-		if (urlSyncTimeout) clearTimeout(urlSyncTimeout);
-	});
-
-	const hasSearched = $derived(lastSubmittedQuery !== '');
-	const resultsSummary = $derived.by(() => {
-		if (error) return '';
-		if (items.length === 0 && loading) return 'Searching...';
-
-		if (items.length === 0 && !loading) {
-			if (!hasSearched) return '';
-			return `No matches for "${lastSubmittedQuery}".`;
-		}
-
-		let summary = `Showing ${items.length}`;
-		if (totalItems > 0) {
-			summary += ` out of ${totalItems} results`;
-		}
-
-		if (lastSubmittedQuery) summary += ` for "${lastSubmittedQuery}"`;
-		if (hasMore) summary += '. Scroll to load more.';
-
-		return summary;
-	});
-
-	const skeletonCount = $derived(items.length > 0 ? SKELETON_COUNT_MORE : SKELETON_COUNT_INITIAL);
 </script>
 
-<MobileShell />
+<svelte:head>
+	<title>Search — Streamium</title>
+</svelte:head>
 
-<div class="page-transition min-h-screen pt-20">
-	<main class="mx-auto max-w-7xl px-4 pb-24">
-		<div class="flex flex-col gap-6 lg:flex-row">
-			<aside class="w-full shrink-0 lg:w-64 xl:w-80">
-				<div class="sticky top-24 space-y-6">
-					<FilterPanel
-						{filters}
-						{availableGenres}
-						onFiltersChange={handleFiltersChange}
-						onClearAll={clearAllFilters}
-					/>
-				</div>
-			</aside>
+<div class="mx-auto min-h-screen max-w-screen-2xl px-4 py-6 sm:px-6 lg:px-8">
+	<div class="mx-auto max-w-2xl pt-8 pb-6">
+		<div class="relative">
+			<div class="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500">
+				<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+			</div>
+			<input
+				type="text"
+				bind:value={query}
+				onkeydown={handleKeydown}
+				placeholder="Search movies and TV shows..."
+				autofocus
+				class="w-full rounded-2xl border border-zinc-700/50 bg-zinc-900/80 py-4 pl-12 pr-12 text-lg text-white placeholder-zinc-500 transition-all focus:border-indigo-500/50 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+			/>
+			{#if query}
+				<button
+					onclick={clearSearch}
+					class="absolute right-4 top-1/2 -translate-y-1/2 text-zinc-500 transition-colors hover:text-zinc-300"
+					aria-label="Clear search"
+				>
+					<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+				</button>
+			{/if}
+		</div>
+	</div>
 
-			<div class="flex-1 space-y-6">
-				<SearchHeader
-					bind:query
-					{performSearch}
-					trendingQueries={['Action', 'Comedy', 'Horror', 'Sci-Fi']}
-					{sortOptions}
-					qualityOptions={[]}
-					bind:sortBy
-				/>
-
-				<div class="space-y-4">
-					<div class="flex items-center justify-between">
-						{#if resultsSummary}
-							<p class="text-sm text-muted-foreground" aria-live="polite">{resultsSummary}</p>
-						{/if}
+	{#if !hasSearched && !isLoading}
+		<div class="mx-auto max-w-2xl" in:fly={{ y: 20, duration: 300 }}>
+			{#if recentSearches.length > 0}
+				<div class="mb-8">
+					<div class="mb-3 flex items-center justify-between">
+						<h3 class="text-sm font-semibold text-zinc-400">Recent Searches</h3>
+						<button
+							onclick={clearRecentSearches}
+							class="text-xs text-zinc-600 transition-colors hover:text-zinc-400"
+						>
+							Clear all
+						</button>
 					</div>
+					<div class="flex flex-wrap gap-2">
+						{#each recentSearches as term}
+							<button
+								onclick={() => handleRecentClick(term)}
+								class="flex items-center gap-1.5 rounded-lg border border-zinc-700/50 bg-zinc-800/50 px-3 py-1.5 text-sm text-zinc-300 transition-colors hover:border-zinc-600 hover:bg-zinc-800"
+							>
+								<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"></polyline><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path></svg>
+								{term}
+							</button>
+						{/each}
+					</div>
+				</div>
+			{/if}
 
-					<ActiveFilters
-						{filters}
-						{mediaType}
-						onRemove={(updates) => {
-							if ('mediaType' in updates) mediaType = undefined;
-							else handleFiltersChange({ ...filters, ...updates });
-						}}
-					/>
-
-					{#if error}
-						<Alert variant="destructive" class="border-destructive/40 bg-destructive/10">
-							<AlertTitle>Search error</AlertTitle>
-							<AlertDescription>{error}</AlertDescription>
-						</Alert>
-					{/if}
-
-					{#if items.length > 0}
-						<div class="movie-grid">
-							{#each items as item, i (item.id + '-' + i)}
-								<MediaCard movie={item} />
-							{/each}
-						</div>
-					{/if}
-
-					{#if loading}
-						<div class="movie-grid">
-							{#each Array.from({ length: skeletonCount }) as _, index (index)}
-								<MediaCard movie={null} />
-							{/each}
-						</div>
-					{/if}
-
-					{#if !loading && items.length === 0 && !error && lastSubmittedQuery}
-						<Alert class="border-border/60 bg-background/60">
-							<AlertTitle>No matches found</AlertTitle>
-							<AlertDescription>
-								Try adjusting your filters or searching for a different title.
-							</AlertDescription>
-						</Alert>
-					{/if}
-
-					<div bind:this={sentinel} class="h-10 w-full"></div>
+			<div>
+				<h3 class="mb-3 text-sm font-semibold text-zinc-400">Browse by Genre</h3>
+				<div class="flex flex-wrap gap-2">
+					{#each genres as genre}
+						<button
+							onclick={() => handleGenreClick(genre.id, genre.name)}
+							class="rounded-lg border border-zinc-700/50 bg-zinc-800/50 px-3 py-1.5 text-sm text-zinc-300 transition-colors hover:border-zinc-600 hover:bg-zinc-800"
+						>
+							{genre.name}
+						</button>
+					{/each}
 				</div>
 			</div>
 		</div>
-	</main>
+	{/if}
+
+	{#if isLoading}
+		<div class="mt-4">
+			<div class="grid grid-cols-3 gap-4 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6">
+				{#each Array(12) as _}
+					<div>
+						<div class="aspect-[2/3] animate-pulse rounded-xl bg-zinc-800/50"></div>
+						<div class="mt-2 h-4 w-3/4 animate-pulse rounded bg-zinc-800/50"></div>
+						<div class="mt-1 h-3 w-1/2 animate-pulse rounded bg-zinc-800/30"></div>
+					</div>
+				{/each}
+			</div>
+		</div>
+	{/if}
+
+	{#if error}
+		<div class="mx-auto mt-16 max-w-md text-center" in:fade>
+			<div class="mb-4 text-5xl">😞</div>
+			<h3 class="mb-2 text-lg font-semibold text-zinc-200">Search failed</h3>
+			<p class="mb-6 text-sm text-zinc-400">{error}</p>
+			<button
+				onclick={() => performSearch(query)}
+				class="rounded-lg bg-indigo-600 px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-indigo-500"
+			>
+				Try again
+			</button>
+		</div>
+	{/if}
+
+	{#if hasSearched && !isLoading && !error && results.length === 0}
+		<div class="mx-auto mt-16 max-w-md text-center" in:fade>
+			<div class="mb-4 text-5xl">🔍</div>
+			<h3 class="mb-2 text-lg font-semibold text-zinc-200">No results for "{query}"</h3>
+			<p class="mb-6 text-sm text-zinc-400">
+				We couldn't find any movies or TV shows matching your search. Try a different title, check for typos, or browse by genre instead.
+			</p>
+			<div class="flex flex-wrap justify-center gap-2">
+				{#each genres.slice(0, 4) as genre}
+					<button
+						onclick={() => handleGenreClick(genre.id, genre.name)}
+						class="rounded-lg border border-zinc-700/50 bg-zinc-800/50 px-3 py-1.5 text-sm text-zinc-300 transition-colors hover:border-zinc-600 hover:bg-zinc-800"
+					>
+						{genre.name}
+					</button>
+				{/each}
+			</div>
+		</div>
+	{/if}
+
+	{#if results.length > 0}
+		<div class="mt-4" in:fade>
+			<p class="mb-4 text-sm text-zinc-500">
+				{results.length} result{results.length !== 1 ? 's' : ''} for <span class="text-zinc-300">"{query}"</span>
+			</p>
+			<div class="grid grid-cols-3 gap-4 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6">
+				{#each results as item (item.id + item.mediaType)}
+					<div in:fly={{ y: 16, duration: 300, delay: 50 }}>
+						<MediaCard media={item} href={item.href} />
+						<div class="mt-1">
+						<span
+							class="rounded text-[10px] font-medium px-1.5 py-0.5 {item.mediaType === 'movie' ? 'text-indigo-400 bg-indigo-400/10' : 'text-emerald-400 bg-emerald-400/10'}"
+						>
+								{item.mediaType === 'movie' ? 'Movie' : 'TV'}
+							</span>
+						</div>
+					</div>
+				{/each}
+			</div>
+		</div>
+	{/if}
+
+	<div class="mx-auto mt-16 max-w-2xl pb-8 text-center">
+		<p class="text-xs text-zinc-700">Search powered by TMDB.</p>
+	</div>
 </div>
