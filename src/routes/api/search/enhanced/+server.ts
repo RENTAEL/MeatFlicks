@@ -19,7 +19,7 @@ const searchOptionsSchema = z.object({
 	runtimeMin: z.coerce.number().int().min(0).optional(),
 	runtimeMax: z.coerce.number().int().min(0).optional(),
 	language: z.string().optional(),
-	mediaType: z.enum(['movie', 'tv', 'anime']).optional(),
+	mediaType: z.enum(['movie', 'tv']).optional(),
 	sortBy: z.enum(['relevance', 'rating', 'releaseDate', 'title']).default('relevance').optional(),
 	sortOrder: z.enum(['asc', 'desc']).default('desc').optional(),
 	includeAdult: z.coerce.boolean().default(false).optional()

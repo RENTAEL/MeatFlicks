@@ -8,10 +8,8 @@ import { validateRequestBody } from '$lib/server/validation';
 
 const streamingQueryParamsSchema = z.object({
 	tmdbId: tmdbIdSchema,
-	mediaType: z.enum(['movie', 'tv', 'anime']),
+	mediaType: z.enum(['movie', 'tv']),
 	imdbId: z.string().nullable().optional(),
-	malId: z.coerce.number().int().optional(),
-	subOrDub: z.enum(['sub', 'dub']).optional(),
 	season: z.coerce.number().int().min(0).optional(),
 	episode: z.coerce.number().int().min(0).optional(),
 	language: z.string().nullable().optional(),
@@ -46,8 +44,6 @@ export const GET: RequestHandler = async ({ url }) => {
 			mediaType: queryParams.mediaType,
 			tmdbId: queryParams.tmdbId,
 			imdbId: queryParams.imdbId ?? undefined,
-			malId: queryParams.malId,
-			subOrDub: queryParams.subOrDub,
 			season: queryParams.season,
 			episode: queryParams.episode,
 			language: queryParams.language ?? undefined,
@@ -75,10 +71,8 @@ export const GET: RequestHandler = async ({ url }) => {
 
 const streamingRequestBodySchema = z.object({
 	tmdbId: tmdbIdSchema,
-	mediaType: z.enum(['movie', 'tv', 'anime']),
+	mediaType: z.enum(['movie', 'tv']),
 	imdbId: z.string().nullable().optional(),
-	malId: z.number().int().optional(),
-	subOrDub: z.enum(['sub', 'dub']).optional(),
 	season: z.number().int().min(0).optional(),
 	episode: z.number().int().min(0).optional(),
 	language: z.string().nullable().optional(),
@@ -100,8 +94,6 @@ export const POST: RequestHandler = async ({ request }) => {
 			mediaType: body.mediaType,
 			tmdbId: body.tmdbId,
 			imdbId: body.imdbId ?? undefined,
-			malId: body.malId,
-			subOrDub: body.subOrDub,
 			season: body.season,
 			episode: body.episode,
 			language: body.language ?? undefined,

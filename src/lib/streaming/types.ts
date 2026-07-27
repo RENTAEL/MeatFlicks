@@ -1,11 +1,9 @@
-export type MediaType = 'movie' | 'tv' | 'anime';
+export type MediaType = 'movie' | 'tv';
 
 export interface StreamingProviderContext {
 	mediaType: MediaType;
 	tmdbId: number;
 	imdbId?: string;
-	malId?: number;
-	subOrDub?: 'sub' | 'dub';
 	season?: number;
 	episode?: number;
 	language?: string;

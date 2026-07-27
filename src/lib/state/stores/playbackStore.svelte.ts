@@ -2,7 +2,7 @@ import type { LibraryMedia } from '$lib/types/library';
 
 export type PlaybackProgress = {
 	mediaId: string;
-	mediaType: 'movie' | 'tv' | 'anime';
+	mediaType: 'movie' | 'tv';
 	progress: number;
 	duration: number;
 	seasonNumber?: number;
@@ -66,7 +66,7 @@ export class PlaybackStore {
 
 	getProgress = (
 		mediaId: string,
-		mediaType: 'movie' | 'tv' | 'anime',
+		mediaType: 'movie' | 'tv',
 		season?: number,
 		episode?: number
 	) => {

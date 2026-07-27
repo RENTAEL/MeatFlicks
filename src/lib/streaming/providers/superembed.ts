@@ -1,30 +1,15 @@
 import { streamingConfig } from '$lib/config/streaming';
 import type { StreamingProvider } from '../types';
 
-const { multiEmbed, vidBinge, moviesApi, autoEmbed, twoEmbedSkin, streamsrc } = streamingConfig;
+const { vidBinge, moviesApi, autoEmbed, streamsrc } = streamingConfig;
 
 function buildEmbedUrl(context: Parameters<StreamingProvider['fetchSource']>[0]): string {
 	if (context.mediaType === 'movie') {
 		return `${autoEmbed.baseUrl}/embed/movie/${context.tmdbId}`;
 	} else if (context.mediaType === 'tv') {
 		return `${autoEmbed.baseUrl}/embed/tv/${context.tmdbId}/${context.season ?? 1}/${context.episode ?? 1}`;
-	} else if (context.mediaType === 'anime') {
-		const malId = context.malId ?? context.tmdbId;
-		return `${autoEmbed.baseUrl}/embed/anime/${malId}/${context.episode ?? 1}${context.subOrDub === 'dub' ? '/dub' : ''}`;
 	}
 	return `${autoEmbed.baseUrl}/embed/${context.mediaType}/${context.tmdbId}`;
-}
-
-function buildMultiEmbedUrl(context: Parameters<StreamingProvider['fetchSource']>[0]): string {
-	const source = context.imdbId ? 'imdb' : 'tmdb';
-	const id = context.imdbId ?? context.tmdbId.toString();
-
-	if (context.mediaType === 'movie') {
-		return `${multiEmbed.baseUrl}/movie?${source}=${id}`;
-	} else if (context.mediaType === 'tv') {
-		return `${multiEmbed.baseUrl}/tv?${source}=${id}&s=${context.season ?? 1}&e=${context.episode ?? 1}`;
-	}
-	return `${multiEmbed.baseUrl}/movie?${source}=${id}`;
 }
 
 function buildStreamsrcUrl(context: Parameters<StreamingProvider['fetchSource']>[0]): string {
@@ -32,14 +17,6 @@ function buildStreamsrcUrl(context: Parameters<StreamingProvider['fetchSource']>
 		return `${streamsrc.baseUrl}/watch/movie/${context.tmdbId}`;
 	}
 	return `${streamsrc.baseUrl}/watch/series/${context.tmdbId}`;
-}
-
-function buildTwoEmbedSkinUrl(context: Parameters<StreamingProvider['fetchSource']>[0]): string {
-	const mediaId = context.imdbId || context.tmdbId?.toString() || '';
-	if (context.mediaType === 'movie') {
-		return `${twoEmbedSkin.baseUrl}/embed/movie/${mediaId}`;
-	}
-	return `${twoEmbedSkin.baseUrl}/embed/tv/${mediaId}/${context.season ?? 1}/${context.episode ?? 1}`;
 }
 
 function buildVidBingeUrl(context: Parameters<StreamingProvider['fetchSource']>[0]): string {
@@ -63,7 +40,6 @@ function buildMoviesApiUrl(context: Parameters<StreamingProvider['fetchSource']>
 async function tryFetchSource(context: Parameters<StreamingProvider['fetchSource']>[0]): Promise<{ providerId: string; streamUrl: string; embedUrl: string } | null> {
 	const buildFns = [
 		{ id: 'streamsrc', fn: buildStreamsrcUrl },
-		{ id: '2embed.skin', fn: buildTwoEmbedSkinUrl },
 		{ id: 'vidbinge', fn: buildVidBingeUrl },
 		{ id: 'moviesapi', fn: buildMoviesApiUrl }
 	];
@@ -99,7 +75,7 @@ export const superEmbedProvider: StreamingProvider = {
 	id: 'superembed',
 	label: 'SuperEmbed',
 	priority: 20,
-	supportedMedia: ['movie', 'tv', 'anime'],
+	supportedMedia: ['movie', 'tv'],
 	async fetchSource(context) {
 		if (!context.tmdbId && !context.imdbId && !context.malId) return null;
 

@@ -8,12 +8,11 @@ import {
 } from '../provider-helpers';
 import type { StreamingProvider } from '../types';
 
-const { twoEmbed, twoEmbedStream, twoEmbedOnline, twoEmbedSkin } = streamingConfig;
+const { twoEmbed, twoEmbedStream, twoEmbedOnline } = streamingConfig;
 
 const TWOEMBED_DOMAINS = [
 	twoEmbedStream.baseUrl,
 	twoEmbedOnline.baseUrl,
-	twoEmbedSkin.baseUrl,
 	twoEmbed.baseUrl
 ];
 

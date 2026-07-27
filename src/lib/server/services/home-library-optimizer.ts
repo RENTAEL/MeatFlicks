@@ -37,7 +37,7 @@ interface RefreshState {
 interface IngestOptions {
 	label: string;
 	minRating?: number;
-	mediaType: 'movie' | 'tv' | 'anime';
+	mediaType: 'movie' | 'tv';
 	tmdbMediaType?: 'movie' | 'tv';
 }
 
@@ -154,7 +154,7 @@ const ingestMedia = async (tmdbIds: number[], options: IngestOptions) => {
 
 		const fetchPromises = idsToFetch.map(async (tmdbId) => {
 			try {
-				const tmdbMediaType = options.tmdbMediaType ?? (mediaType === 'anime' ? 'tv' : mediaType);
+				const tmdbMediaType = options.tmdbMediaType ?? mediaType;
 
 				let details;
 				if (tmdbMediaType === 'movie') {

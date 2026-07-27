@@ -76,18 +76,6 @@ function buildQuery(context: Parameters<StreamingProvider['fetchSource']>[0]): U
 
 	params.set('watch', '1');
 
-	if (context.mediaType === 'anime') {
-		if (context.malId) {
-			params.set('mal', context.malId.toString());
-		}
-		if (context.episode) {
-			params.set('episode', context.episode.toString());
-		}
-		if (context.subOrDub) {
-			params.set('type', context.subOrDub);
-		}
-	}
-
 	return params;
 }
 
@@ -102,10 +90,6 @@ function fallbackSource(
 		embedUrl = `${vidlink.baseUrl}/movie/${context.tmdbId}?${customParams.toString()}`;
 	} else if (context.mediaType === 'tv') {
 		embedUrl = `${vidlink.baseUrl}/tv/${context.tmdbId}/${context.season}/${context.episode}?${customParams.toString()}`;
-	} else if (context.mediaType === 'anime') {
-		const episode = context.episode ?? 1;
-		const type = context.subOrDub ?? 'sub';
-		embedUrl = `${vidlink.baseUrl}/anime/${context.malId}/${episode}/${type}?${customParams.toString()}&fallback=true`;
 	} else {
 		embedUrl = `${vidlink.baseUrl}/player/${context.mediaType}?${params.toString()}`;
 	}
@@ -180,10 +164,6 @@ async function requestVidlink(context: Parameters<StreamingProvider['fetchSource
 										embedCandidate = `${vidlink.baseUrl}/movie/${context.tmdbId}?${customParams.toString()}`;
 									} else if (context.mediaType === 'tv') {
 										embedCandidate = `${vidlink.baseUrl}/tv/${context.tmdbId}/${context.season}/${context.episode}?${customParams.toString()}`;
-									} else if (context.mediaType === 'anime') {
-										const episode = context.episode ?? 1;
-										const type = context.subOrDub ?? 'sub';
-										embedCandidate = `${vidlink.baseUrl}/anime/${context.malId}/${episode}/${type}?${customParams.toString()}&fallback=true`;
 									} else {
 										embedCandidate = `${vidlink.baseUrl}/player/${context.mediaType}?${params.toString()}`;
 									}
@@ -241,10 +221,6 @@ async function requestVidlink(context: Parameters<StreamingProvider['fetchSource
 						embedCandidate = `${vidlink.baseUrl}/movie/${context.tmdbId}?${customParams.toString()}`;
 					} else if (context.mediaType === 'tv') {
 						embedCandidate = `${vidlink.baseUrl}/tv/${context.tmdbId}/${context.season}/${context.episode}?${customParams.toString()}`;
-					} else if (context.mediaType === 'anime') {
-						const episode = context.episode ?? 1;
-						const type = context.subOrDub ?? 'sub';
-						embedCandidate = `${vidlink.baseUrl}/anime/${context.malId}/${episode}/${type}?${customParams.toString()}&fallback=true`;
 					} else {
 						embedCandidate = `${vidlink.baseUrl}/player/${context.mediaType}?${params.toString()}`;
 					}
@@ -278,10 +254,9 @@ export const tertiaryProvider: StreamingProvider = {
 	id: 'vidlink',
 	label: 'Primary',
 	priority: 40,
-	supportedMedia: ['movie', 'tv', 'anime'],
+	supportedMedia: ['movie', 'tv'],
 	async fetchSource(context) {
-		if (context.mediaType === 'anime' && !context.malId) return null;
-		if (context.mediaType !== 'anime' && !context.tmdbId) return null;
+		if (!context.tmdbId) return null;
 		return requestVidlink(context);
 	}
 };

@@ -240,13 +240,11 @@
 	}
 
 	const EMBED_PROVIDERS = [
-		{ id: 'streamsrc', label: 'StreamSrc' },
-		{ id: '2embed.skin', label: '2Embed.Skin' },
 		{ id: 'vidlink', label: 'VidLink' },
 		{ id: 'vidsrc', label: 'VidSrc' },
+		{ id: 'streamsrc', label: 'StreamSrc' },
 		{ id: '2embed', label: '2Embed' },
 		{ id: 'superembed', label: 'SuperEmbed' },
-
 	] as const;
 
 	function buildDirectEmbedUrl(providerId: string): string | null {
@@ -258,12 +256,6 @@
 		if (providerId === 'streamsrc') {
 			if (mediaType === 'movie') return `https://streamsrc.cc/watch/movie/${movie.tmdbId}`;
 			return `https://streamsrc.cc/watch/series/${movie.tmdbId}`;
-		}
-
-		if (providerId === '2embed.skin') {
-			const mediaId = movie.imdbId || movie.tmdbId;
-			if (mediaType === 'movie') return `https://2embed.skin/embed/movie/${mediaId}`;
-			return `https://2embed.skin/embed/tv/${mediaId}/${selectedSeason}/${selectedEpisode}`;
 		}
 
 		if (providerId === 'vidlink') {
@@ -503,6 +495,21 @@
 		playerService.stopProgressTracking();
 	}
 
+	function retryAll() {
+		streamingService.state.error = null;
+		showProviderSelector = true;
+	}
+
+	function reportBrokenProvider() {
+		if (currentFallbackProvider) {
+			fetch('/api/streaming/report-broken', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ providerId: currentFallbackProvider })
+			}).catch(() => {});
+		}
+	}
+
 	async function triggerAutoSwitch() {
 		if (isAutoSwitching) return;
 		isAutoSwitching = true;
@@ -526,7 +533,7 @@
 			isAutoSwitching = false;
 			autoSwitchLabel = '';
 			activeEmbedUrl = null;
-			streamingService.state.error = 'No working stream found.';
+			streamingService.state.error = 'No working stream found. Please try a different source.';
 			playerService.stopProgressTracking();
 		}
 	}
@@ -542,7 +549,7 @@
 				selectedEpisode
 			);
 			if (!savedProgress) {
-				const anyProgress = playbackStore.getProgress(movie.id, mediaType as 'movie' | 'tv' | 'anime');
+				const anyProgress = playbackStore.getProgress(movie.id, mediaType);
 				if (!anyProgress) {
 					selectedSeason = 1;
 					selectedEpisode = 1;

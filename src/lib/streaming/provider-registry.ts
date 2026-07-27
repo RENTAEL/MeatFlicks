@@ -3,13 +3,14 @@ import { primaryProvider } from './providers/primary';
 import { secondaryProvider } from './providers/secondary';
 import { tertiaryProvider } from './providers/tertiary';
 import { superEmbedProvider } from './providers/superembed';
+import { logProviderResult } from './provider-log';
 
 
 const providers: StreamingProvider[] = [
+	tertiaryProvider, // vidlink - priority 40 — most reliable
 	primaryProvider, // vidsrc - priority 30
-	tertiaryProvider, // vidlink - priority 40
 	secondaryProvider, // 2embed - priority 25
-	superEmbedProvider // superembed/autoembed/multiembed - priority 20
+	superEmbedProvider // superembed/autoembed - priority 20
 ];
 
 function orderProviders(
@@ -83,13 +84,15 @@ export async function collectStreamingSources(
 					};
 				}
 			} catch (error: unknown) {
+				const msg = error instanceof Error ? error.message : 'Unknown error';
+				logProviderResult(provider.id, false, msg);
 				console.warn(`[streaming][${provider.id}]`, error);
 				return {
 					providerId: provider.id,
 					label: provider.label,
 					success: false,
 					source: null,
-					error: error instanceof Error ? error.message : 'Unknown error'
+					error: msg
 				};
 			}
 		});
@@ -117,13 +120,15 @@ export async function collectStreamingSources(
 					});
 				}
 			} catch (error: unknown) {
+				const msg = error instanceof Error ? error.message : 'Unknown error';
+				logProviderResult(provider.id, false, msg);
 				console.warn(`[streaming][${provider.id}]`, error);
 				results.push({
 					providerId: provider.id,
 					label: provider.label,
 					success: false,
 					source: null,
-					error: error instanceof Error ? error.message : 'Unknown error'
+					error: msg
 				});
 			}
 		}
@@ -139,19 +144,22 @@ export async function resolveStreamingSource(
 	const orderedProviders = orderProviders(context, preferredProviders);
 	if (orderedProviders.length === 0) return null;
 
-	console.log('[RESOLVE] Providers ordered:', orderedProviders.map(p => `${p.id}(priority:${p.priority})`), 'context:', context);
+		console.log('[RESOLVE] Providers ordered:', orderedProviders.map(p => `${p.id}(priority:${p.priority})`), 'context:', context);
 
 	const promises = orderedProviders.map(async (provider) => {
 		try {
 			const source = await provider.fetchSource(context);
 			if (!source) {
-				console.warn('[RESOLVE] Provider', provider.id, 'returned no source');
+				logProviderResult(provider.id, false, 'No source returned');
 				throw new Error(`Provider ${provider.id} returned no source`);
 			}
+			logProviderResult(provider.id, true);
 			console.log('[RESOLVE] Provider', provider.id, 'returned source:', source.streamUrl?.substring(0, 100));
 			return source;
 		} catch (error) {
-			console.warn('[RESOLVE] Provider', provider.id, 'failed:', error instanceof Error ? error.message : error);
+			const msg = error instanceof Error ? error.message : String(error);
+			logProviderResult(provider.id, false, msg);
+			console.warn('[RESOLVE] Provider', provider.id, 'failed:', msg);
 			throw error;
 		}
 	});

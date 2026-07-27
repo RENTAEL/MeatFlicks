@@ -103,11 +103,9 @@ export const load: PageServerLoad = async ({ params, fetch, cookies }) => {
 
 	try {
 		const streaming = await resolveStreaming({
-			mediaType: tvShow.isAnime ? 'anime' : 'tv',
+			mediaType: 'tv',
 			tmdbId: Number(tvShow.tmdbId),
-			imdbId: tvShow.imdbId ?? undefined,
-			malId: tvShow.malId ?? undefined,
-			subOrDub: 'sub'
+			imdbId: tvShow.imdbId ?? undefined
 		});
 
 		let recommendations: any[] = [];

@@ -22,7 +22,7 @@ interface SearchOptions {
 	runtimeMin?: number;
 	runtimeMax?: number;
 	language?: string;
-	mediaType?: 'movie' | 'tv' | 'anime';
+	mediaType?: 'movie' | 'tv';
 	sortBy?: 'relevance' | 'rating' | 'releaseDate' | 'title';
 	sortOrder?: 'asc' | 'desc';
 	includeAdult?: boolean;
@@ -77,8 +77,7 @@ const SORT_BY_LOOKUP: Record<string, SearchOptions['sortBy']> = {
 const SORT_ORDER_VALUES: SearchOptions['sortOrder'][] = ['asc', 'desc'];
 const MEDIA_TYPE_LOOKUP: Record<string, SearchOptions['mediaType']> = {
 	movie: 'movie',
-	tv: 'tv',
-	anime: 'anime'
+	tv: 'tv'
 };
 
 function sanitizeGenres(genres?: SearchOptions['genres']): string[] {

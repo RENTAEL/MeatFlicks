@@ -385,8 +385,9 @@
 		</div>
 
 		{#if isLoading}
-			<div class="absolute inset-0 flex items-center justify-center pointer-events-none">
+			<div class="absolute inset-0 flex flex-col items-center justify-center gap-3 pointer-events-none">
 				<div class="shimmer size-12 rounded-full"></div>
+				<p class="text-sm text-muted-foreground animate-pulse">Connecting to server...</p>
 			</div>
 		{/if}
 
@@ -395,11 +396,11 @@
 				<AlertCircle class="size-12 text-destructive" />
 				<p class="text-lg font-semibold text-foreground">Couldn't load this video</p>
 				<p class="max-w-md text-sm text-muted-foreground">
-					The embed provider may be unavailable. Try selecting a different source from the provider list.
+					All servers are currently unavailable. This could be a temporary issue.
 				</p>
 				<div class="flex gap-3">
 					<button type="button" class="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90" onclick={retry}>Retry</button>
-					<button type="button" class="inline-flex items-center justify-center rounded-md border border-input bg-background px-4 py-2 text-sm font-medium hover:bg-accent" onclick={closeWithError}>Close</button>
+					<button type="button" class="inline-flex items-center justify-center rounded-md border border-input bg-background px-4 py-2 text-sm font-medium hover:bg-accent" onclick={closeWithError}>Try another source</button>
 				</div>
 			</div>
 		{/if}
@@ -422,7 +423,8 @@
 			class="h-full w-full"
 			class:hidden={hasError}
 			class:rounded-lg={!isFullscreen}
-			allow="autoplay; fullscreen; encrypted-media; picture-in-picture"
+			sandbox="allow-same-origin allow-scripts"
+			allow="autoplay; encrypted-media; picture-in-picture; fullscreen"
 			onload={handleIframeLoad}
 			onerror={handleIframeError}
 			referrerpolicy="no-referrer"

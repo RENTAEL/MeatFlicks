@@ -91,8 +91,6 @@ export class StreamingService {
 			tmdbId: number;
 			mediaType: MediaType;
 			imdbId?: string;
-			malId?: number;
-			subOrDub?: 'sub' | 'dub';
 			season?: number;
 			episode?: number;
 			preferredQuality?: string;
@@ -123,8 +121,6 @@ export class StreamingService {
 					mediaType: options.mediaType,
 					tmdbId: options.tmdbId,
 					imdbId: options.imdbId,
-					malId: options.malId,
-					subOrDub: options.subOrDub,
 					season: options.season,
 					episode: options.episode,
 					preferredQuality: options.preferredQuality,

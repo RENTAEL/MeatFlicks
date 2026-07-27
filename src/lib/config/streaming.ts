@@ -32,13 +32,11 @@ const streamingSchema = z.object({
 	TWOEMBED_BASE_URL: z.string().url().default('https://2embed.cc'),
 	TWOEMBED_STREAM_BASE_URL: z.string().url().default('https://www.2embed.stream'),
 	TWOEMBED_ONLINE_BASE_URL: z.string().url().default('https://www.2embed.online'),
-	TWOEMBED_SKIN_BASE_URL: z.string().url().default('https://2embed.skin'),
 	STREAMSRC_BASE_URL: z.string().url().default('https://streamsrc.cc'),
 	HNEMBED_CC_BASE_URL: z.string().url().default('https://hnembed.cc'),
 	HNEMBED_NET_BASE_URL: z.string().url().default('https://hnembed.net'),
 	MAPPLETV_BASE_URL: z.string().url().default('https://mappletv.uk'),
 	PRIMEWIRE_BASE_URL: z.string().url().default('https://primewire.tf'),
-	MULTIEMBED_BASE_URL: z.string().url().default('https://multiembed.mov'),
 	VIDBINGE_BASE_URL: z.string().url().default('https://vidbinge.dev'),
 	MOVIESAPI_BASE_URL: z.string().url().default('https://moviesapi.club'),
 	AUTOEMBED_BASE_URL: z.string().url().default('https://player.autoembed.cc')
@@ -68,13 +66,11 @@ const envValues = streamingSchema.parse({
 	TWOEMBED_BASE_URL: process.env.TWOEMBED_BASE_URL,
 	TWOEMBED_STREAM_BASE_URL: process.env.TWOEMBED_STREAM_BASE_URL,
 	TWOEMBED_ONLINE_BASE_URL: process.env.TWOEMBED_ONLINE_BASE_URL,
-	TWOEMBED_SKIN_BASE_URL: process.env.TWOEMBED_SKIN_BASE_URL,
 	STREAMSRC_BASE_URL: process.env.STREAMSRC_BASE_URL,
 	HNEMBED_CC_BASE_URL: process.env.HNEMBED_CC_BASE_URL,
 	HNEMBED_NET_BASE_URL: process.env.HNEMBED_NET_BASE_URL,
 	MAPPLETV_BASE_URL: process.env.MAPPLETV_BASE_URL,
 	PRIMEWIRE_BASE_URL: process.env.PRIMEWIRE_BASE_URL,
-	MULTIEMBED_BASE_URL: process.env.MULTIEMBED_BASE_URL,
 	VIDBINGE_BASE_URL: process.env.VIDBINGE_BASE_URL,
 	MOVIESAPI_BASE_URL: process.env.MOVIESAPI_BASE_URL,
 	AUTOEMBED_BASE_URL: process.env.AUTOEMBED_BASE_URL
@@ -138,9 +134,6 @@ export const streamingConfig = {
 	twoEmbedOnline: {
 		baseUrl: normalizeBase(envValues.TWOEMBED_ONLINE_BASE_URL)
 	},
-	twoEmbedSkin: {
-		baseUrl: normalizeBase(envValues.TWOEMBED_SKIN_BASE_URL)
-	},
 	streamsrc: {
 		baseUrl: normalizeBase(envValues.STREAMSRC_BASE_URL)
 	},
@@ -155,9 +148,6 @@ export const streamingConfig = {
 	},
 	primewire: {
 		baseUrl: normalizeBase(envValues.PRIMEWIRE_BASE_URL)
-	},
-	multiEmbed: {
-		baseUrl: normalizeBase(envValues.MULTIEMBED_BASE_URL)
 	},
 	vidBinge: {
 		baseUrl: normalizeBase(envValues.VIDBINGE_BASE_URL)

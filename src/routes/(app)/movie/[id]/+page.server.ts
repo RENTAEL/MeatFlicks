@@ -11,8 +11,6 @@ type MovieWithDetails = MovieRecord & {
 	imdbId: string | null;
 	cast: { id: number; name: string; character: string }[];
 	trailerUrl: string | null;
-	isAnime?: boolean;
-	malId?: number | null;
 };
 
 const detectQueryMode = (identifier: string): 'id' | 'tmdb' | 'imdb' => {
@@ -83,40 +81,26 @@ export const load: PageServerLoad = async ({ params, fetch, cookies }) => {
 		: `/movie/${movie.tmdbId ?? movie.id}`;
 
 	try {
-		// Detect actual media type - check if it has seasons (TV series indicator)
 		const hasSeasons =
 			(movie as any).seasons &&
 			Array.isArray((movie as any).seasons) &&
 			(movie as any).seasons.length > 0;
 		const hasSeasonCount = (movie as any).seasonCount && (movie as any).seasonCount > 0;
-		const actualMediaType = movie.isAnime
-			? 'anime'
-			: hasSeasons || hasSeasonCount || movie.mediaType === 'tv'
-				? 'tv'
-				: movie.mediaType || 'movie';
-
-		console.log('[movie][load] Media type detection:', {
-			title: movie.title,
-			dbMediaType: movie.mediaType,
-			hasSeasons,
-			hasSeasonCount,
-			actualMediaType
-		});
+		const actualMediaType = hasSeasons || hasSeasonCount || movie.mediaType === 'tv'
+			? 'tv'
+			: 'movie';
 
 		const streaming = await resolveStreaming({
-			mediaType: actualMediaType as 'movie' | 'tv' | 'anime',
+			mediaType: actualMediaType,
 			tmdbId: Number(movie.tmdbId),
-			imdbId: movie.imdbId ?? undefined,
-			malId: movie.malId ?? undefined,
-			subOrDub: 'sub'
+			imdbId: movie.imdbId ?? undefined
 		});
 
 		let recommendations: any[] = [];
 		try {
-			const recommendMediaType = actualMediaType === 'anime' ? 'movie' : actualMediaType;
 			recommendations = await fetchTmdbRecommendations(
 				Number(movie.tmdbId),
-				recommendMediaType as 'movie' | 'tv'
+				actualMediaType
 			);
 		} catch (recommendationError) {
 			console.warn(
@@ -128,15 +112,14 @@ export const load: PageServerLoad = async ({ params, fetch, cookies }) => {
 		let watchProviders = { flatrate: [], rent: [], buy: [] };
 		if (movie.tmdbId) {
 			try {
-				const providerMediaType = actualMediaType === 'anime' ? 'movie' : (actualMediaType as 'movie' | 'tv');
-				watchProviders = await fetchTmdbWatchProviders(Number(movie.tmdbId), providerMediaType);
+				watchProviders = await fetchTmdbWatchProviders(Number(movie.tmdbId), actualMediaType);
 			} catch (providerError) {
 				console.warn('[movie][load] Failed to fetch watch providers', providerError);
 			}
 		}
 
 		return {
-			mediaType: actualMediaType as 'movie' | 'tv' | 'anime',
+			mediaType: actualMediaType,
 			movie,
 			streaming,
 			recommendations,
@@ -148,9 +131,9 @@ export const load: PageServerLoad = async ({ params, fetch, cookies }) => {
 		};
 	} catch (error) {
 		console.error('[movie][load] Failed to resolve streaming data', error);
-		const actualMediaType = movie.isAnime ? 'anime' : movie.mediaType || 'movie';
+		const actualMediaType = movie.mediaType || 'movie';
 		return {
-			mediaType: actualMediaType as 'movie' | 'tv' | 'anime',
+			mediaType: actualMediaType,
 			movie,
 			streaming: { source: null, resolutions: [] },
 			recommendations: [],

@@ -10,12 +10,10 @@ export type Provider = {
 
 export type ProviderParams = {
 	tmdbId: number | string;
-	type: 'movie' | 'tv' | 'anime';
+	type: 'movie' | 'tv';
 	season?: number;
 	episode?: number;
 	imdbId?: string | null;
-	malId?: number | null;
-	subOrDub?: 'sub' | 'dub';
 };
 
 export const PROVIDERS: Provider[] = [
@@ -52,9 +50,6 @@ export const PROVIDERS: Provider[] = [
 		useProxy: false,
 		buildUrl: (p) => {
 			const customParams = 'primaryColor=63b8bc&secondaryColor=a2a2a2&iconColor=eefdec&icons=default&player=default&title=false&poster=true&autoplay=true&nextbutton=false';
-			if (p.type === 'anime') {
-				return `https://vidlink.pro/anime/${p.malId ?? p.tmdbId}/${p.episode ?? 1}/${p.subOrDub ?? 'sub'}?${customParams}&fallback=true`;
-			}
 			if (p.type === 'tv') {
 				return `https://vidlink.pro/tv/${p.tmdbId}/${p.season ?? 1}/${p.episode ?? 1}?${customParams}`;
 			}
@@ -85,20 +80,6 @@ export const PROVIDERS: Provider[] = [
 			return p.type === 'movie'
 				? `https://hnembed.cc/embed/movie/${id}`
 				: `https://hnembed.cc/embed/tv/${id}/${p.season ?? 1}/${p.episode ?? 1}`;
-		}
-	},
-	{
-		id: '2embed-skin',
-		name: '2Embed.Skin',
-		icon: '🎥',
-		quality: '1080p',
-		priority: 6,
-		useProxy: false,
-		buildUrl: (p) => {
-			const id = p.imdbId || p.tmdbId;
-			return p.type === 'movie'
-				? `https://2embed.skin/embed/movie/${id}`
-				: `https://2embed.skin/embed/tv/${id}/${p.season ?? 1}/${p.episode ?? 1}`;
 		}
 	},
 	{
