@@ -8,10 +8,22 @@
 	import MobileShell from '$lib/components/MobileShell.svelte';
 	import { getImageUrl, getSrcSet } from '$lib/utils/image';
 
-	let { data } = $props<{ data: { info: any; episodes: any[]; totalEpisodes: number } }>();
+	let { data } = $props<{ data: { info: any; episodes: any[]; totalEpisodes?: number } }>();
 
 	let info = $derived(data.info);
-	let episodes = $derived(data.episodes ?? []);
+	let serverEpisodes = $derived(data.episodes ?? []);
+	let totalEpCount = $derived(info?.stats?.episodes?.sub ?? 0);
+	let episodes = $derived.by(() => {
+		if (serverEpisodes.length > 0) return serverEpisodes;
+		if (totalEpCount > 0) {
+			return Array.from({ length: totalEpCount }, (_, i) => ({
+				id: `${info?.id}-ep-${i + 1}`,
+				number: i + 1,
+				title: `Episode ${i + 1}`
+			}));
+		}
+		return [];
+	});
 
 	let selectedEpIndex = $state(0);
 	let subOrDub = $state<'sub' | 'dub'>('sub');
@@ -217,7 +229,7 @@
 		<!-- Episode List -->
 		<section>
 			<h2 class="mb-4 text-2xl font-bold text-white">
-				Episodes ({data.totalEpisodes})
+				Episodes ({episodes.length})
 			</h2>
 			{#if sortedEpisodes.length === 0}
 				{@const statusTag = info?.otherInfo?.find((t: string) => ['FINISHED', 'RELEASING', 'NOT_YET_RELEASED', 'CANCELLED', 'HIATUS'].includes(t))}

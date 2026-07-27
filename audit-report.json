@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-07-27T11:33:13.462Z",
+  "timestamp": "2026-07-27T11:40:30.996Z",
   "baseUrl": "https://streamium-cosmic.vercel.app",
   "issues": [],
   "pages": [
@@ -14,7 +14,7 @@
       "route": "Movies",
       "path": "/movies",
       "status": "OK",
-      "cardCount": 235,
+      "cardCount": 417,
       "issues": []
     },
     {
