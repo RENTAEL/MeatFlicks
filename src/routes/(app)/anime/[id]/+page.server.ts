@@ -175,9 +175,14 @@ export const load: PageServerLoad = async ({ params }) => {
 					type: 'TV'
 				}));
 
+				const epError = epResult.status === 'rejected'
+					? `Episode source unavailable. Check back later.`
+					: null;
+
 				return {
 					info: animeInfo,
 					episodes,
+					episodeError: epError,
 					totalEpisodes: episodes.length
 				};
 			}

@@ -8,10 +8,11 @@
 	import MobileShell from '$lib/components/MobileShell.svelte';
 	import { getImageUrl, getSrcSet } from '$lib/utils/image';
 
-	let { data } = $props<{ data: { info: any; episodes: any[]; totalEpisodes?: number } }>();
+	let { data } = $props<{ data: { info: any; episodes: any[]; episodeError?: string | null; totalEpisodes?: number } }>();
 
 	let info = $derived(data.info);
 	let serverEpisodes = $derived(data.episodes ?? []);
+	let episodeError = $derived(data.episodeError ?? null);
 	let totalEpCount = $derived(info?.stats?.episodes?.sub ?? 0);
 	let episodes = $derived.by(() => {
 		if (serverEpisodes.length > 0) return serverEpisodes;
@@ -233,7 +234,15 @@
 			</h2>
 			{#if sortedEpisodes.length === 0}
 				{@const statusTag = info?.otherInfo?.find((t: string) => ['FINISHED', 'RELEASING', 'NOT_YET_RELEASED', 'CANCELLED', 'HIATUS'].includes(t))}
-				{#if statusTag === 'NOT_YET_RELEASED'}
+				{#if episodeError}
+					<div class="rounded-lg border border-red-800 bg-red-900/30 p-4 text-center">
+						<p class="text-sm text-red-400">{episodeError}</p>
+						<button
+							class="mt-3 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-500"
+							onclick={() => window.location.reload()}
+						>Retry</button>
+					</div>
+				{:else if statusTag === 'NOT_YET_RELEASED'}
 					<p class="text-zinc-500">This title hasn't been released yet. Episodes will be available after release.</p>
 				{:else if statusTag === 'RELEASING'}
 					<p class="text-zinc-500">No episodes available yet. Check back soon.</p>

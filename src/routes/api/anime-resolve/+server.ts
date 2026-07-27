@@ -71,20 +71,38 @@ export const GET: RequestHandler = async ({ url }) => {
 		} catch {}
 	}
 
-	const embedFallbacks: Record<string, string> = {
-		gogoanime: `https://gogoanime.llc/${encodeURIComponent(id)}-episode-${ep}`,
-		zoro: `https://aniwatchtv.to/watch/${encodeURIComponent(id)}?ep=${ep}`,
+	const EMBED_SOURCES: Record<string, string[]> = {
+		gogoanime: [
+			`https://anitaku.pe/${encodeURIComponent(id)}-episode-${ep}`,
+			`https://gogoanime3.net/${encodeURIComponent(id)}-episode-${ep}`,
+			`https://anitaku.bz/${encodeURIComponent(id)}-episode-${ep}`,
+			`https://gogoanime.llc/${encodeURIComponent(id)}-episode-${ep}`,
+		],
+		zoro: [
+			`https://aniwatchtv.to/watch/${encodeURIComponent(id)}?ep=${ep}`,
+			`https://hianime.to/watch/${encodeURIComponent(id)}?ep=${ep}`,
+		],
 	};
 
-	const fallback = embedFallbacks[provider];
-	if (fallback) {
-		console.log(`[anime-resolve] Using embed fallback: ${fallback}`);
-		return json({
-			url: fallback,
-			provider,
-			isM3U8: false,
-			isEmbed: true,
-		});
+	const sourceList = EMBED_SOURCES[provider];
+	if (sourceList) {
+		for (const url of sourceList) {
+			try {
+				const probe = await fetch(url, { method: 'HEAD', signal: AbortSignal.timeout(5000) });
+				if (probe.ok || probe.status === 403 || probe.status === 404) {
+					console.log(`[anime-resolve] Using embed fallback: ${url} (${probe.status})`);
+					return json({
+						url,
+						provider,
+						isM3U8: false,
+						isEmbed: true,
+					});
+				}
+			} catch {
+				console.warn(`[anime-resolve] Embed source unreachable: ${url}`);
+				continue;
+			}
+		}
 	}
 
 	console.error(`[anime-resolve] All providers failed for ${provider}/${id}/${ep}`);
