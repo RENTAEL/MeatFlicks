@@ -30,8 +30,6 @@ type TvWithDetails = {
 		episodeCount: number;
 		posterPath: string | null;
 	}[];
-	isAnime?: boolean;
-	malId?: number | null;
 };
 
 const detectQueryMode = (identifier: string): 'id' | 'tmdb' | 'imdb' => {

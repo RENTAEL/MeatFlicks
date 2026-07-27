@@ -20,7 +20,7 @@ type BreadcrumbItem = {
 	}
 
 	const structuredData = $derived.by(() => {
-		const baseUrl = 'https://meatflicks.com';
+		const baseUrl = 'https://streamium.app';
 
 		return {
 			'@context': 'https://schema.org',

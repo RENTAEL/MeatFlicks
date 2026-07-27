@@ -1,6 +1,6 @@
-# MeatFlicks
+# Streamium
 
-MeatFlicks is a SvelteKit 2 (Svelte 5 runes) web application for exploring and streaming movies and TV series. It stores a curated library in a local SQLite database with FTS5 full-text search, augments records with TMDB metadata, resolves playable sources from multiple third-party streaming providers, and lets authenticated users maintain a personal watchlist.
+Streamium is a SvelteKit 2 (Svelte 5 runes) web application for exploring and streaming movies and TV series. It stores a curated library in a local SQLite database with FTS5 full-text search, augments records with TMDB metadata, resolves playable sources from multiple third-party streaming providers, and lets authenticated users maintain a personal watchlist.
 
 ## Features
 
@@ -44,7 +44,7 @@ MeatFlicks is a SvelteKit 2 (Svelte 5 runes) web application for exploring and s
    bun dev
    ```
 
-   The app will be available on the host/port reported by Vite (default `http://localhost:5173`). The SQLite database file is created automatically on first run (defaults to `data/meatflicks.db`; override with `SQLITE_DB_PATH` if desired).
+   The app will be available on the host/port reported by Vite (default `http://localhost:5173`). The SQLite database file is created automatically on first run (defaults to `data/streamium.db`; override with `SQLITE_DB_PATH` if desired).
 
 ## Environment Variables
 

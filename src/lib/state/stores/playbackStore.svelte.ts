@@ -11,7 +11,7 @@ export type PlaybackProgress = {
 	mediaData?: LibraryMedia;
 };
 
-const STORAGE_KEY = 'meatflicks.playback_progress';
+const STORAGE_KEY = 'streamium.playback_progress';
 const hasStorage = typeof localStorage !== 'undefined';
 
 export function shouldShowInContinueWatching(p: PlaybackProgress): boolean {

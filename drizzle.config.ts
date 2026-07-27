@@ -6,6 +6,6 @@ export default defineConfig({
 	out: process.env.DB_OUT_PATH || './drizzle/migrations',
 	dialect: 'sqlite',
 	dbCredentials: {
-		url: process.env.SQLITE_DB_PATH || 'data/meatflicks.db'
+		url: process.env.SQLITE_DB_PATH || 'data/streamium.db'
 	}
 });

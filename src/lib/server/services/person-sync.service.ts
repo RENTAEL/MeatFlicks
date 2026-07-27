@@ -90,7 +90,7 @@ export async function syncPeopleBatch(tmdbIds: number[]): Promise<Map<number, Pe
 export async function syncMovieCast(
 	mediaId: string,
 	tmdbMovieId: number,
-	mediaType: 'movie' | 'tv' | 'anime' = 'movie'
+	mediaType: 'movie' | 'tv' = 'movie'
 ) {
 	try {
 		const credits = await fetchTmdbMediaCredits(tmdbMovieId, mediaType);
@@ -135,7 +135,7 @@ export async function syncMovieCast(
 export async function syncMovieCrew(
 	mediaId: string,
 	tmdbMovieId: number,
-	mediaType: 'movie' | 'tv' | 'anime' = 'movie'
+	mediaType: 'movie' | 'tv' = 'movie'
 ) {
 	try {
 		const credits = await fetchTmdbMediaCredits(tmdbMovieId, mediaType);

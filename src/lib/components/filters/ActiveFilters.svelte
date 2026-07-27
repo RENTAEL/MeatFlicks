@@ -7,7 +7,7 @@
 
 	interface Props {
 		filters: MovieFilters;
-		mediaType?: 'movie' | 'tv' | 'anime';
+		mediaType?: 'movie' | 'tv';
 		onRemove: (updates: Partial<MovieFilters> & { mediaType?: undefined }) => void;
 	}
 

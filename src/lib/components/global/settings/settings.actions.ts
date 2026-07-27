@@ -37,7 +37,7 @@ export const exportUserData = async (): Promise<DataNotice> => {
 		const url = URL.createObjectURL(blob);
 		const link = document.createElement('a');
 		link.href = url;
-		link.download = 'meatflicks-data.json';
+		link.download = 'streamium-data.json';
 		document.body.appendChild(link);
 		link.click();
 		document.body.removeChild(link);

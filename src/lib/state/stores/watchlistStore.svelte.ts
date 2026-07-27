@@ -31,7 +31,7 @@ export type Movie = Media;
 
 type WatchlistCandidate = LibraryMedia | Media | (Partial<Media> & Record<string, unknown>);
 
-const STORAGE_KEY = 'meatflicks.watchlist';
+const STORAGE_KEY = 'streamium.watchlist';
 const hasStorage = typeof localStorage !== 'undefined';
 
 const buildJsonHeadersWithCsrf = () => {

@@ -46,10 +46,6 @@
 					<Clapperboard class="h-6 w-6" />
 				{:else if item.label === 'TV Series'}
 					<Tv class="h-6 w-6" />
-				{:else if item.label === 'Anime'}
-					<Sparkles class="h-6 w-6" />
-				{:else if item.label === 'Manga'}
-					<BookOpen class="h-6 w-6" />
 				{:else if item.label === 'History'}
 					<History class="h-6 w-6" />
 				{:else if item.label === 'Watchlist'}

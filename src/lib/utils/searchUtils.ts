@@ -5,7 +5,7 @@ export interface SearchHistoryItem {
 	timestamp: number;
 }
 
-const historyStorageKey = 'meatflicks:search-history';
+const historyStorageKey = 'streamium:search-history';
 
 export function getSearchHistory(browser: boolean): string[] {
 	if (!browser) return [];

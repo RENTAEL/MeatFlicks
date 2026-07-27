@@ -5,7 +5,7 @@ import { desc } from 'drizzle-orm';
 // We want this to be dynamic since our media library grows
 export const prerender = false;
 
-const website = 'https://meatflicks.com';
+const website = 'https://streamium.app';
 
 const staticPages = [
 	{ url: '/', changefreq: 'daily', priority: '1.0' },

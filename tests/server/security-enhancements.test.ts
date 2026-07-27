@@ -78,14 +78,14 @@ describe('Security Enhancements', () => {
 	describe('Request Origin Validation', () => {
 		it('should validate allowed origins', () => {
 			expect(() =>
-				validateRequestOrigin('https://meatflicks.com', ['https://meatflicks.com'])
+				validateRequestOrigin('https://streamium.app', ['https://streamium.app'])
 			).not.toThrow();
 		});
 
 		it('should throw error for disallowed origins', () => {
-			expect(() => validateRequestOrigin('https://evil.com', ['https://meatflicks.com'])).toThrow();
-			expect(() => validateRequestOrigin(null, ['https://meatflicks.com'])).toThrow();
-			expect(() => validateRequestOrigin('invalid-url', ['https://meatflicks.com'])).toThrow();
+			expect(() => validateRequestOrigin('https://evil.com', ['https://streamium.app'])).toThrow();
+			expect(() => validateRequestOrigin(null, ['https://streamium.app'])).toThrow();
+			expect(() => validateRequestOrigin('invalid-url', ['https://streamium.app'])).toThrow();
 		});
 	});
 

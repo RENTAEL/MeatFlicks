@@ -66,7 +66,7 @@ export const DEFAULT_PREFERENCES: AppPreferences = {
 	autoSyncWatchlist: true
 };
 
-const STORAGE_KEY = 'meatflicks.preferences';
+const STORAGE_KEY = 'streamium.preferences';
 const isBrowser = typeof window !== 'undefined';
 
 const readPreferences = (): AppPreferences | null => {

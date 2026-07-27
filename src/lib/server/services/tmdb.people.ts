@@ -145,7 +145,7 @@ export async function searchTmdbMoviesByPeople(
 
 export async function fetchTmdbMediaCredits(
 	tmdbId: number,
-	mediaType: 'movie' | 'tv' | 'anime'
+	mediaType: 'movie' | 'tv'
 ): Promise<TmdbMediaCredits | null> {
 	const tmdbType = mediaType === 'tv' ? 'tv' : 'movie';
 	const cacheKey = buildCacheKey('tmdb', tmdbType, tmdbId, 'credits');

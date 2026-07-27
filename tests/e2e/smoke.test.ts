@@ -7,8 +7,8 @@ test('smoke test: homepage loads and navigation to playback works', async ({ pag
 	await page.goto('/', { waitUntil: 'commit', timeout: 60000 });
 	console.log('Navigation committed.');
 
-	// 2. Expect page title to contain "MeatFlicks"
-	await expect(page).toHaveTitle(/MeatFlicks/);
+	// 2. Expect page title to contain "Streamium"
+	await expect(page).toHaveTitle(/Streamium/);
 	console.log('Title verified.');
 
 	// 3. Wait for content to load

@@ -8,6 +8,7 @@ import type { HomeLibrary } from '$lib/types/library';
 import { SEOHead } from '$lib/components/seo';
 import { useLazyComponentOnVisible } from '$lib/utils/lazyLoad.svelte';
 import { Button } from '$lib/components/ui/button';
+import { ErrorState } from '$lib/components/ui';
 import { Loader2, RefreshCw } from '@lucide/svelte';
 
 	let continueWatchingRef = $state({ value: null as HTMLElement | null });

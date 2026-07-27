@@ -138,7 +138,7 @@ const handleImport = async (event: Event) => {
 							</Button>
 						</div>
 						<p class="text-xs text-muted-foreground">
-							MeatFlicks loads in dark mode by default; toggle to switch back to light.
+							Streamium loads in dark mode by default; toggle to switch back to light.
 						</p>
 					</section>
 
@@ -259,7 +259,7 @@ const handleImport = async (event: Event) => {
 							Streaming quality
 						</h4>
 						<p class="text-xs text-muted-foreground">
-							Choose how MeatFlicks balances quality and bandwidth for your account.
+							Choose how Streamium balances quality and bandwidth for your account.
 						</p>
 						<div class="grid gap-2 sm:grid-cols-2 md:grid-cols-4">
 							{#each playbackQualityOptions as option (option.value)}

@@ -13,7 +13,7 @@ interface SearchHistoryState {
 	error: string | null;
 }
 
-const STORAGE_KEY = 'meatflicks.searchHistory';
+const STORAGE_KEY = 'streamium.searchHistory';
 const hasStorage = typeof localStorage !== 'undefined';
 
 const readStorage = (): SearchHistoryItem[] => {

@@ -50,7 +50,7 @@
 </script>
 
 <svelte:head>
-	<title>MeatFlicks - Offline</title>
+	<title>Streamium - Offline</title>
 	<meta name="robots" content="noindex,nofollow" />
 </svelte:head>
 
@@ -68,7 +68,7 @@
 
 		<div class="mb-6 rounded-2xl border border-slate-700 bg-slate-800/50 p-6 backdrop-blur-sm">
 			<p class="mb-6 leading-relaxed text-slate-300">
-				Don't worry! You can still enjoy MeatFlicks with your saved content. Your watchlist and
+				Don't worry! You can still enjoy Streamium with your saved content. Your watchlist and
 				viewing history are available offline.
 			</p>
 

@@ -2,6 +2,7 @@
 	import '../../app.css';
 	import '$lib/css/mobile.css';
 
+	import TopNav from '$lib/components/navigation/TopNav.svelte';
 	import AppShell from '$lib/components/navigation/Sidebar.svelte';
 	import MobileNav from '$lib/components/navigation/MobileNav.svelte';
 	import Footer from '$lib/components/navigation/Footer.svelte';
@@ -59,6 +60,7 @@
 <ThemeContext>
 	<WatchlistContext>
 		<ErrorContext>
+			<TopNav />
 			<AppShell>
 				<div class="relative flex min-h-dvh-fallback flex-col text-foreground">
 					<div class="pointer-events-none fixed inset-0 z-0 overflow-hidden">

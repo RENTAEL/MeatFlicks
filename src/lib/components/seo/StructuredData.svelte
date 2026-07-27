@@ -24,7 +24,7 @@
 	let { media, mediaType, canonicalUrl }: StructuredDataProps = $props();
 
 	const structuredData = $derived.by(() => {
-		const baseUrl = 'https://meatflicks.com';
+		const baseUrl = 'https://streamium.app';
 		const url = canonicalUrl || `${baseUrl}/${mediaType}/${media.id}`;
 
 		const imageUrl = media.posterPath?.startsWith('http')
@@ -55,7 +55,7 @@
 				'@type': 'Movie',
 				name: media.title,
 				url: url,
-				description: media.overview || `Watch ${media.title} on MeatFlicks`,
+				description: media.overview || `Watch ${media.title} on Streamium`,
 				datePublished: media.releaseDate || undefined,
 				genre: media.genres?.map((g) => g.name) || []
 			};
@@ -97,7 +97,7 @@
 				'@type': 'TVSeries',
 				name: media.title,
 				url: url,
-				description: media.overview || `Watch ${media.title} on MeatFlicks`,
+				description: media.overview || `Watch ${media.title} on Streamium`,
 				datePublished: media.releaseDate || undefined,
 				genre: media.genres?.map((g) => g.name) || []
 			};

@@ -8,7 +8,7 @@ export type HistoryEntry = Omit<Media, 'addedAt'> & {
 	episode?: number;
 };
 
-const STORAGE_KEY = 'meatflicks.history';
+const STORAGE_KEY = 'streamium.history';
 const hasStorage = typeof localStorage !== 'undefined';
 
 const buildJsonHeadersWithCsrf = () => {

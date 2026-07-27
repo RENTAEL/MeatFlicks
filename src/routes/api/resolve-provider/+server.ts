@@ -1,7 +1,7 @@
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 
-const PROVIDERS: Record<string, (tmdbId: string, type: string, season?: string, episode?: string, malId?: string) => string> = {
+const PROVIDERS: Record<string, (tmdbId: string, type: string, season?: string, episode?: string) => string> = {
 	smashystream: (id, type, s, e) =>
 		type === 'movie'
 			? `https://embed.smashystream.com/playere.php?tmdb=${id}`
@@ -15,9 +15,7 @@ const PROVIDERS: Record<string, (tmdbId: string, type: string, season?: string, 
 	vidlink: (id, type, s, e) =>
 		type === 'movie'
 			? `https://vidlink.pro/movie/${id}?primaryColor=63b8bc&secondaryColor=a2a2a2&iconColor=eefdec&icons=default&player=default&title=false&poster=true&autoplay=true&nextbutton=false`
-			: type === 'tv'
-				? `https://vidlink.pro/tv/${id}/${s || '1'}/${e || '1'}?primaryColor=63b8bc&secondaryColor=a2a2a2&iconColor=eefdec&icons=default&player=default&title=false&poster=true&autoplay=true&nextbutton=false`
-				: `https://vidlink.pro/anime/${id}/${e || '1'}/sub?primaryColor=63b8bc&secondaryColor=a2a2a2&iconColor=eefdec&icons=default&player=default&title=false&poster=true&autoplay=true&nextbutton=false`,
+			: `https://vidlink.pro/tv/${id}/${s || '1'}/${e || '1'}?primaryColor=63b8bc&secondaryColor=a2a2a2&iconColor=eefdec&icons=default&player=default&title=false&poster=true&autoplay=true&nextbutton=false`,
 
 	vidsrc: (id, type, s, e) =>
 		type === 'movie'
@@ -51,8 +49,6 @@ export const GET: RequestHandler = async ({ url }) => {
 	const type = url.searchParams.get('type') || 'movie';
 	const season = url.searchParams.get('season') || '1';
 	const episode = url.searchParams.get('episode') || '1';
-	const malId = url.searchParams.get('malId') || '';
-
 	if (!provider || !tmdbId) {
 		return json({ error: 'Missing provider or tmdbId' }, { status: 400 });
 	}
@@ -62,7 +58,7 @@ export const GET: RequestHandler = async ({ url }) => {
 		return json({ error: `Unknown provider: ${provider}` }, { status: 400 });
 	}
 
-	const streamUrl = builder(tmdbId, type, season, episode, malId);
+	const streamUrl = builder(tmdbId, type, season, episode);
 
 	try {
 		const controller = new AbortController();

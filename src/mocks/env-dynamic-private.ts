@@ -4,7 +4,7 @@ export const env = {
 	TMDB_IMAGE_BASE_URL: 'https://mock.image.tmdb.org/t/p/',
 	TMDB_POSTER_SIZE: 'w500',
 	TMDB_BACKDROP_SIZE: 'original',
-	SQLITE_DB_PATH: 'data/mock-meatflicks.db',
+	SQLITE_DB_PATH: 'data/mock-streamium.db',
 	LOG_LEVEL: 'info',
 	CACHE_TTL_SHORT: '300',
 	CACHE_TTL_MEDIUM: '900',

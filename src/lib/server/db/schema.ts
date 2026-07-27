@@ -49,7 +49,7 @@ export const media = sqliteTable(
 		trailerUrl: text('trailerUrl'),
 		canonicalPath: text('canonicalPath'),
 		addedAt: integer('addedAt'),
-		mediaType: text('mediaType').notNull().default('movie'), // 'movie', 'tv', 'anime'
+		mediaType: text('mediaType').notNull().default('movie'), // 'movie', 'tv'
 		streamingProviders: text('streamingProviders'),
 
 		// TV Specific columns

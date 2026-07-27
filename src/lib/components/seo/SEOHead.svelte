@@ -31,11 +31,11 @@
 		modifiedTime
 	}: SEOHeadProps = $props();
 
-	const baseUrl = 'https://meatflicks.com';
-	const siteName = 'MeatFlicks';
-	const twitterHandle = '@meatflicks';
+	const baseUrl = 'https://streamium.app';
+	const siteName = 'Streamium';
+	const twitterHandle = '@streamium';
 
-	const fullTitle = $derived(title.includes('MeatFlicks') ? title : `${title} | ${siteName}`);
+	const fullTitle = $derived(title.includes('Streamium') ? title : `${title} | ${siteName}`);
 	const canonicalUrl = $derived(canonical ? `${baseUrl}${canonical}` : undefined);
 	const robotsContent = $derived.by(() => {
 		const directives = [];

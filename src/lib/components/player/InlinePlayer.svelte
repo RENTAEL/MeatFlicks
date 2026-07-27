@@ -423,7 +423,6 @@
 			class="h-full w-full"
 			class:hidden={hasError}
 			class:rounded-lg={!isFullscreen}
-			sandbox="allow-same-origin allow-scripts"
 			allow="autoplay; encrypted-media; picture-in-picture; fullscreen"
 			onload={handleIframeLoad}
 			onerror={handleIframeError}

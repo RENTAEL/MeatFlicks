@@ -1,7 +1,7 @@
 {
   "name": "Streamium - Free Movie & TV Streaming",
   "short_name": "Streamium",
-  "description": "Stream your favorite movies, TV shows, and anime for free.",
+  "description": "Stream your favorite movies and TV shows for free.",
   "start_url": "/",
   "display": "standalone",
   "orientation": "portrait-primary",
@@ -49,11 +49,6 @@
       "description": "View trending TV shows",
       "url": "/tv"
     },
-    {
-      "name": "Anime",
-      "short_name": "Anime",
-      "description": "Browse anime",
-      "url": "/anime"
-    }
+
   ]
 }

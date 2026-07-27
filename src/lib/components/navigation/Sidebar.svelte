@@ -89,7 +89,6 @@
 	</SidebarInset>
 
 	<SidebarTrigger
-		aria-label="Toggle navigation"
 		class="fixed bottom-4 left-4 z-50 rounded-full border border-border bg-card p-3 text-foreground shadow-md hover:bg-card/80 md:hidden"
 	/>
 </SidebarProvider>

@@ -222,16 +222,16 @@ export async function invalidateCachePrefix(prefix: string): Promise<number> {
 	return invalidateCachePattern(`${prefix}*`);
 }
 
-export async function invalidateTmdbId(tmdbId: number, mediaType?: 'movie' | 'tv' | 'anime'): Promise<number> {
+export async function invalidateTmdbId(tmdbId: number, mediaType?: 'movie' | 'tv'): Promise<number> {
 	const patterns: string[] = [];
 	if (mediaType) patterns.push(`tmdb:${mediaType}:${tmdbId}:*`);
-	else { patterns.push(`tmdb:movie:${tmdbId}:*`, `tmdb:tv:${tmdbId}:*`, `tmdb:anime:${tmdbId}:*`); }
+	else { patterns.push(`tmdb:movie:${tmdbId}:*`, `tmdb:tv:${tmdbId}:*`); }
 	let total = 0;
 	for (const p of patterns) total += await invalidateCachePattern(p);
 	return total;
 }
 
-export async function invalidateStreamingSource(tmdbId: number, mediaType: 'movie' | 'tv' | 'anime', season?: number, episode?: number): Promise<number> {
+export async function invalidateStreamingSource(tmdbId: number, mediaType: 'movie' | 'tv', season?: number, episode?: number): Promise<number> {
 	let pattern = `streaming:${mediaType}:${tmdbId}`;
 	if (season !== undefined) { pattern += `:${season}`; if (episode !== undefined) pattern += `:${episode}`; pattern += '*'; }
 	else pattern += '*';
