@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-07-27T11:40:30.996Z",
+  "timestamp": "2026-07-27T11:47:13.381Z",
   "baseUrl": "https://streamium-cosmic.vercel.app",
   "issues": [],
   "pages": [
@@ -14,15 +14,18 @@
       "route": "Movies",
       "path": "/movies",
       "status": "OK",
-      "cardCount": 417,
+      "cardCount": 143,
       "issues": []
     },
     {
       "route": "TV Shows",
-      "path": "/tv-shows",
-      "status": "OK",
-      "cardCount": 234,
-      "issues": []
+      "issues": [
+        {
+          "severity": "CRITICAL",
+          "detail": "Page failed to load: Navigation timeout of 30000 ms exceeded"
+        }
+      ],
+      "status": "FAILED"
     },
     {
       "route": "Anime",

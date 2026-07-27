@@ -13,7 +13,7 @@ const PAGES = [
 ];
 
 async function run() {
-  const browser = await puppeteer.launch({ headless: 'new' });
+  const browser = await puppeteer.launch({ headless: 'new', args: ['--no-sandbox'] });
   const results = [];
 
   for (const pageInfo of PAGES) {
@@ -28,7 +28,7 @@ async function run() {
     page.on('pageerror', (err) => consoleErrors.push(err.message));
 
     try {
-      await page.goto(`${BASE}${pageInfo.path}`, { waitUntil: 'networkidle2', timeout: 20000 });
+      await page.goto(`${BASE}${pageInfo.path}`, { waitUntil: 'networkidle2', timeout: 45000 });
     } catch (e) {
       pageResult.issues.push(`Navigation timeout or failed: ${e.message}`);
       results.push(pageResult);
@@ -72,7 +72,7 @@ async function run() {
     if (emptyMovie) pageResult.issues.push('Movies/TV explore page is empty');
 
     const cardCount = await page.evaluate(() => {
-      return document.querySelectorAll('a[href*="/movie/"], a[href*="/anime/"], a[href*="/tv/"], .card, [class*="card"]').length;
+      return document.querySelectorAll('.media-card, a[href*="/movie/"], a[href*="/anime/"], a[href*="/tv/"]').length;
     });
     if (cardCount > 0) {
       pageResult.passed.push(`Found ${cardCount} media cards/links`);

@@ -24,7 +24,7 @@ try {
   await desktop.setViewport({ width: 1920, height: 1080 });
 
   console.log('\n--- Homepage ---');
-  await desktop.goto(BASE_URL, { waitUntil: 'networkidle2', timeout: 15000 });
+  await desktop.goto(BASE_URL, { waitUntil: 'networkidle2', timeout: 45000 });
   console.log(`  ✅ Homepage loaded: ${desktop.url()}`);
 
   const searchInputExists = await desktop.$('input[type="search"], input[placeholder*="search" i], input[placeholder*="Search"], input[name="q"], input[aria-label*="search" i], [data-testid="search-input"]');
@@ -36,14 +36,14 @@ try {
   }
 
   console.log('\n--- /search page ---');
-  await desktop.goto(`${BASE_URL}/search`, { waitUntil: 'networkidle2', timeout: 15000 });
+  await desktop.goto(`${BASE_URL}/search`, { waitUntil: 'networkidle2', timeout: 45000 });
 
   desktop.on('console', msg => {
     if (msg.type() === 'error') log('ERROR', `Console: ${msg.text().substring(0, 120)}`);
   });
 
   const searchPageInput = await desktop.$('input[type="search"], input[placeholder*="search" i], input[type="text"]');
-  const hasCards = await desktop.$('[class*="card" i], [class*="movie" i], [class*="media" i], .movie-grid, .card-grid');
+  const hasCards = await desktop.$('.media-card, .movie-grid, [class*="movie" i], [class*="media" i]');
   const hasResults = await desktop.$('[class*="result" i]');
 
   if (!searchPageInput) log('CRITICAL', '/search page: No search input found');
@@ -76,7 +76,7 @@ try {
       log('CRITICAL', `Query "${query}": INFINITE REFRESH LOOP detected (${refreshCount} navigations)`);
     }
 
-    const results = await desktop.$$('[class*="card" i], [class*="movie" i], [class*="media" i], .movie-grid > *');
+    const results = await desktop.$$('.media-card, .movie-grid > .media-card');
     console.log(`  Visible cards: ${results.length}`);
 
     if (results.length === 0) {

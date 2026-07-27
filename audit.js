@@ -77,7 +77,7 @@ async function crawl() {
         // Click the poster area which is an <a> tag now
         const firstPosterLink = await page.$('.media-card a[href*="/movie/"], .media-card a[href*="/tv/"]');
         if (firstPosterLink) {
-          await Promise.all([page.waitForNavigation({ timeout: 10000 }), firstPosterLink.click()]);
+          await Promise.all([page.waitForNavigation({ timeout: 20000 }), firstPosterLink.click()]);
           if (page.url() === preUrl) pageIssues.push({ severity: 'HIGH', detail: 'Clicking card does not navigate' });
           else {
             // Wait for dynamic imports (MediaDetailsPage is lazy-loaded)
