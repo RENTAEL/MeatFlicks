@@ -15,93 +15,26 @@
 	} = $props();
 
 	const providers = TV_PROVIDERS;
-	const AUTO_SEARCH_TIMEOUT = 6000;
 
 	let currentProviderIndex = $state(0);
 	let currentUrl = $state('');
-	let isLoading = $state(true);
-	let error = $state('');
+	let showIframe = $state(false);
 	let playerFrame: HTMLIFrameElement | undefined = $state(undefined);
-	let autoSearchActive = $state(false);
-	let searchTimer: ReturnType<typeof setTimeout> | undefined;
 
-	function clearSearchTimer() {
-		if (searchTimer !== undefined) {
-			clearTimeout(searchTimer);
-			searchTimer = undefined;
-		}
-	}
-
-	function loadStream() {
-		isLoading = true;
-		error = '';
+	function switchToProvider(index: number) {
+		currentProviderIndex = index;
+		showIframe = false;
 		const provider = providers[currentProviderIndex];
 		currentUrl = provider.buildUrl(tmdbId, season, episode);
-	}
-
-	function onProviderTimeout() {
-		if (!autoSearchActive) return;
-		if (currentProviderIndex < providers.length - 1) {
-			currentProviderIndex++;
-			loadStream();
-			searchTimer = setTimeout(onProviderTimeout, AUTO_SEARCH_TIMEOUT);
-		} else {
-			autoSearchActive = false;
-			isLoading = false;
-			error = 'All servers are currently unavailable. Please try again later.';
-		}
-	}
-
-	function startAutoSearch() {
-		clearSearchTimer();
-		autoSearchActive = true;
-		currentProviderIndex = 0;
-		loadStream();
-		searchTimer = setTimeout(onProviderTimeout, AUTO_SEARCH_TIMEOUT);
-	}
-
-	function handleIframeLoad() {
-		isLoading = false;
-		if (autoSearchActive) {
-			clearSearchTimer();
-			autoSearchActive = false;
-		}
-		error = '';
-	}
-
-	function handleIframeError() {
-		isLoading = false;
-		if (autoSearchActive) {
-			onProviderTimeout();
-		} else if (currentProviderIndex < providers.length - 1) {
-			currentProviderIndex++;
-			loadStream();
-		} else {
-			error = 'All servers are currently unavailable. Please try again later.';
-		}
-	}
-
-	function switchProvider(index: number) {
-		clearSearchTimer();
-		autoSearchActive = false;
-		currentProviderIndex = index;
-		loadStream();
+		setTimeout(() => {
+			showIframe = true;
+		}, 3000);
 	}
 
 	function tryNextProvider() {
-		clearSearchTimer();
-		autoSearchActive = false;
-		currentProviderIndex = (currentProviderIndex + 1) % providers.length;
-		loadStream();
+		const next = (currentProviderIndex + 1) % providers.length;
+		switchToProvider(next);
 	}
-
-	function retry() {
-		startAutoSearch();
-	}
-
-	onMount(() => {
-		startAutoSearch();
-	});
 
 	function requestFullscreen() {
 		const iframe = playerFrame;
@@ -111,52 +44,20 @@
 			container.requestFullscreen();
 		}
 	}
+
+	onMount(() => {
+		currentProviderIndex = 0;
+		switchToProvider(0);
+	});
 </script>
 
 <div class="relative w-full aspect-video bg-black rounded-xl overflow-hidden shadow-2xl shadow-black/50">
-	{#if isLoading && !error}
+	{#if !showIframe}
 		<div class="absolute inset-0 flex flex-col items-center justify-center gap-4 bg-zinc-950">
 			<div class="h-12 w-12 animate-spin rounded-full border-2 border-zinc-700 border-t-indigo-500"></div>
 			<div class="text-center">
-				{#if autoSearchActive}
-					<p class="text-sm text-amber-400">Auto-searching for available server...</p>
-					<p class="mt-1 text-xs text-zinc-500">Trying {providers[currentProviderIndex].name}</p>
-					<div class="mt-3 flex items-center justify-center gap-1">
-						{#each providers as _, i}
-							<div
-								class="h-1 w-6 rounded-full transition-all {i === currentProviderIndex
-									? 'bg-indigo-500'
-									: i < currentProviderIndex
-										? 'bg-zinc-600'
-										: 'bg-zinc-800'}"
-							></div>
-						{/each}
-					</div>
-				{:else}
-					<p class="text-sm text-zinc-400">Connecting to {providers[currentProviderIndex].name}...</p>
-					<p class="mt-1 text-xs text-zinc-600">Loading S{season} E{episode}</p>
-				{/if}
-			</div>
-		</div>
-	{:else if error}
-		<div class="absolute inset-0 flex flex-col items-center justify-center gap-4 bg-zinc-950 p-6">
-			<div class="mb-2 text-5xl">😞</div>
-			<p class="text-center text-zinc-300">{error}</p>
-			<div class="mt-2 flex flex-wrap justify-center gap-2">
-				<button
-					onclick={retry}
-					class="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-indigo-500"
-				>
-					Retry
-				</button>
-				{#each providers as provider, i}
-					<button
-						onclick={() => switchProvider(i)}
-						class="rounded-lg px-3 py-2 text-sm text-zinc-300 transition-colors hover:bg-zinc-700 {i === currentProviderIndex ? 'ring-2 ring-indigo-500 bg-zinc-800' : 'bg-zinc-800'}"
-					>
-						{provider.name}
-					</button>
-				{/each}
+				<p class="text-sm text-zinc-400">Loading {providers[currentProviderIndex].name}...</p>
+				<p class="mt-1 text-xs text-zinc-600">S{season} E{episode} &middot; Server will appear shortly</p>
 			</div>
 		</div>
 	{:else}
@@ -164,13 +65,26 @@
 			bind:this={playerFrame}
 			src={currentUrl}
 			title="Video player for {title} S{season} E{episode}"
+			sandbox="allow-scripts allow-same-origin allow-popups allow-forms allow-presentation"
 			allow="autoplay; encrypted-media; picture-in-picture; fullscreen"
 			referrerpolicy="no-referrer"
-			class="h-full w-full"
-			loading="lazy"
-			onload={handleIframeLoad}
-			onerror={handleIframeError}
+			loading="eager"
+			class="h-full w-full border-0"
 		></iframe>
+
+		<div class="absolute bottom-0 left-0 right-0 p-3 bg-gradient-to-t from-black/80 to-transparent pointer-events-none">
+			<div class="flex items-center gap-2 pointer-events-auto">
+				<span class="text-xs font-medium text-zinc-400 bg-black/60 px-2 py-1 rounded">
+					{providers[currentProviderIndex].name}
+				</span>
+				<button
+					onclick={tryNextProvider}
+					class="rounded-md bg-indigo-600/80 px-3 py-1 text-xs font-medium text-white transition-colors hover:bg-indigo-500"
+				>
+					Stuck? Try next server →
+				</button>
+			</div>
+		</div>
 
 		<button
 			onclick={requestFullscreen}
@@ -191,7 +105,7 @@
 	<span class="text-xs text-zinc-500">Server:</span>
 	{#each providers as provider, i}
 		<button
-			onclick={() => switchProvider(i)}
+			onclick={() => switchToProvider(i)}
 			class="rounded-md px-2.5 py-1 text-xs font-medium transition-colors {i === currentProviderIndex
 				? 'border border-indigo-500/30 bg-indigo-600/20 text-indigo-400'
 				: 'border border-zinc-700/50 bg-zinc-800/50 text-zinc-400 hover:border-zinc-600 hover:text-zinc-300'}"
@@ -206,3 +120,26 @@
 		Try next →
 	</button>
 </div>
+
+{#if import.meta.env.DEV}
+	<div class="mt-2 rounded-lg border border-zinc-800 bg-zinc-900/50 p-3">
+		<p class="mb-1 text-xs font-medium text-zinc-500">DEBUG</p>
+		<p class="text-xs text-zinc-500">Current: {providers[currentProviderIndex].name}</p>
+		<p class="text-xs text-zinc-500">
+			URL:
+			<a href={currentUrl} target="_blank" rel="noreferrer" class="underline text-indigo-400">{currentUrl}</a>
+		</p>
+		<p class="text-xs text-zinc-500">tmdbId: {tmdbId} &middot; S{season} E{episode}</p>
+		<div class="mt-2 flex flex-wrap gap-2">
+			{#each providers as p, i}
+				<a
+					href={p.buildUrl(tmdbId, season, episode)}
+					target="_blank"
+					rel="noreferrer"
+					class="text-xs underline {i === currentProviderIndex ? 'text-green-400' : 'text-zinc-500'}">
+					{p.name}
+				</a>
+			{/each}
+		</div>
+	</div>
+{/if}
