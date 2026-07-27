@@ -3,9 +3,15 @@
 
 	let {
 		tmdbId,
+		type = 'movie' as 'movie' | 'tv',
+		season = 1,
+		episode = 1,
 		title = ''
 	}: {
 		tmdbId: number;
+		type?: 'movie' | 'tv';
+		season?: number;
+		episode?: number;
 		title?: string;
 	} = $props();
 
@@ -23,7 +29,11 @@
 	let workingProviders: ScanResult[] = $derived(allProviders.filter(p => p.status !== 'dead'));
 	let currentIndex = $state(0);
 	let currentProvider = $derived(workingProviders[currentIndex]);
-	let currentUrl = $derived(currentProvider?.movieUrl || '');
+	let currentUrl = $derived(
+		type === 'tv' && currentProvider?.tvUrl
+			? currentProvider.tvUrl
+			: currentProvider?.movieUrl || ''
+	);
 	let deadProviders = $derived(allProviders.filter(p => p.status === 'dead'));
 	let iframeLoaded = $state(false);
 	let hasError = $state(false);
@@ -50,7 +60,12 @@
 		hasError = false;
 
 		try {
-			const params = new URLSearchParams({ tmdbId: tmdbId.toString(), type: 'movie' });
+			const params = new URLSearchParams({
+				tmdbId: tmdbId.toString(),
+				type: type,
+				season: season.toString(),
+				episode: episode.toString()
+			});
 			const res = await fetch(`/api/providers/scan?${params}`);
 			if (!res.ok) throw new Error('Scan failed');
 			const data = await res.json();

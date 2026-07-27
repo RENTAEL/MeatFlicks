@@ -139,12 +139,10 @@ export const GET: RequestHandler = async ({ url, fetch, platform }) => {
 
   $('meta[http-equiv="refresh"]').remove();
 
-  const nonce = crypto.randomUUID().replace(/-/g, '').slice(0, 16);
-  const popupScript = POPUP_OVERRIDE_SCRIPT.replace(/__OPENSEA_NONCE__/g, nonce);
-  const cspMeta = `<meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline' 'unsafe-eval' data: blob:; script-src 'self' 'unsafe-inline' 'unsafe-eval' 'nonce-${nonce}'; frame-src *; media-src *; img-src * data: blob:; connect-src *; style-src 'self' 'unsafe-inline' *;">`;
+  const popupScript = POPUP_OVERRIDE_SCRIPT.replace(/__OPENSEA_NONCE__/g, crypto.randomUUID().replace(/-/g, '').slice(0, 16));
 
   let sanitized = $.html();
-  sanitized = sanitized.replace('</head>', `${cspMeta}\n${popupScript}\n</head>`);
+  sanitized = sanitized.replace('</head>', `${popupScript}\n</head>`);
   sanitized = sanitized.replace(/window\.open\(/g, '(function(){})(');
 
   return text(sanitized, {
@@ -152,8 +150,6 @@ export const GET: RequestHandler = async ({ url, fetch, platform }) => {
     headers: {
       'Content-Type': 'text/html; charset=utf-8',
       'X-Proxy-Sanitized': 'true',
-      'X-Frame-Options': 'SAMEORIGIN',
-      'Content-Security-Policy': `default-src 'self' 'unsafe-inline' 'unsafe-eval' data: blob:; script-src 'self' 'unsafe-inline' 'unsafe-eval' 'nonce-${nonce}'; frame-src *; media-src *; img-src * data: blob:; connect-src *; style-src 'self' 'unsafe-inline' *;`,
     },
   });
 };
