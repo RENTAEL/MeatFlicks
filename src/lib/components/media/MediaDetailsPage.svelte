@@ -247,8 +247,7 @@
 		{ id: 'vidsrc', label: 'VidSrc' },
 		{ id: '2embed', label: '2Embed' },
 		{ id: 'superembed', label: 'SuperEmbed' },
-		{ id: 'autoembed', label: 'AutoEmbed' },
-		{ id: 'multiembed', label: 'MultiEmbed' }
+
 	] as const;
 
 	function buildDirectEmbedUrl(providerId: string): string | null {
@@ -293,20 +292,6 @@
 			if (mediaType === 'movie') return `${embedBase}/embed/movie/${mediaId}`;
 			if (mediaType === 'tv') return `${embedBase}/embed/tv/${mediaId}/${selectedSeason}/${selectedEpisode}`;
 			return `https://player.autoembed.cc/embed/anime/${movie.malId ?? movie.tmdbId}/${selectedEpisode ?? 1}${subOrDub === 'dub' ? '/dub' : ''}`;
-		}
-
-		if (providerId === 'superembed' || providerId === 'autoembed') {
-			if (mediaType === 'anime') {
-				return `https://player.autoembed.cc/embed/anime/${movie.malId ?? movie.tmdbId}/${selectedEpisode ?? 1}${subOrDub === 'dub' ? '/dub' : ''}`;
-			}
-			return `https://player.autoembed.cc/embed/${mediaType === 'movie' ? 'movie' : 'tv'}/${movie.tmdbId}${mediaType !== 'movie' ? `/${selectedSeason}/${selectedEpisode}` : ''}`;
-		}
-
-		if (providerId === 'multiembed') {
-			const source = movie.imdbId ? 'imdb' : 'tmdb';
-			const id = movie.imdbId ?? movie.tmdbId.toString();
-			if (mediaType === 'movie') return `https://multiembed.mov/movie?${source}=${id}`;
-			return `https://multiembed.mov/tv?${source}=${id}&s=${selectedSeason}&e=${selectedEpisode}`;
 		}
 
 		return null;

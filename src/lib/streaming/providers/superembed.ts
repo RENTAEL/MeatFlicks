@@ -64,8 +64,6 @@ async function tryFetchSource(context: Parameters<StreamingProvider['fetchSource
 	const buildFns = [
 		{ id: 'streamsrc', fn: buildStreamsrcUrl },
 		{ id: '2embed.skin', fn: buildTwoEmbedSkinUrl },
-		{ id: 'multiembed', fn: buildMultiEmbedUrl },
-		{ id: 'autoembed', fn: buildEmbedUrl },
 		{ id: 'vidbinge', fn: buildVidBingeUrl },
 		{ id: 'moviesapi', fn: buildMoviesApiUrl }
 	];
@@ -116,13 +114,13 @@ export const superEmbedProvider: StreamingProvider = {
 			};
 		}
 
-		const embedUrl = buildEmbedUrl(context);
+		const embedUrl = buildStreamsrcUrl(context);
 		return {
-			providerId: 'autoembed',
+			providerId: 'streamsrc',
 			streamUrl: embedUrl,
 			embedUrl,
 			reliabilityScore: 0.4,
-			notes: 'Fallback to AutoEmbed player.'
+			notes: 'Fallback to StreamSrc player.'
 		};
 	}
 };

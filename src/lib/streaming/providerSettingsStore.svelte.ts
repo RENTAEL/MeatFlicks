@@ -7,7 +7,7 @@ export interface ProviderSettings {
 }
 
 const defaults: ProviderSettings = {
-  providerOrder: ['vidsrc', 'streamsrc', '2embed.skin', 'vidlink', '2embed', 'superembed', 'autoembed', 'multiembed'],
+  providerOrder: ['smashystream', 'streamsrc', 'vidlink', 'vidsrc', '2embed', '2embed-skin', 'nontongo'],
   disabledProviders: [],
   autoSelect: true,
 };

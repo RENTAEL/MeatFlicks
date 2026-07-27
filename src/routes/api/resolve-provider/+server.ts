@@ -2,10 +2,15 @@ import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 
 const PROVIDERS: Record<string, (tmdbId: string, type: string, season?: string, episode?: string, malId?: string) => string> = {
-	vidsrc: (id, type, s, e) =>
+	smashystream: (id, type, s, e) =>
 		type === 'movie'
-			? `https://vidsrc.to/embed/movie/${id}`
-			: `https://vidsrc.to/embed/tv/${id}/${s || '1'}/${e || '1'}`,
+			? `https://embed.smashystream.com/playere.php?tmdb=${id}`
+			: `https://embed.smashystream.com/playere.php?tmdb=${id}&s=${s || '1'}&e=${e || '1'}`,
+
+	streamsrc: (id, type) =>
+		type === 'movie'
+			? `https://streamsrc.cc/watch/movie/${id}`
+			: `https://streamsrc.cc/watch/series/${id}`,
 
 	vidlink: (id, type, s, e) =>
 		type === 'movie'
@@ -13,6 +18,11 @@ const PROVIDERS: Record<string, (tmdbId: string, type: string, season?: string, 
 			: type === 'tv'
 				? `https://vidlink.pro/tv/${id}/${s || '1'}/${e || '1'}?primaryColor=63b8bc&secondaryColor=a2a2a2&iconColor=eefdec&icons=default&player=default&title=false&poster=true&autoplay=true&nextbutton=false`
 				: `https://vidlink.pro/anime/${id}/${e || '1'}/sub?primaryColor=63b8bc&secondaryColor=a2a2a2&iconColor=eefdec&icons=default&player=default&title=false&poster=true&autoplay=true&nextbutton=false`,
+
+	vidsrc: (id, type, s, e) =>
+		type === 'movie'
+			? `https://vidsrc.to/embed/movie/${id}`
+			: `https://vidsrc.to/embed/tv/${id}/${s || '1'}/${e || '1'}`,
 
 	vidsrcme: (id, type, s, e) =>
 		type === 'movie'
@@ -24,30 +34,15 @@ const PROVIDERS: Record<string, (tmdbId: string, type: string, season?: string, 
 			? `https://hnembed.cc/embed/movie/${id}`
 			: `https://hnembed.cc/embed/tv/${id}/${s || '1'}/${e || '1'}`,
 
-	'2embed.skin': (id, type, s, e) =>
+	'2embed-skin': (id, type, s, e) =>
 		type === 'movie'
 			? `https://2embed.skin/embed/movie/${id}`
 			: `https://2embed.skin/embed/tv/${id}/${s || '1'}/${e || '1'}`,
 
-	streamsrc: (id, type) =>
+	nontongo: (id, type, s, e) =>
 		type === 'movie'
-			? `https://streamsrc.cc/watch/movie/${id}`
-			: `https://streamsrc.cc/watch/series/${id}`,
-
-	superembed: (id, type, s, e) =>
-		`https://player.autoembed.cc/embed/${type === 'movie' ? 'movie' : 'tv'}/${id}${type !== 'movie' ? `/${s || '1'}/${e || '1'}` : ''}`,
-
-	autoembed: (id, type, s, e) =>
-		`https://player.autoembed.cc/embed/${type === 'movie' ? 'movie' : 'tv'}/${id}${type !== 'movie' ? `/${s || '1'}/${e || '1'}` : ''}`,
-
-	multiembed: (id, type, s, e) => {
-		const isImdb = /^tt\d+$/.test(id);
-		if (type === 'movie')
-			return `https://multiembed.mov/movie?${isImdb ? 'imdb' : 'tmdb'}=${id}`;
-		return `https://multiembed.mov/tv?${isImdb ? 'imdb' : 'tmdb'}=${id}&s=${s || '1'}&e=${e || '1'}`;
-	},
-
-	embed: (id, type) => `https://embed.su/embed/${type}/${id}`,
+			? `https://www.NontonGo.win/embed/movie/${id}`
+			: `https://www.NontonGo.win/embed/tv/${id}/${s || '1'}/${e || '1'}`
 };
 
 export const GET: RequestHandler = async ({ url }) => {
