@@ -157,6 +157,7 @@
 	$effect(() => {
 		if (open) {
 			loadScores();
+			setTimeout(() => autoScan(), 100);
 		}
 	});
 </script>
