@@ -35,9 +35,7 @@ export const SECURITY_HEADERS = {
 		.replace(/\s+/g, ' ')
 		.trim(),
 	'Strict-Transport-Security': 'max-age=63072000; includeSubDomains; preload',
-	'Cross-Origin-Resource-Policy': 'same-origin',
-	'Cross-Origin-Embedder-Policy': 'require-corp',
-	'Cross-Origin-Opener-Policy': 'same-origin',
+	'Cross-Origin-Opener-Policy': 'unsafe-none',
 	'Origin-Agent-Cluster': '?1',
 	Server: '',
 	'X-Powered-By': '',
