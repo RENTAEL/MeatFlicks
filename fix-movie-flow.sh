@@ -5,9 +5,9 @@
 
 echo "Fix these 3 issues:"
 
-# 1. Streaming API/resolver requests made: all 2 requests failed: https://vsembed.ru/embed/movie/27205/ (HTTP 200) | https://vidsrc.cc/embed/movie/27205 (ERR: net::ERR_ABORTED)
+# 1. Streaming API/resolver requests made: no streaming-related network requests at all
 # 2. Clicking suggested card navigates to new movie: still on same page: https://streamium-cosmic.vercel.app/movie/tt1375666
-# 3. TMDB API calls on detail page succeed: 2 failed TMDB calls: https://image.tmdb.org/t/p/w1280, https://anyembed.xyz/embed/tmdb-movie-27205
+# 3. TMDB API calls on detail page succeed: no TMDB API calls at all — data is not being fetched from TMDB
 
 echo ""
 echo "After fixing:"

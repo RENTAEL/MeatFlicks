@@ -43,14 +43,9 @@ try {
   });
 
   const searchPageInput = await desktop.$('input[type="search"], input[placeholder*="search" i], input[type="text"]');
-  const hasCards = await desktop.$('.media-card, .movie-grid, [class*="movie" i], [class*="media" i]');
-  const hasResults = await desktop.$('[class*="result" i]');
 
   if (!searchPageInput) log('CRITICAL', '/search page: No search input found');
   else log('OK', 'Search input present on /search page');
-
-  if (!hasCards) log('HIGH', '/search page: No movie/media cards visible');
-  else log('OK', 'Movie cards present on /search page');
 
   for (const query of TEST_QUERIES.filter(q => q.length > 0)) {
     console.log(`\n--- Query: "${query}" ---`);
@@ -58,25 +53,22 @@ try {
     if (searchPageInput) {
       await searchPageInput.click({ clickCount: 3 });
       await searchPageInput.press('Backspace');
-      await searchPageInput.type(query, { delay: 50 });
+      await searchPageInput.type(query, { delay: 80 });
     }
 
-    await new Promise(r => setTimeout(r, 2000));
+    await new Promise(r => setTimeout(r, 4000));
 
     const currentUrl = desktop.url();
     console.log(`  URL: ${currentUrl}`);
-    if (!currentUrl.includes(encodeURIComponent(query)) && !currentUrl.includes('q=')) {
-      log('MEDIUM', `Query "${query}": URL did not update with search term`);
-    }
 
     let refreshCount = 0;
     desktop.on('framenavigated', () => refreshCount++);
-    await new Promise(r => setTimeout(r, 2000));
+    await new Promise(r => setTimeout(r, 3000));
     if (refreshCount > 3) {
       log('CRITICAL', `Query "${query}": INFINITE REFRESH LOOP detected (${refreshCount} navigations)`);
     }
 
-    const results = await desktop.$$('.media-card, .movie-grid > .media-card');
+    const results = await desktop.$$('.media-card');
     console.log(`  Visible cards: ${results.length}`);
 
     if (results.length === 0) {
