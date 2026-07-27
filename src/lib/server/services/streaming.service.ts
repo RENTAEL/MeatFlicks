@@ -1,9 +1,8 @@
 import {
-	collectStreamingSources,
-	resolveStreamingSource,
+	resolveStreamingWithDetails,
 	listStreamingProviders
 } from '$lib/streaming';
-import type { MediaType } from '$lib/streaming';
+import type { MediaType, StreamingSource } from '$lib/streaming';
 import type { ProviderResolution } from '$lib/streaming/provider-registry';
 import {
 	withCache,
@@ -30,7 +29,7 @@ export interface ResolveStreamingInput {
 }
 
 export interface ResolveStreamingResponse {
-	source: Awaited<ReturnType<typeof resolveStreamingSource>>;
+	source: StreamingSource | null;
 	resolutions: ProviderResolution[];
 }
 
@@ -73,7 +72,7 @@ export async function resolveStreaming(
 			sub_label: input.sub_label
 		} as const;
 
-		// Get all available providers
+		// Get all available providers for scoring
 		const providers = listStreamingProviders();
 
 		// Fetch failure counts for each provider
@@ -95,18 +94,7 @@ export async function resolveStreaming(
 				? input.preferredProviders
 				: sortedProviderIds;
 
-		const source = await resolveStreamingSource(context, effectivePreferred);
-
-		const resolutions: ProviderResolution[] = [];
-		if (source) {
-			const provider = providers.find((p) => p.id === source.providerId);
-			resolutions.push({
-				providerId: source.providerId,
-				label: provider?.label ?? source.providerId,
-				success: true,
-				source
-			});
-		}
+		const { source, resolutions } = await resolveStreamingWithDetails(context, effectivePreferred);
 
 		return {
 			source,
