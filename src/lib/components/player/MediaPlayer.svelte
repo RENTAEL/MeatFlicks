@@ -118,7 +118,6 @@
 				allow="autoplay; fullscreen; picture-in-picture"
 				onload={() => playerService.handleIframeLoad(currentQualities, currentSubtitles)}
 				referrerpolicy="no-referrer"
-				sandbox="allow-scripts allow-same-origin"
 				webkit-airplay="allow"
 				x-webkit-airplay="allow"
 				playsinline

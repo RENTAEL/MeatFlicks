@@ -1,26 +1,20 @@
 {
-  "timestamp": "2026-07-27T12:37:45.999Z",
+  "timestamp": "2026-07-27T12:53:57.977Z",
   "baseUrl": "https://streamium-cosmic.vercel.app",
-  "issues": [
-    {
-      "severity": "CRITICAL",
-      "detail": "Service worker errors in console",
-      "page": "Anime"
-    }
-  ],
+  "issues": [],
   "pages": [
     {
       "route": "Homepage",
       "path": "/",
       "status": "OK",
-      "cardCount": 3,
+      "cardCount": 51,
       "issues": []
     },
     {
       "route": "Movies",
       "path": "/movies",
       "status": "OK",
-      "cardCount": 409,
+      "cardCount": 147,
       "issues": []
     },
     {
@@ -34,13 +28,8 @@
       "route": "Anime",
       "path": "/anime",
       "status": "OK",
-      "cardCount": 0,
-      "issues": [
-        {
-          "severity": "CRITICAL",
-          "detail": "Service worker errors in console"
-        }
-      ]
+      "cardCount": 21,
+      "issues": []
     },
     {
       "route": "Search",
@@ -51,8 +40,8 @@
     }
   ],
   "summary": {
-    "total": 1,
-    "critical": 1,
+    "total": 0,
+    "critical": 0,
     "high": 0,
     "medium": 0
   }
