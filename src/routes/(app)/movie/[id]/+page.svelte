@@ -1,7 +1,7 @@
 <script lang="ts">
 	import Player from '$lib/components/Player.svelte';
 	import MovieInfo from '$lib/components/MovieInfo.svelte';
-	import MovieCard from '$lib/components/MovieCard.svelte';
+	import MediaCard from '$lib/components/MediaCard.svelte';
 	import type { PageData } from './$types';
 
 	let { data }: { data: PageData } = $props();
@@ -39,13 +39,7 @@
 				<div class="-mx-4 flex gap-4 overflow-x-auto px-4 pb-4 scrollbar-thin scrollbar-thumb-zinc-800 scrollbar-track-transparent">
 					{#each data.similarMovies as movie (movie.id)}
 						<div class="w-36 shrink-0 sm:w-40">
-							<MovieCard
-								id={movie.id}
-								title={movie.title}
-								poster={movie.poster}
-								rating={movie.rating}
-								year={String(movie.year)}
-							/>
+							<MediaCard media={movie} />
 						</div>
 					{/each}
 				</div>

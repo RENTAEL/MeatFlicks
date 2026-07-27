@@ -14,7 +14,7 @@
 	const navLinks = [
 		{ label: 'Home', href: '/' },
 		{ label: 'Movies', href: '/movies' },
-		{ label: 'TV Series', href: '/tv-shows' },
+		{ label: 'TV Series', href: '/tv' },
 	];
 
 	const isActive = (href: string) => {

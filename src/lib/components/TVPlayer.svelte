@@ -1,15 +1,19 @@
 <script lang="ts">
-	import { MOVIE_PROVIDERS } from '$lib/config/providers';
+	import { TV_PROVIDERS } from '$lib/config/providers';
 
 	let {
 		tmdbId,
+		season,
+		episode,
 		title = ''
 	}: {
 		tmdbId: number;
+		season: number;
+		episode: number;
 		title?: string;
 	} = $props();
 
-	const providers = MOVIE_PROVIDERS;
+	const providers = TV_PROVIDERS;
 
 	let currentProviderIndex = $state(0);
 	let currentUrl = $state('');
@@ -31,7 +35,7 @@
 		isLoading = true;
 		error = '';
 		const provider = providers[currentProviderIndex];
-		currentUrl = provider.buildUrl(tmdbId);
+		currentUrl = provider.buildUrl(tmdbId, season, episode);
 	}
 
 	function handleIframeLoad() {
@@ -69,7 +73,7 @@
 			<div class="h-12 w-12 animate-spin rounded-full border-2 border-zinc-700 border-t-indigo-500"></div>
 			<div class="text-center">
 				<p class="text-sm text-zinc-400">Connecting to {providers[currentProviderIndex].name}...</p>
-				<p class="mt-1 text-xs text-zinc-600">This may take a moment</p>
+				<p class="mt-1 text-xs text-zinc-600">Loading S{season} E{episode}</p>
 			</div>
 		</div>
 	{:else if error}
@@ -97,7 +101,7 @@
 		<iframe
 			bind:this={playerFrame}
 			src={currentUrl}
-			title="Video player for {title}"
+			title="Video player for {title} S{season} E{episode}"
 			allow="autoplay; encrypted-media; picture-in-picture; fullscreen"
 			referrerpolicy="no-referrer"
 			class="h-full w-full"
