@@ -23,7 +23,6 @@ function probeProvider(provider: Provider, params: ProviderParams): Promise<Prob
 		iframe.style.cssText =
 			'position:fixed;top:-9999px;left:-9999px;width:1px;height:1px;opacity:0;pointer-events:none;';
 		iframe.referrerPolicy = 'no-referrer';
-		iframe.sandbox = 'allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox allow-presentation allow-orientation-lock allow-pointer-lock allow-top-navigation-by-user-activation';
 
 		let done = false;
 
