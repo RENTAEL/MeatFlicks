@@ -19,6 +19,7 @@
 	import { setupCloudSync } from '$lib/firebase/sync';
 	import { menuOpen } from '$lib/stores/menu';
 	import { authStore } from '$lib/state/stores/authStore.svelte.ts';
+	import UblockPrompt from '$lib/components/UblockPrompt.svelte';
 
 	onMount(async () => {
 		try {
@@ -99,6 +100,8 @@
 </ThemeContext>
 
 <SearchOverlay />
+
+<UblockPrompt />
 
 {#if $menuOpen}
 	<div class="menu-backdrop" onclick={() => menuOpen.set(false)} role="button" tabindex="-1" aria-label="Close menu" transition:fade={{ duration: 150 }}></div>
