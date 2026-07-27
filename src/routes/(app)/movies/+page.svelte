@@ -1,5 +1,4 @@
 <script lang="ts">
-	import { page } from '$app/state';
 	import { goto } from '$app/navigation';
 	import MovieCard from '$lib/components/MovieCard.svelte';
 	import type { PageData } from './$types';
@@ -7,11 +6,6 @@
 	let { data }: { data: PageData } = $props();
 
 	let searchQuery = $state('');
-	let gridMovies = $derived(() => {
-		if (!searchQuery) return data.movies || [];
-		const q = searchQuery.toLowerCase();
-		return (data.movies || []).filter(m => m.title.toLowerCase().includes(q));
-	});
 
 	const categories = [
 		{ id: 'popular', label: 'All' },
@@ -25,7 +19,13 @@
 	let currentPage = $state(data.page || 1);
 	let allMovies = $state(data.movies || []);
 	let isLoadingMore = $state(false);
-	let hasMore = $state(data.page < data.totalPages);
+	let hasMore = $state((data.page || 1) < (data.totalPages || 0));
+
+	let filteredMovies = $derived.by(() => {
+		if (!searchQuery) return allMovies;
+		const q = searchQuery.toLowerCase();
+		return allMovies.filter(m => m.title.toLowerCase().includes(q));
+	});
 
 	$effect(() => {
 		currentCategory = data.category || 'popular';
@@ -35,22 +35,30 @@
 	});
 
 	function switchCategory(catId: string) {
-		currentCategory = catId;
 		searchQuery = '';
 		goto(`/movies?category=${catId}`, { replaceState: true });
+	}
+
+	function getEndpoint(cat: string, pg: number): string {
+		if (cat === 'trending') return `https://api.themoviedb.org/3/trending/movie/week?api_key=5aa00ca6320d13f8d492d7806e012f9b&page=${pg}`;
+		if (cat === 'all') return `https://api.themoviedb.org/3/movie/now_playing?api_key=5aa00ca6320d13f8d492d7806e012f9b&page=${pg}`;
+		return `https://api.themoviedb.org/3/movie/${cat}?api_key=5aa00ca6320d13f8d492d7806e012f9b&page=${pg}`;
 	}
 
 	async function loadMore() {
 		if (isLoadingMore || !hasMore) return;
 		isLoadingMore = true;
 		const nextPage = currentPage + 1;
-		const cat = currentCategory === 'all' ? 'popular' : currentCategory;
-		const params = new URLSearchParams({ category: cat, page: String(nextPage) });
 		try {
-			const res = await fetch(`/movies?${params}`);
-			if (res.ok) {
-				window.location.href = `/movies?${params}`;
-			}
+			const res = await fetch(getEndpoint(currentCategory, nextPage));
+			if (!res.ok) throw new Error('Failed');
+			const json = await res.json();
+			const { formatMovie } = await import('$lib/utils/tmdb');
+			const newMovies = (json.results || []).map(formatMovie);
+			allMovies = [...allMovies, ...newMovies];
+			currentPage = nextPage;
+			hasMore = nextPage < (json.total_pages || 0);
+		} catch {
 		} finally {
 			isLoadingMore = false;
 		}
@@ -97,7 +105,7 @@
 				Retry
 			</button>
 		</div>
-	{:else if gridMovies().length === 0}
+	{:else if filteredMovies.length === 0}
 		<div class="flex flex-col items-center justify-center py-20">
 			<svg class="mb-4 size-16 text-zinc-700" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 4v16M17 4v16M3 8h4m10 0h4M3 12h18M3 16h4m10 0h4M4 20h16a1 1 0 001-1V5a1 1 0 00-1-1H4a1 1 0 00-1 1v14a1 1 0 001 1z" /></svg>
 			<p class="text-lg font-medium text-zinc-400">No movies found</p>
@@ -105,7 +113,7 @@
 		</div>
 	{:else}
 		<div class="grid grid-cols-3 gap-4 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6">
-			{#each gridMovies() as movie (movie.id)}
+			{#each filteredMovies as movie (movie.id)}
 				<MovieCard
 					id={movie.id}
 					title={movie.title}
