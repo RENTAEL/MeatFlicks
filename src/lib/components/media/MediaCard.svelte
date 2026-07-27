@@ -134,8 +134,8 @@
 							class="h-full w-full"
 							style="pointer-events: none;"
 							loading="lazy"
-							allow="autoplay; encrypted-media"
-							sandbox="allow-scripts allow-same-origin" allowfullscreen
+							allow="autoplay; encrypted-media; fullscreen"
+							sandbox="allow-scripts allow-same-origin"
 						></iframe>
 						<div class="absolute inset-0 bg-linear-to-t from-background/90 via-background/10 to-transparent"></div>
 					</div>
