@@ -18,7 +18,7 @@ export const SECURITY_HEADERS = {
 		object-src 'none';
 		base-uri 'self';
 		form-action 'self';
-		frame-ancestors 'none';
+		frame-ancestors 'self';
 		upgrade-insecure-requests;
 		block-all-mixed-content
 	`
@@ -27,7 +27,7 @@ export const SECURITY_HEADERS = {
 
 	'X-XSS-Protection': '0',
 	'X-Content-Type-Options': 'nosniff',
-	'X-Frame-Options': 'DENY',
+	'X-Frame-Options': 'SAMEORIGIN',
 	'Referrer-Policy': 'strict-origin',
 	'Permissions-Policy': `
 		fullscreen=*
@@ -97,7 +97,7 @@ export function getContentSecurityHeaders(contentType: 'api' | 'html' | 'embed' 
 			baseHeaders['Content-Security-Policy'] = `
 				default-src 'none';
 				connect-src 'self';
-				frame-ancestors 'none'
+				frame-ancestors 'self'
 			`
 				.replace(/\s+/g, ' ')
 				.trim();
@@ -116,7 +116,7 @@ export function getContentSecurityHeaders(contentType: 'api' | 'html' | 'embed' 
 				object-src 'none';
 				base-uri 'self';
 				form-action 'none';
-				frame-ancestors 'none'
+				frame-ancestors 'self'
 			`
 				.replace(/\s+/g, ' ')
 				.trim();

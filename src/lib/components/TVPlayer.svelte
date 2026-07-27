@@ -15,11 +15,8 @@
 
 	interface ScanResult {
 		id: string; name: string; movieUrl: string; tvUrl: string | null;
-		status: 'working' | 'blocked' | 'dead'; requiresNoRestrictions: boolean;
+		status: 'working' | 'blocked' | 'dead';
 	}
-
-	const SAFE_SANDBOX = 'allow-scripts allow-same-origin allow-forms allow-presentation';
-	const NO_SANDBOX = '';
 
 	let isScanning = $state(true);
 	let scanError = $state('');
@@ -35,16 +32,6 @@
 	let autoSwitchTimer: ReturnType<typeof setTimeout> | null = $state(null);
 	let isAutoSwitching = $state(false);
 	let loadedProviders = $state<Set<string>>(new Set());
-	let safeMode = $state(true);
-
-	let currentDisplayUrl = $derived(
-		safeMode && currentUrl
-			? `/api/proxy?url=${encodeURIComponent(currentUrl)}`
-			: currentUrl
-	);
-	let currentSandbox = $derived(
-		safeMode ? SAFE_SANDBOX : NO_SANDBOX
-	);
 
 	async function scan() {
 		isScanning = true;
@@ -129,11 +116,6 @@
 		scan();
 	}
 
-	function toggleSafeMode() {
-		safeMode = !safeMode;
-		iframeLoaded = false;
-	}
-
 	onMount(() => { if (tmdbId) scan(); });
 	$effect(() => { if (tmdbId) scan(); });
 	onDestroy(() => { stopAutoSwitch(); });
@@ -169,12 +151,11 @@
 			</div>
 		{/if}
 
-		{#if currentDisplayUrl}
+		{#if currentUrl}
 			<iframe
-				src={currentDisplayUrl}
+				src={currentUrl}
 				class="player-iframe"
 				allow="autoplay; fullscreen; encrypted-media; picture-in-picture; accelerometer; gyroscope"
-				sandbox={currentSandbox}
 				allowfullscreen
 				webkitallowfullscreen
 				mozallowfullscreen
@@ -195,11 +176,6 @@
 			{/if}
 		</div>
 		<div class="provider-bar-right">
-			<button onclick={toggleSafeMode} class="safe-toggle" class:safe-active={safeMode} aria-label="Toggle anti-popup mode" title={safeMode ? 'Anti-popup mode: ON' : 'Anti-popup mode: OFF'}>
-				<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="safe-icon">
-					<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
-				</svg>
-			</button>
 			{#if workingProviders.length > 0}
 				<span class="count">{workingProviders.length} server{workingProviders.length !== 1 ? 's' : ''}</span>
 				<button onclick={() => showServerList = !showServerList} class="switch-btn" aria-label="Switch server">
@@ -223,7 +199,6 @@
 					{@const isWorking = p.status !== 'dead'}
 					{@const isLoaded = loadedProviders.has(p.id)}
 					{@const isCurrent = workingProviders.indexOf(p) === currentIndex && isWorking}
-					{@const needsProxy = safeMode && p.requiresNoRestrictions}
 					{#if isWorking}
 						<button
 							onclick={() => { const idx = workingProviders.indexOf(p); if (idx >= 0) { showServerList = false; switchTo(idx); } }}
@@ -235,9 +210,6 @@
 								<span class="item-dot" class:dot-working={isLoaded}></span>
 								<span>{p.name}</span>
 								{#if isCurrent}<span class="current-label">Current</span>{/if}
-								{#if needsProxy}
-									<span class="proxy-badge" title="Routed through anti-popup proxy">proxy</span>
-								{/if}
 							</div>
 							<span class="server-status" class:working={isLoaded} class:failing={!isLoaded && isCurrent && !isScanning}>
 								{isLoaded ? '✓ Working' : isCurrent ? '⟳ Trying...' : 'Ready'}
@@ -273,10 +245,8 @@
 {#if import.meta.env.DEV}
 	<div class="mt-2 rounded-lg border border-zinc-800 bg-zinc-900/50 p-3">
 		<p class="mb-1 text-xs font-medium text-zinc-500">DEBUG</p>
-		<p class="text-xs text-zinc-500">Safe Mode: {safeMode ? 'ON' : 'OFF'}</p>
 		<p class="text-xs text-zinc-500">Provider: {currentProvider?.name || '-'}</p>
-		<p class="text-xs text-zinc-500 truncate">URL: {currentDisplayUrl || '-'}</p>
-		<p class="text-xs text-zinc-500">Sandbox: {currentSandbox || '(none)'}</p>
+		<p class="text-xs text-zinc-500 truncate">URL: {currentUrl || '-'}</p>
 		<p class="text-xs text-zinc-500">Loaded: {iframeLoaded ? 'Yes' : 'No'}</p>
 		<p class="text-xs text-zinc-500">Working: {workingProviders.length} / {allProviders.length}</p>
 		<p class="text-xs text-zinc-500">tmdbId: {tmdbId} &middot; S{season} E{episode}</p>
@@ -311,11 +281,6 @@
 	.switch-btn:hover { background: #3f3f46; }
 	.switch-icon { width: 14px; height: 14px; }
 
-	.safe-toggle { display: flex; align-items: center; justify-content: center; padding: 6px; background: #27272a; color: #71717a; border: 1px solid #3f3f46; border-radius: 6px; font-size: 12px; cursor: pointer; }
-	.safe-toggle:hover { background: #3f3f46; }
-	.safe-toggle.safe-active { color: #22c55e; border-color: #22c55e; }
-	.safe-icon { width: 16px; height: 16px; }
-
 	.server-list { border-top: 1px solid #1f1f23; background: #0c0c0e; max-height: 360px; overflow-y: auto; }
 	.server-list-header { display: flex; align-items: center; justify-content: space-between; padding: 12px 14px 10px; position: sticky; top: 0; background: #0c0c0e; border-bottom: 1px solid #1f1f23; font-size: 13px; font-weight: 600; color: #e4e4e7; }
 	.close-btn { background: none; border: none; color: #71717a; font-size: 20px; cursor: pointer; padding: 4px; line-height: 1; }
@@ -329,7 +294,6 @@
 	.item-dot { width: 8px; height: 8px; border-radius: 50%; background: #3f3f46; flex-shrink: 0; }
 	.dot-working { background: #22c55e; }
 	.current-label { font-size: 10px; color: #818cf8; margin-left: 6px; font-weight: 600; }
-	.proxy-badge { font-size: 9px; font-weight: 700; padding: 1px 4px; border-radius: 3px; background: #1e3a5f; color: #93c5fd; text-transform: uppercase; letter-spacing: 0.3px; }
 	.server-status { font-size: 11px; font-weight: 500; }
 	.server-status.working { color: #4ade80; }
 	.server-status.failing { color: #fbbf24; }
