@@ -46,7 +46,7 @@
 			Find something to watch right now
 		</h1>
 		<p class="max-w-2xl text-base text-muted-foreground sm:text-lg">
-			Search every movie, series, and anime available on Streamium. Filter by quality, jump back
+			Search every movie and series available on Streamium. Filter by quality, jump back
 			into recent searches, and start streaming in seconds.
 		</p>
 	</div>

@@ -11,12 +11,9 @@
 	import RuntimeFilter from './RuntimeFilter.svelte';
 	import LanguageFilter from './LanguageFilter.svelte';
 	import MultiGenreFilter from './MultiGenreFilter.svelte';
-	import AnimeFilter from './AnimeFilter.svelte';
-
 	interface Props {
 		filters: MovieFilters;
 		availableGenres?: Array<{ id: number; name: string }>;
-		include_anime?: 'include' | 'exclude' | 'only';
 		onFiltersChange: (filters: MovieFilters) => void;
 		onClearAll: () => void;
 	}
@@ -24,7 +21,6 @@
 	let {
 		filters = $bindable(),
 		availableGenres = [],
-		include_anime = 'include',
 		onFiltersChange,
 		onClearAll
 	}: Props = $props();
@@ -141,14 +137,6 @@
 					language={filters.language}
 					onLanguageChange={(lang) => updateFilters({ language: lang })}
 				/>
-			</div>
-
-			<Separator class="bg-border/60" />
-
-			<!-- Anime Filter -->
-			<div class="space-y-3">
-				<h3 class="text-sm font-medium text-foreground">Anime</h3>
-				<AnimeFilter value={include_anime} />
 			</div>
 
 			<Separator class="bg-border/60" />

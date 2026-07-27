@@ -23,7 +23,7 @@ export const mediaSyncService = {
 	 */
 	async scheduleSync(
 		tmdbId: number,
-		mediaType: 'movie' | 'tv' | 'anime',
+		mediaType: 'movie' | 'tv',
 		priority: SyncPriority = 'medium'
 	) {
 		const cacheKey = `sync:${mediaType}:${tmdbId}`;
@@ -58,7 +58,7 @@ export const mediaSyncService = {
 	/**
 	 * Performs the actual sync logic
 	 */
-	async performSync(tmdbId: number, mediaType: 'movie' | 'tv' | 'anime') {
+	async performSync(tmdbId: number, mediaType: 'movie' | 'tv') {
 		logger.info({ tmdbId, mediaType }, '[media-sync] starting sync');
 
 		try {
@@ -114,7 +114,7 @@ export const mediaSyncService = {
 					is4K: false,
 					isHD: true,
 					genreNames,
-					mediaType: mediaType === 'anime' ? 'anime' : 'movie',
+					mediaType: 'movie',
 					imdbId: details.imdbId,
 					trailerUrl: details.trailerUrl
 				});

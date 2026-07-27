@@ -7,7 +7,6 @@
 		{ href: '/', icon: Home, label: 'Home' },
 		{ href: '/explore/movies', icon: Film, label: 'Movies' },
 		{ href: '/explore/tv-shows', icon: PlayCircle, label: 'TV' },
-		{ href: '/anime', icon: PlayCircle, label: 'Anime' },
 		{ href: '/search', icon: Search, label: 'Search' }
 	];
 

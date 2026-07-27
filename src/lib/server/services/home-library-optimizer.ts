@@ -27,9 +27,7 @@ type RefreshTaskKey =
 	| 'highRated'
 	| 'trendingTv'
 	| 'popularTv'
-	| 'genrePoolsTv'
-	| 'anime'
-	| 'animeTv';
+	| 'genrePoolsTv';
 
 interface RefreshState {
 	version: number;
@@ -52,9 +50,7 @@ const DEFAULT_STATE: RefreshState = {
 		highRated: null,
 		trendingTv: null,
 		popularTv: null,
-		genrePoolsTv: null,
-		anime: null,
-		animeTv: null
+		genrePoolsTv: null
 	}
 };
 
@@ -67,9 +63,7 @@ const REFRESH_WINDOWS: Record<RefreshTaskKey, number> = {
 	highRated: DAY * 7,
 	trendingTv: DAY,
 	popularTv: DAY,
-	genrePoolsTv: DAY,
-	anime: DAY,
-	animeTv: DAY
+	genrePoolsTv: DAY
 };
 
 const GENRE_TARGETS: Array<{ id: number; name: string }> = [
@@ -118,9 +112,7 @@ const loadState = async (): Promise<RefreshState> => {
 				highRated: parsed.lastRun.highRated ?? null,
 				trendingTv: (parsed.lastRun as any).trendingTv ?? null,
 				popularTv: (parsed.lastRun as any).popularTv ?? null,
-				genrePoolsTv: (parsed.lastRun as any).genrePoolsTv ?? null,
-				anime: (parsed.lastRun as any).anime ?? null,
-				animeTv: (parsed.lastRun as any).animeTv ?? null
+				genrePoolsTv: (parsed.lastRun as any).genrePoolsTv ?? null
 			}
 		};
 	} catch (error) {
@@ -323,28 +315,6 @@ const runGenrePoolsTvTask = async () => {
 	}
 };
 
-const runAnimeTask = async () => {
-	logger.info('[home-library] Running anime movies refresh task');
-	const ids = await discoverMovieIds({
-		genreId: 16,
-		limit: TRENDING_FETCH_LIMIT,
-		minVoteAverage: 6.0,
-		sortBy: 'popularity.desc'
-	});
-	await ingestMedia(ids, { label: 'anime-movies', mediaType: 'anime', tmdbMediaType: 'movie' });
-};
-
-const runAnimeTvTask = async () => {
-	logger.info('[home-library] Running anime TV refresh task');
-	const ids = await discoverTvIds({
-		genreId: 16,
-		limit: TRENDING_FETCH_LIMIT,
-		minVoteAverage: 6.0,
-		sortBy: 'popularity.desc'
-	});
-	await ingestMedia(ids, { label: 'anime-tv', mediaType: 'anime', tmdbMediaType: 'tv' });
-};
-
 const TASK_ORDER: RefreshTaskKey[] = [
 	'trending',
 	'popular',
@@ -352,9 +322,7 @@ const TASK_ORDER: RefreshTaskKey[] = [
 	'highRated',
 	'trendingTv',
 	'popularTv',
-	'genrePoolsTv',
-	'anime',
-	'animeTv'
+	'genrePoolsTv'
 ];
 
 const runTask = async (task: RefreshTaskKey) => {
@@ -379,12 +347,6 @@ const runTask = async (task: RefreshTaskKey) => {
 			break;
 		case 'genrePoolsTv':
 			await runGenrePoolsTvTask();
-			break;
-		case 'anime':
-			await runAnimeTask();
-			break;
-		case 'animeTv':
-			await runAnimeTvTask();
 			break;
 	}
 };

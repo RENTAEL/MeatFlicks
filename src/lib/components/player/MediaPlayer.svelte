@@ -128,7 +128,7 @@
 			</div>
 		{/if}
 
-		{#if playerService.showNextOverlay && (mediaType === 'tv' || mediaType === 'anime')}
+		{#if playerService.showNextOverlay && mediaType === 'tv'}
 			<div
 				class="overlay-enter absolute right-6 bottom-6 z-40 w-80 overflow-hidden rounded-xl border border-white/10 bg-black/80 p-5 text-white shadow-2xl backdrop-blur-md"
 			>
@@ -204,7 +204,7 @@
 	</div>
 
 	<div class="flex flex-wrap items-center gap-4">
-		{#if mediaType === 'tv' || mediaType === 'anime'}
+		{#if mediaType === 'tv'}
 			<label
 				class="mr-2 flex cursor-pointer items-center gap-2 transition-colors hover:text-foreground"
 			>

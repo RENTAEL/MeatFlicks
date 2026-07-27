@@ -34,7 +34,7 @@ export type UpsertMoviePayload = {
 	isHD: boolean;
 	genreNames: string[];
 	collectionId?: number | null;
-	mediaType?: 'movie' | 'tv' | 'anime';
+	mediaType?: 'movie' | 'tv';
 	imdbId: string | null;
 	trailerUrl: string | null;
 };

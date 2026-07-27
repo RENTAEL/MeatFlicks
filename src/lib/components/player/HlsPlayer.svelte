@@ -27,11 +27,6 @@
 	let loadError = $state<string | null>(null);
 
 	async function loadSkipTimestamps() {
-		if (!malId || !episode) return;
-		try {
-			const res = await fetch(`/api/anime/skip-times?malId=${malId}&episode=${episode}`);
-			if (res.ok) skipTimes = await res.json();
-		} catch {}
 	}
 
 	function checkSkip(time: number) {

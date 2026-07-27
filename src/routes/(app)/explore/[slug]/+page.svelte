@@ -48,8 +48,6 @@
 	const tmdbTotalPages = $derived(data.tmdbTotalPages ?? 1);
 	const tmdbFetchError = $derived(data.tmdbFetchError ?? '');
 
-	const include_anime = $derived(data.include_anime ?? 'include');
-
 	const hasContent = $derived(
 		useFilters
 			? Boolean(data.hasContent && movies.length > 0)
@@ -208,7 +206,6 @@
 	let currentFilters = $state<MovieFilters>({} as MovieFilters);
 	let currentSort = $state<SortOptions>({ field: 'popularity', order: 'desc' } as SortOptions);
 	let currentPagination = $state<PaginationParams>({ page: 1, pageSize: DEFAULT_PAGE_SIZE });
-	let currentIncludeAnime = $state<'include' | 'exclude' | 'only'>('include');
 
 	$effect(() => {
 		currentFilters = filters;
@@ -217,15 +214,13 @@
 			const page = 'currentPage' in pagination ? pagination.currentPage : pagination.page;
 			currentPagination = { page, pageSize: pagination.pageSize };
 		}
-		currentIncludeAnime = include_anime;
 	});
 
 	async function updateURL() {
 		const params = combineURLParams(
 			currentFilters,
 			currentSort,
-			currentPagination,
-			currentIncludeAnime
+			currentPagination
 		);
 		const url = `${window.location.origin}${window.location.pathname}?${params.toString()}`;
 		// eslint-disable-next-line svelte/no-navigation-without-resolve
@@ -241,7 +236,6 @@
 	async function handleClearFilters() {
 		currentFilters = {} as MovieFilters;
 		currentPagination = { ...currentPagination, page: 1 };
-		currentIncludeAnime = 'include';
 		await updateURL();
 	}
 
@@ -318,7 +312,6 @@
 							<FilterPanel
 								filters={currentFilters}
 								{availableGenres}
-								include_anime={currentIncludeAnime}
 								onFiltersChange={handleFiltersChange}
 								onClearAll={handleClearFilters}
 							/>

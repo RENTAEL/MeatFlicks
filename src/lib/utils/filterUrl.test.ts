@@ -94,13 +94,12 @@ describe('filterUrl utils', () => {
 			const filters = { yearFrom: 2020 };
 			const sort = { field: 'title' as const, order: 'asc' as const };
 			const pagination = { page: 3, pageSize: 20 };
-			const params = combineURLParams(filters, sort, pagination, 'only');
+			const params = combineURLParams(filters, sort, pagination);
 
 			expect(params.get('yearFrom')).toBe('2020');
 			expect(params.get('sort')).toBe('title');
 			expect(params.get('order')).toBe('asc');
 			expect(params.get('page')).toBe('3');
-			expect(params.get('include_anime')).toBe('only');
 		});
 	});
 });

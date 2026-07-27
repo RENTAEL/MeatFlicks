@@ -71,8 +71,6 @@
 		movie: 'Movies',
 		tv: 'TV Series',
 		'tv-shows': 'TV Shows',
-		anime: 'Anime',
-		manga: 'Manga',
 		unknown: 'Unknown'
 	};
 

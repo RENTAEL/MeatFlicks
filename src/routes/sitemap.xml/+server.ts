@@ -34,7 +34,6 @@ export async function GET() {
 				// Determine the correct route based on media type
 				let typePath = 'movie';
 				if (item.mediaType === 'tv') typePath = 'tv';
-				else if (item.mediaType === 'anime') typePath = 'tv'; // Anime series use /tv/ usually, or we can check actual routing
 
 				const identifier = item.tmdbId || item.id;
 				const loc = `${website}/${typePath}/${identifier}`;

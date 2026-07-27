@@ -63,11 +63,11 @@ let filters = $state<MovieFilters>({
 
 const mediaTypeParam = pageState.url.searchParams.get('type');
 const mediaTypeValue =
-	mediaTypeParam === 'movie' || mediaTypeParam === 'tv' || mediaTypeParam === 'anime'
+	mediaTypeParam === 'movie' || mediaTypeParam === 'tv'
 		? mediaTypeParam
 		: undefined;
 
-let mediaType = $state<'movie' | 'tv' | 'anime' | undefined>(mediaTypeValue);
+let mediaType = $state<'movie' | 'tv' | undefined>(mediaTypeValue);
 
 const sortParam = pageState.url.searchParams.get('sort');
 const sortByValue = sortParam && sortOptions.some((option) => option.value === sortParam)
@@ -297,11 +297,6 @@ let sentinel: HTMLDivElement | null = $state(null);
 					<FilterPanel
 						{filters}
 						{availableGenres}
-						include_anime={mediaType === 'anime'
-							? 'only'
-							: mediaType === 'tv'
-								? 'exclude'
-								: 'include'}
 						onFiltersChange={handleFiltersChange}
 						onClearAll={clearAllFilters}
 					/>

@@ -1,6 +1,6 @@
 import { db } from '$lib/server/db';
 import { media, collections, genres, mediaGenres, watchHistory } from '$lib/server/db/schema';
-import { eq, and, isNotNull, desc, asc, sql, gte, lte, inArray, or } from 'drizzle-orm';
+import { eq, and, isNotNull, desc, asc, sql, gte, lte, inArray } from 'drizzle-orm';
 import type { CollectionRecord, GenreRecord, MediaRow, MediaSummary } from '$lib/server/db';
 import { mapRowsToSummaries, getGenreNameMap } from '$lib/server/db/movie-select';
 import type { MovieFilters, SortOptions } from '$lib/types/filters';
@@ -33,7 +33,7 @@ export type CollectionWithMovies = CollectionRecord & { movies: MediaSummary[] }
 export const libraryRepository = {
 	async findTrendingMovies(
 		limit = 20,
-		mediaType: 'movie' | 'tv' | 'anime' = 'movie'
+		mediaType: 'movie' | 'tv' = 'movie'
 	): Promise<MediaSummary[]> {
 		const take = toPositiveInteger(limit, 20);
 
@@ -181,8 +181,7 @@ export const libraryRepository = {
 		genreName: string,
 		limit?: number,
 		offset?: number,
-		mediaType: 'movie' | 'tv' = 'movie',
-		include_anime: 'include' | 'exclude' | 'only' = 'include'
+		mediaType: 'movie' | 'tv' = 'movie'
 	): Promise<MediaSummary[]> {
 		const take = typeof limit === 'number' ? toPositiveInteger(limit, 20) : 20;
 		const skip = normalizeOffset(offset);
@@ -195,8 +194,7 @@ export const libraryRepository = {
 				mediaType,
 				normalizedGenre,
 				take,
-				skip,
-				include_anime
+				skip
 			);
 			return await withCache<MediaSummary[]>(cacheKey, CACHE_TTL_MEDIUM_SECONDS, async () => {
 				const idMap = await getGenreNameMap();
@@ -204,20 +202,11 @@ export const libraryRepository = {
 
 				if (!genreId) return [];
 
-				let mediaTypeCondition;
-				if (include_anime === 'only') {
-					mediaTypeCondition = eq(media.mediaType, 'anime');
-				} else if (include_anime === 'exclude') {
-					mediaTypeCondition = eq(media.mediaType, mediaType);
-				} else {
-					mediaTypeCondition = or(eq(media.mediaType, mediaType), eq(media.mediaType, 'anime'));
-				}
-
 				const rows = await db
 					.select({ media })
 					.from(media)
 					.innerJoin(mediaGenres, eq(mediaGenres.mediaId, media.id))
-					.where(and(eq(mediaGenres.genreId, genreId), mediaTypeCondition))
+					.where(and(eq(mediaGenres.genreId, genreId), eq(media.mediaType, mediaType)))
 					.orderBy(desc(media.rating), desc(media.releaseDate), asc(media.title))
 					.limit(take)
 					.offset(skip);
@@ -236,28 +225,9 @@ export const libraryRepository = {
 		conditions: any[],
 		filters: MovieFilters,
 		idMap: Map<string, number>,
-		mediaType: 'movie' | 'tv' = 'movie',
-		include_anime:
-			| 'include'
-			| 'exclude'
-			| 'only'
-			| 'include_anime'
-			| 'exclude_anime'
-			| 'only_anime' = 'include'
+		mediaType: 'movie' | 'tv' = 'movie'
 	) {
-		let mediaTypeCondition;
-		const animeMode = (include_anime as string).includes('anime')
-			? (include_anime as string).split('_')[0]
-			: include_anime;
-
-		if (animeMode === 'only') {
-			mediaTypeCondition = eq(media.mediaType, 'anime');
-		} else if (animeMode === 'exclude') {
-			mediaTypeCondition = eq(media.mediaType, mediaType);
-		} else {
-			mediaTypeCondition = or(eq(media.mediaType, mediaType), eq(media.mediaType, 'anime'));
-		}
-		conditions.push(mediaTypeCondition);
+		conditions.push(eq(media.mediaType, mediaType));
 
 		if (filters.yearFrom) {
 			conditions.push(gte(media.releaseDate, `${filters.yearFrom}-01-01`));
@@ -314,8 +284,7 @@ export const libraryRepository = {
 		filters: MovieFilters,
 		sort: SortOptions,
 		pagination: PaginationParams,
-		mediaType: 'movie' | 'tv' = 'movie',
-		include_anime: 'include' | 'exclude' | 'only' = 'include'
+		mediaType: 'movie' | 'tv' = 'movie'
 	): Promise<PaginatedResult<MediaSummary>> {
 		try {
 			const idMap = await getGenreNameMap();
@@ -324,7 +293,7 @@ export const libraryRepository = {
 
 			const createBaseQuery = (base: any) => {
 				const conditions: any[] = [];
-				return this.applyFilters(base, conditions, filters, idMap, mediaType, include_anime);
+				return this.applyFilters(base, conditions, filters, idMap, mediaType);
 			};
 
 			const countBase = createBaseQuery(
@@ -370,8 +339,7 @@ export const libraryRepository = {
 
 	async countMoviesWithFilters(
 		filters: MovieFilters,
-		mediaType: 'movie' | 'tv' = 'movie',
-		include_anime: 'include' | 'exclude' | 'only' = 'include'
+		mediaType: 'movie' | 'tv' = 'movie'
 	): Promise<number> {
 		try {
 			const idMap = await getGenreNameMap();
@@ -383,8 +351,7 @@ export const libraryRepository = {
 				conditions,
 				filters,
 				idMap,
-				mediaType,
-				include_anime
+				mediaType
 			);
 
 			const result = await countQuery;

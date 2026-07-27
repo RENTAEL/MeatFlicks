@@ -102,7 +102,6 @@
 
 	let selectedSeason = $state<number>(1);
 	let selectedEpisode = $state<number>(1);
-	let subOrDub = $state<'sub' | 'dub'>('sub');
 	let activeTab = $state<'suggested' | 'details'>('suggested');
 	let activeEmbedUrl = $state<string | null>(null);
 	let fallbackQueue = $state<string[]>([]);
@@ -138,8 +137,8 @@
 				mediaId: movie.id,
 				tmdbId: movie.tmdbId,
 				mediaType: mediaType,
-				season: mediaType === 'tv' || mediaType === 'anime' ? 1 : undefined,
-				episode: mediaType === 'tv' || mediaType === 'anime' ? 1 : undefined
+				season: mediaType === 'tv' ? 1 : undefined,
+				episode: mediaType === 'tv' ? 1 : undefined
 			});
 			if (data.streaming) {
 				streamingService.initializeFromServerData({
@@ -216,7 +215,7 @@
 		streamingService.state.qualities = [];
 		streamingService.state.subtitles = [];
 
-		if (movie?.tmdbId && (mediaType === 'tv' || mediaType === 'anime')) {
+		if (movie?.tmdbId && mediaType === 'tv') {
 			episodeService.fetchEpisodes(movie.tmdbId, selectedSeason);
 		}
 	}
@@ -232,9 +231,9 @@
 				playerService.cleanup();
 				streamingService.state.qualities = [];
 				streamingService.state.subtitles = [];
-				if (movie?.tmdbId && (mediaType === 'tv' || mediaType === 'anime')) {
-					episodeService.fetchEpisodes(movie.tmdbId, selectedSeason);
-				}
+		if (movie?.tmdbId && mediaType === 'tv') {
+				episodeService.fetchEpisodes(movie.tmdbId, selectedSeason);
+			}
 			}
 			handleEpisodeSelect(next.episode);
 		}
@@ -268,11 +267,6 @@
 		}
 
 		if (providerId === 'vidlink') {
-			if (mediaType === 'anime') {
-				const episode = selectedEpisode ?? 1;
-				const type = subOrDub ?? 'sub';
-				return `https://vidlink.pro/anime/${movie.malId ?? movie.tmdbId}/${episode}/${type}?${customParams}&fallback=true`;
-			}
 			if (mediaType === 'tv') {
 				return `https://vidlink.pro/tv/${movie.tmdbId}/${selectedSeason}/${selectedEpisode}?${customParams}`;
 			}
@@ -291,7 +285,6 @@
 			const embedBase = 'https://hnembed.cc';
 			if (mediaType === 'movie') return `${embedBase}/embed/movie/${mediaId}`;
 			if (mediaType === 'tv') return `${embedBase}/embed/tv/${mediaId}/${selectedSeason}/${selectedEpisode}`;
-			return `https://player.autoembed.cc/embed/anime/${movie.malId ?? movie.tmdbId}/${selectedEpisode ?? 1}${subOrDub === 'dub' ? '/dub' : ''}`;
 		}
 
 		return null;
@@ -396,9 +389,7 @@
 				type: mediaType,
 				season: mediaType !== 'movie' ? selectedSeason : undefined,
 				episode: mediaType !== 'movie' ? selectedEpisode : undefined,
-				imdbId: movie.imdbId ?? null,
-				malId: movie.malId ?? null,
-				subOrDub
+				imdbId: movie.imdbId ?? null
 			};
 
 			let autoPlayed = false;
@@ -662,10 +653,10 @@
 	);
 
 	const notFoundHeading = $derived(
-		mediaType === 'tv' || mediaType === 'anime' ? 'Series Not Found' : 'Movie Not Found'
+		mediaType === 'tv' ? 'Series Not Found' : 'Movie Not Found'
 	);
 	const notFoundDescription = $derived(
-		mediaType === 'tv' || mediaType === 'anime'
+		mediaType === 'tv'
 			? 'The show you are looking for does not exist.'
 			: 'The movie you are looking for does not exist.'
 	);
@@ -683,14 +674,14 @@
 		description={movie.overview ||
 			`Watch ${movie.title} on Streamium - Free streaming of movies and TV shows`}
 		canonical={canonicalPath ?? undefined}
-		ogType={mediaType === 'tv' || mediaType === 'anime' ? 'video.tv_show' : 'video.movie'}
+		ogType={mediaType === 'tv' ? 'video.tv_show' : 'video.movie'}
 		ogImage={ogImage ?? undefined}
 		ogImageAlt={`${movie.title} poster`}
 		twitterCard="summary_large_image"
 		keywords={[
 			movie.title,
 			...(movie.genres?.map((g: MediaGenre) => g.name) || []),
-			mediaType === 'tv' || mediaType === 'anime' ? 'TV show' : 'movie',
+			mediaType === 'tv' ? 'TV show' : 'movie',
 			'watch online',
 			'free streaming'
 		]}
@@ -714,36 +705,6 @@
 				logoPath={movie.logoPath}
 				onplay={handlePlayClick}
 			/>
-
-			{#if mediaType === 'anime'}
-				<div class="mb-6 flex items-center justify-center gap-4">
-					<span class="text-sm font-medium tracking-wider text-muted-foreground uppercase"
-						>Type:</span
-					>
-					<div class="flex rounded-md bg-muted p-1">
-						<button
-							class="rounded px-4 py-1.5 text-sm font-medium transition-all {subOrDub === 'sub'
-								? 'bg-background text-foreground shadow-sm'
-								: 'text-muted-foreground hover:text-foreground'}"
-							onclick={() => {
-								subOrDub = 'sub';
-							}}
-						>
-							Sub
-						</button>
-						<button
-							class="rounded px-4 py-1.5 text-sm font-medium transition-all {subOrDub === 'dub'
-								? 'bg-background text-foreground shadow-sm'
-								: 'text-muted-foreground hover:text-foreground'}"
-							onclick={() => {
-								subOrDub = 'dub';
-							}}
-						>
-							Dub
-						</button>
-					</div>
-				</div>
-			{/if}
 
 			<div class="mt-8 w-full">
 				<div class="px-[10%]">
@@ -780,7 +741,7 @@
 					</div>
 				{:else if activeTab === 'details'}
 					<div>
-						{#if (mediaType === 'tv' || mediaType === 'anime') && movie.seasons}
+						{#if mediaType === 'tv' && movie.seasons}
 							<div class="mb-10">
 								<h3 class="mb-4 text-2xl font-bold">Episodes</h3>
 								<EpisodeGrid

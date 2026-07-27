@@ -119,7 +119,7 @@ let continueWatchingMovies = $state<LibraryMovieWithProgress[]>([]);
 				.filter((movie) => {
 					const progress: PlaybackProgress = {
 						mediaId: movie.id.toString(),
-						mediaType: (movie.mediaType as 'movie' | 'tv' | 'anime') || 'movie',
+						mediaType: (movie.mediaType as 'movie' | 'tv') || 'movie',
 						progress: movie.progressSeconds || 0,
 						duration: movie.durationSeconds || 0,
 						updatedAt: movie.updatedAt || 0

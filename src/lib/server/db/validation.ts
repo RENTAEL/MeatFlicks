@@ -269,8 +269,8 @@ function validateRequiredString(value: string, fieldName: string): void {
 }
 
 function validateMediaType(value: string | undefined, fieldName: string): void {
-	if (value && !['movie', 'tv', 'anime'].includes(value)) {
-		throw new Error(`${fieldName} must be one of: movie, tv, anime`);
+	if (value && !['movie', 'tv'].includes(value)) {
+		throw new Error(`${fieldName} must be one of: movie, tv`);
 	}
 }
 
@@ -296,7 +296,7 @@ export function validateMovieData(data: {
 	isHD?: boolean;
 	genreNames?: string[];
 	collectionId?: number | null;
-	mediaType?: 'movie' | 'tv' | 'anime';
+	mediaType?: 'movie' | 'tv';
 	imdbId?: string | null;
 	trailerUrl?: string | null;
 }): void {

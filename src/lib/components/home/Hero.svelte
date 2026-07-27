@@ -29,12 +29,10 @@
 		key: string;
 	};
 
-	type MediaType = 'tv' | 'anime' | 'manga' | 'movie';
+	type MediaType = 'tv' | 'movie';
 
 	const MEDIA_TYPE_LABELS: Record<MediaType, string> = {
 		tv: 'TV Series',
-		anime: 'Anime',
-		manga: 'Manga',
 		movie: 'Movie'
 	};
 

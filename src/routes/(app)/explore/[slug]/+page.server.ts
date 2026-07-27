@@ -62,7 +62,7 @@ async function fetchTmdbTrending(mediaType: 'movie' | 'tv', limit = 20): Promise
 
 export const load: PageServerLoad = async ({ params, url }) => {
 	const { slug } = params;
-	const { filters, sort, pagination, include_anime } = parseAllFromURL(url.searchParams);
+	const { filters, sort, pagination } = parseAllFromURL(url.searchParams);
 
 	const mediaType = slug === 'tv-shows' ? 'tv' : 'movie';
 	let trending: any[] = [];
@@ -136,62 +136,58 @@ export const load: PageServerLoad = async ({ params, url }) => {
 			if (hasActiveFilters) {
 				const mediaType = slug === 'tv-shows' ? 'tv' : 'movie';
 				let result;
-				try {
+	try {
 					result = await libraryRepository.findMoviesWithFilters(
 						filters,
 						sort,
 						pagination,
-						mediaType,
-						include_anime
+						mediaType
 					);
 				} catch {
-					result = { items: [], pagination: { page: 1, pageSize: DEFAULT_PAGE_SIZE, totalItems: 0, totalPages: 0 } };
-				}
-				const availableGenres = await getGenres();
+				result = { items: [], pagination: { page: 1, pageSize: DEFAULT_PAGE_SIZE, totalItems: 0, totalPages: 0 } };
+			}
+			const availableGenres = await getGenres();
 
-				if (result.items.length > 0) {
-					return {
-						categoryTitle: fromSlug(slug),
-						movies: result.items,
-						pagination: result.pagination,
-						filters,
-						sort,
-						hasContent: true,
-						singleGenreMode: true,
-						availableGenres,
-						useFilters: true,
-						include_anime,
-						tmdbFetchError
-					};
-				}
-
-				const fallbackMovies = await fetchTmdbTrending(mediaType);
+			if (result.items.length > 0) {
 				return {
 					categoryTitle: fromSlug(slug),
-					movies: fallbackMovies,
-					pagination: { page: 1, pageSize: DEFAULT_PAGE_SIZE, totalItems: fallbackMovies.length, totalPages: 1 },
+					movies: result.items,
+					pagination: result.pagination,
 					filters,
 					sort,
-					hasContent: fallbackMovies.length > 0,
+					hasContent: true,
 					singleGenreMode: true,
 					availableGenres,
 					useFilters: true,
-					include_anime,
 					tmdbFetchError
 				};
 			}
 
+			const fallbackMovies = await fetchTmdbTrending(mediaType);
 			return {
 				categoryTitle: fromSlug(slug),
-				genreData: [],
-				hasContent: false,
+				movies: fallbackMovies,
+				pagination: { page: 1, pageSize: DEFAULT_PAGE_SIZE, totalItems: fallbackMovies.length, totalPages: 1 },
+				filters,
+				sort,
+				hasContent: fallbackMovies.length > 0,
 				singleGenreMode: true,
-				availableGenres: await getGenres(),
-				useFilters: false,
-				include_anime,
+				availableGenres,
+				useFilters: true,
 				tmdbFetchError
 			};
 		}
+
+		return {
+			categoryTitle: fromSlug(slug),
+			genreData: [],
+			hasContent: false,
+			singleGenreMode: true,
+			availableGenres: await getGenres(),
+			useFilters: false,
+			tmdbFetchError
+		};
+	}
 
 		categoryTitle = match.name;
 		genresToFetch = [match.name];
@@ -211,51 +207,48 @@ export const load: PageServerLoad = async ({ params, url }) => {
 				finalFilters,
 				sort,
 				pagination,
-				mediaType,
-				include_anime
+				mediaType
 			);
 		} catch {
 			result = { items: [], pagination: { page: 1, pageSize: DEFAULT_PAGE_SIZE, totalItems: 0, totalPages: 0 } };
 		}
-		const availableGenres = await getGenres();
+			const availableGenres = await getGenres();
 
-		if (result.items.length > 0) {
+			if (result.items.length > 0) {
+				return {
+					categoryTitle,
+					movies: result.items,
+					pagination: result.pagination,
+					filters: finalFilters,
+					sort,
+					hasContent: true,
+					singleGenreMode,
+					availableGenres,
+					useFilters: true,
+					trending,
+					tmdbPopularMovies,
+					tmdbTotalPages,
+					tmdbFetchError
+				};
+			}
+
+			const fallbackMovies = await fetchTmdbTrending(mediaType);
 			return {
 				categoryTitle,
-				movies: result.items,
-				pagination: result.pagination,
+				movies: fallbackMovies,
+				pagination: { page: 1, pageSize: DEFAULT_PAGE_SIZE, totalItems: fallbackMovies.length, totalPages: 1 },
 				filters: finalFilters,
 				sort,
-				hasContent: true,
+				hasContent: fallbackMovies.length > 0,
 				singleGenreMode,
 				availableGenres,
 				useFilters: true,
-				include_anime,
 				trending,
 				tmdbPopularMovies,
 				tmdbTotalPages,
 				tmdbFetchError
 			};
 		}
-
-		const fallbackMovies = await fetchTmdbTrending(mediaType);
-		return {
-			categoryTitle,
-			movies: fallbackMovies,
-			pagination: { page: 1, pageSize: DEFAULT_PAGE_SIZE, totalItems: fallbackMovies.length, totalPages: 1 },
-			filters: finalFilters,
-			sort,
-			hasContent: fallbackMovies.length > 0,
-			singleGenreMode,
-			availableGenres,
-			useFilters: true,
-			include_anime,
-			trending,
-			tmdbPopularMovies,
-			tmdbTotalPages,
-			tmdbFetchError
-		};
-	}
 
 	let genreData;
 	try {
@@ -267,8 +260,7 @@ export const load: PageServerLoad = async ({ params, url }) => {
 					genreName,
 					undefined,
 					undefined,
-					slug === 'tv-shows' ? 'tv' : 'movie',
-					include_anime
+					slug === 'tv-shows' ? 'tv' : 'movie'
 				)
 			}))
 		);
@@ -293,7 +285,6 @@ export const load: PageServerLoad = async ({ params, url }) => {
 				filters: {} as MovieFilters,
 				sort: { field: 'popularity', order: 'desc' } as SortOptions,
 				pagination: { page: 1, pageSize: DEFAULT_PAGE_SIZE } as PaginationParams,
-				include_anime,
 				trending,
 				tmdbPopularMovies,
 				tmdbTotalPages,
@@ -315,7 +306,6 @@ export const load: PageServerLoad = async ({ params, url }) => {
 		filters: {} as MovieFilters,
 		sort: { field: 'popularity', order: 'desc' } as SortOptions,
 		pagination: { page: 1, pageSize: DEFAULT_PAGE_SIZE } as PaginationParams,
-		include_anime,
 		trending,
 		tmdbPopularMovies,
 		tmdbTotalPages,
