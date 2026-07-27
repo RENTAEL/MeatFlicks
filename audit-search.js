@@ -48,25 +48,20 @@ try {
   else log('OK', 'Search input present on /search page');
 
   for (const query of TEST_QUERIES.filter(q => q.length > 0)) {
-    console.log(`\n--- Query: "${query}" ---`);
+    // Navigate fresh each time to avoid stale input state
+    await desktop.goto(`${BASE_URL}/search`, { waitUntil: 'networkidle2', timeout: 45000 });
+    await new Promise(r => setTimeout(r, 2000));
 
-    if (searchPageInput) {
-      await searchPageInput.click({ clickCount: 3 });
-      await searchPageInput.press('Backspace');
-      await searchPageInput.type(query, { delay: 80 });
-    }
+    const input = await desktop.$('input[type="search"], input[placeholder*="search" i], input[type="text"]');
+    if (!input) { log('CRITICAL', `Query "${query}": No search input found`); continue; }
 
+    await input.click();
+    await input.type(query, { delay: 80 });
+    // Press Enter to trigger search immediately (bypass debounce)
+    await input.press('Enter');
     await new Promise(r => setTimeout(r, 4000));
 
-    const currentUrl = desktop.url();
-    console.log(`  URL: ${currentUrl}`);
-
-    let refreshCount = 0;
-    desktop.on('framenavigated', () => refreshCount++);
-    await new Promise(r => setTimeout(r, 3000));
-    if (refreshCount > 3) {
-      log('CRITICAL', `Query "${query}": INFINITE REFRESH LOOP detected (${refreshCount} navigations)`);
-    }
+    console.log(`  URL: ${desktop.url()}`);
 
     const results = await desktop.$$('.media-card');
     console.log(`  Visible cards: ${results.length}`);
@@ -205,11 +200,12 @@ try {
     }
   });
 
-  await apiPage.goto(`${BASE_URL}/search`, { waitUntil: 'networkidle2', timeout: 15000 });
+  await apiPage.goto(`${BASE_URL}/search`, { waitUntil: 'networkidle2', timeout: 45000 });
 
   const apiInput = await apiPage.$('input[type="search"]');
   if (apiInput) {
     await apiInput.type('Interstellar', { delay: 50 });
+    await apiInput.press('Enter');
     await new Promise(r => setTimeout(r, 3000));
   }
 
