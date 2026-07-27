@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { MOVIE_PROVIDERS } from '$lib/config/providers';
+	import { onMount } from 'svelte';
 
 	let {
 		tmdbId,
@@ -10,38 +11,65 @@
 	} = $props();
 
 	const providers = MOVIE_PROVIDERS;
+	const AUTO_SEARCH_TIMEOUT = 6000;
 
 	let currentProviderIndex = $state(0);
 	let currentUrl = $state('');
 	let isLoading = $state(true);
 	let error = $state('');
 	let playerFrame: HTMLIFrameElement | undefined = $state(undefined);
+	let autoSearchActive = $state(false);
+	let searchTimer: ReturnType<typeof setTimeout> | undefined;
 
-	function switchProvider(index: number) {
-		currentProviderIndex = index;
-		loadStream();
+	function clearSearchTimer() {
+		if (searchTimer !== undefined) {
+			clearTimeout(searchTimer);
+			searchTimer = undefined;
+		}
 	}
 
-	function tryNextProvider() {
-		currentProviderIndex = (currentProviderIndex + 1) % providers.length;
-		loadStream();
-	}
-
-	async function loadStream() {
+	function loadStream() {
 		isLoading = true;
 		error = '';
 		const provider = providers[currentProviderIndex];
 		currentUrl = provider.buildUrl(tmdbId);
 	}
 
+	function onProviderTimeout() {
+		if (!autoSearchActive) return;
+		if (currentProviderIndex < providers.length - 1) {
+			currentProviderIndex++;
+			loadStream();
+			searchTimer = setTimeout(onProviderTimeout, AUTO_SEARCH_TIMEOUT);
+		} else {
+			autoSearchActive = false;
+			isLoading = false;
+			error = 'All servers are currently unavailable. Please try again later.';
+		}
+	}
+
+	function startAutoSearch() {
+		clearSearchTimer();
+		autoSearchActive = true;
+		currentProviderIndex = 0;
+		loadStream();
+		searchTimer = setTimeout(onProviderTimeout, AUTO_SEARCH_TIMEOUT);
+	}
+
 	function handleIframeLoad() {
 		isLoading = false;
+		if (autoSearchActive) {
+			clearSearchTimer();
+			autoSearchActive = false;
+		}
 		error = '';
 	}
 
 	function handleIframeError() {
 		isLoading = false;
-		if (currentProviderIndex < providers.length - 1) {
+		if (autoSearchActive) {
+			onProviderTimeout();
+		} else if (currentProviderIndex < providers.length - 1) {
 			currentProviderIndex++;
 			loadStream();
 		} else {
@@ -49,9 +77,27 @@
 		}
 	}
 
-	function retry() {
+	function switchProvider(index: number) {
+		clearSearchTimer();
+		autoSearchActive = false;
+		currentProviderIndex = index;
 		loadStream();
 	}
+
+	function tryNextProvider() {
+		clearSearchTimer();
+		autoSearchActive = false;
+		currentProviderIndex = (currentProviderIndex + 1) % providers.length;
+		loadStream();
+	}
+
+	function retry() {
+		startAutoSearch();
+	}
+
+	onMount(() => {
+		startAutoSearch();
+	});
 
 	function requestFullscreen() {
 		const iframe = playerFrame;
@@ -68,8 +114,24 @@
 		<div class="absolute inset-0 flex flex-col items-center justify-center gap-4 bg-zinc-950">
 			<div class="h-12 w-12 animate-spin rounded-full border-2 border-zinc-700 border-t-indigo-500"></div>
 			<div class="text-center">
-				<p class="text-sm text-zinc-400">Connecting to {providers[currentProviderIndex].name}...</p>
-				<p class="mt-1 text-xs text-zinc-600">This may take a moment</p>
+				{#if autoSearchActive}
+					<p class="text-sm text-amber-400">Auto-searching for available server...</p>
+					<p class="mt-1 text-xs text-zinc-500">Trying {providers[currentProviderIndex].name}</p>
+					<div class="mt-3 flex items-center justify-center gap-1">
+						{#each providers as _, i}
+							<div
+								class="h-1 w-6 rounded-full transition-all {i === currentProviderIndex
+									? 'bg-indigo-500'
+									: i < currentProviderIndex
+										? 'bg-zinc-600'
+										: 'bg-zinc-800'}"
+							></div>
+						{/each}
+					</div>
+				{:else}
+					<p class="text-sm text-zinc-400">Connecting to {providers[currentProviderIndex].name}...</p>
+					<p class="mt-1 text-xs text-zinc-600">This may take a moment</p>
+				{/if}
 			</div>
 		</div>
 	{:else if error}
