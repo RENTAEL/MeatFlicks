@@ -5,8 +5,34 @@
 	import PlayerControls from '$lib/components/player/PlayerControls.svelte';
 	import { Button } from '$lib/components/ui/button';
 	import { Checkbox } from '$lib/components/ui/checkbox';
-	import { MonitorPlay } from '@lucide/svelte';
+	import { MonitorPlay, Maximize, Minimize } from '@lucide/svelte';
 	import ProviderSelector from '$lib/components/utils/ProviderSelector.svelte';
+	import { fullscreenFallback } from '$lib/actions/fullscreenFallback';
+
+	let playerContainer = $state<HTMLDivElement | null>(null);
+	let fsAction = $state<ReturnType<typeof fullscreenFallback> | null>(null);
+	let isFullscreen = $state(false);
+	let fsNode = $state<HTMLElement | null>(null);
+
+	async function toggleFullscreen() {
+		if (!fsAction) {
+			if (fsNode) fsAction = fullscreenFallback(fsNode);
+			else return;
+		}
+		if (isFullscreen) {
+			await fsAction.exitFullscreen();
+			isFullscreen = false;
+		} else {
+			await fsAction.enterFullscreen();
+			isFullscreen = true;
+		}
+	}
+
+	$effect(() => {
+		if (fsNode && !fsAction) {
+			fsAction = fullscreenFallback(fsNode);
+		}
+	});
 
 	let {
 		playerService,
@@ -45,8 +71,21 @@
 </script>
 
 {#if displayPlayer}
-	<div class="relative mb-8 aspect-video w-full overflow-hidden rounded-lg bg-black shadow-2xl">
+	<div bind:this={fsNode} class="relative mb-8 aspect-video w-full overflow-hidden rounded-lg bg-black shadow-2xl">
 		<div class="absolute top-4 right-4 z-50 flex gap-2">
+			<button
+				type="button"
+				onclick={toggleFullscreen}
+				class="flex items-center justify-center size-9 rounded-full bg-black/50 text-white backdrop-blur-sm hover:bg-white/20 transition-colors"
+				aria-label={isFullscreen ? 'Exit fullscreen' : 'Enter fullscreen'}
+				title="Fullscreen"
+			>
+				{#if isFullscreen}
+					<Minimize class="size-4" />
+				{:else}
+					<Maximize class="size-4" />
+				{/if}
+			</button>
 			<Button
 				variant="outline"
 				size="sm"
@@ -78,7 +117,11 @@
 				class="h-full w-full border-none"
 				allow="autoplay; fullscreen; picture-in-picture"
 				onload={() => playerService.handleIframeLoad(currentQualities, currentSubtitles)}
-				sandbox="allow-scripts allow-same-origin allow-presentation allow-forms"
+				referrerpolicy="no-referrer"
+				sandbox="allow-scripts allow-same-origin" allowfullscreen
+				webkit-airplay="allow"
+				x-webkit-airplay="allow"
+				playsinline
 			></iframe>
 		{:else}
 			<div class="flex h-full w-full items-center justify-center text-white">

@@ -25,6 +25,8 @@
 		progressSeconds?: number;
 		durationSeconds?: number;
 		updatedAt?: number;
+		progressPercent?: number;
+		progressLabel?: string;
 	};
 
 let continueWatchingMovies = $state<LibraryMovieWithProgress[]>([]);
@@ -75,14 +77,20 @@ let continueWatchingMovies = $state<LibraryMovieWithProgress[]>([]);
 				const movie = movieLookup.get(progress.mediaId);
 				if (!movie) return [];
 
-				return [
+				const pct = progress.duration > 0 ? Math.round((progress.progress / progress.duration) * 100) : 0;
+			const label = movie.mediaType !== 'movie' && progress.seasonNumber
+				? `S${progress.seasonNumber}E${progress.episodeNumber}`
+				: `${pct}%`;
+			return [
 					{
 						...movie,
 						progressSeconds: progress.progress,
 						durationSeconds: progress.duration,
 						seasonNumber: progress.seasonNumber,
 						episodeNumber: progress.episodeNumber,
-						updatedAt: progress.updatedAt
+						updatedAt: progress.updatedAt,
+						progressPercent: pct,
+						progressLabel: label,
 					} satisfies LibraryMovieWithProgress
 				];
 			});

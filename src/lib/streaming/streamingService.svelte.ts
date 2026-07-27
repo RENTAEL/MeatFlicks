@@ -59,6 +59,32 @@ export class StreamingService {
 
 	hasResolutions = $derived(this.state.resolutions.length > 0);
 
+	autoSwitchIndex = $state(0);
+
+	switchToNextProvider = async () => {
+		const resolutions = this.state.resolutions.filter(r => r.success && r.providerId !== this.currentProviderId);
+		if (resolutions.length === 0) {
+			this.state.error = 'No working providers available.';
+			return;
+		}
+		const idx = resolutions.findIndex(r => r.providerId !== this.currentProviderId);
+		if (idx === -1) {
+			this.state.error = 'No alternative providers available.';
+			return;
+		}
+		const next = resolutions[idx];
+		this.autoSwitchIndex++;
+		if (this.currentMedia.tmdbId && this.currentMedia.mediaType) {
+			await this.resolveProvider(next.providerId, {
+				tmdbId: this.currentMedia.tmdbId,
+				mediaType: this.currentMedia.mediaType,
+				imdbId: undefined,
+				season: this.currentMedia.episodeInfo.season,
+				episode: this.currentMedia.episodeInfo.episode
+			});
+		}
+	};
+
 	resolveProvider = async (
 		providerId: string,
 		options: {
@@ -224,6 +250,12 @@ export class StreamingService {
 
 			if (serverData.resolutions && serverData.resolutions.length > 0) {
 				this.state.resolutions = [...serverData.resolutions];
+
+				const id =
+					this.state.source?.providerId ??
+					this.state.resolutions.find((r) => r.success)?.providerId ??
+					this.state.resolutions[0]?.providerId;
+				if (id) this.selectProvider(id);
 			} else {
 				console.log('[DEBUG] No resolutions to set from server data');
 			}

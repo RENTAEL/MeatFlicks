@@ -30,19 +30,7 @@ export const SECURITY_HEADERS = {
 	'X-Frame-Options': 'DENY',
 	'Referrer-Policy': 'strict-origin',
 	'Permissions-Policy': `
-		geolocation=(),
-		microphone=(),
-		camera=(),
-		payment=(),
-		usb=(),
-		magnetometer=(),
-		gyroscope=(),
-		accelerometer=(),
-		ambient-light-sensor=(),
-		battery=(),
-		screen-wake-lock=(),
-		popup=(),
-		window-placement=()
+		fullscreen=*
 	`
 		.replace(/\s+/g, ' ')
 		.trim(),

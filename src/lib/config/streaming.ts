@@ -16,7 +16,6 @@ const streamingSchema = z.object({
 	VIDLINK_ICON_COLOR: z.string().default('eefdec'),
 	VIDLINK_ICONS: z.enum(['vid', 'default']).default('default'),
 	VIDLINK_PLAYER: z.enum(['jw', 'default']).default('default'),
-	VIDCORE_BASE_URL: z.string().url().default('https://vidcore.org'),
 	VIDSRC_BASE_URL: z.string().url().default('https://vidsrcme.su'),
 	VIDSRC_API_KEY: optionalSecret,
 	VIDSRC_PM_BASE_URL: z.string().url().default('https://vidsrc.pm'),
@@ -29,7 +28,7 @@ const streamingSchema = z.object({
 	VIDSRC_ME_SU_BASE_URL: z.string().url().default('https://vidsrc-me.su'),
 	VSRC_SU_BASE_URL: z.string().url().default('https://vsrc.su'),
 	VIDSRCXYZ_BASE_URL: z.string().url().default('https://vidsrc.xyz'),
-	VIXSRC_BASE_URL: z.string().url().default('https://vixsrc.to'),
+	VIXSRC_BASE_URL: z.string().url().default('https://vidsrc.to'),
 	TWOEMBED_BASE_URL: z.string().url().default('https://2embed.cc'),
 	TWOEMBED_STREAM_BASE_URL: z.string().url().default('https://www.2embed.stream'),
 	TWOEMBED_ONLINE_BASE_URL: z.string().url().default('https://www.2embed.online'),
@@ -53,7 +52,6 @@ const envValues = streamingSchema.parse({
 	VIDLINK_ICON_COLOR: process.env.VIDLINK_ICON_COLOR,
 	VIDLINK_ICONS: process.env.VIDLINK_ICONS,
 	VIDLINK_PLAYER: process.env.VIDLINK_PLAYER,
-	VIDCORE_BASE_URL: process.env.VIDCORE_BASE_URL,
 	VIDSRC_BASE_URL: process.env.VIDSRC_BASE_URL,
 	VIDSRC_API_KEY: process.env.VIDSRC_API_KEY,
 	VIDSRC_PM_BASE_URL: process.env.VIDSRC_PM_BASE_URL,
@@ -94,9 +92,6 @@ export const streamingConfig = {
 		icons: envValues.VIDLINK_ICONS,
 		player: envValues.VIDLINK_PLAYER
 	},
-	vidcore: {
-		baseUrl: normalizeBase(envValues.VIDCORE_BASE_URL)
-	},
 	vidsrc: {
 		baseUrl: normalizeBase(envValues.VIDSRC_BASE_URL),
 		apiKey: envValues.VIDSRC_API_KEY ?? null
@@ -132,6 +127,9 @@ export const streamingConfig = {
 		baseUrl: normalizeBase(envValues.VIDSRCXYZ_BASE_URL)
 	},
 	vixsrc: {
+		baseUrl: normalizeBase(envValues.VIXSRC_BASE_URL)
+	},
+	vidsrc: {
 		baseUrl: normalizeBase(envValues.VIXSRC_BASE_URL)
 	},
 	twoEmbed: {

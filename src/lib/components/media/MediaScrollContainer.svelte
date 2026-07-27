@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { ChevronRight } from '@lucide/svelte';
 	import MediaCard from './MediaCard.svelte';
+	import ScrollRow from '$lib/components/ScrollRow.svelte';
 	import type { LibraryMedia } from '$lib/types/library';
 
 	let {
@@ -42,14 +43,18 @@
 		{/if}
 	</div>
 
-	<div
-		class="-mx-[5%] flex snap-x snap-mandatory gap-2 overflow-x-auto px-[5%] pb-4 sm:mx-0 sm:gap-4 sm:px-0 md:gap-4 scrollbar-thin"
-		style="-webkit-overflow-scrolling: touch; scroll-behavior: smooth;"
-	>
-		{#each items as item, i (item.id)}
-			<div class="shrink-0 snap-start">
-				<MediaCard movie={item} priority={i < 4} />
-			</div>
-		{/each}
-	</div>
+	<ScrollRow gap="0.75rem" snap={true}>
+		{#snippet children()}
+			{#each items as item, i (item.id)}
+				<div class="shrink-0 snap-start">
+					<MediaCard
+						movie={item}
+						priority={i < 4}
+						progressPercent={(item as any).progressPercent ?? null}
+						progressLabel={(item as any).progressLabel ?? null}
+					/>
+				</div>
+			{/each}
+		{/snippet}
+	</ScrollRow>
 </div>

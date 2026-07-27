@@ -13,7 +13,17 @@
 	import { getImageUrl } from '$lib/utils/image';
 	import ProviderBadges from '$lib/components/ProviderBadges.svelte';
 
-	let { movie, priority = false }: { movie: LibraryMovie | WatchlistMovie | null; priority?: boolean } = $props();
+	let {
+		movie,
+		priority = false,
+		progressPercent,
+		progressLabel,
+	}: {
+		movie: LibraryMovie | WatchlistMovie | null;
+		priority?: boolean;
+		progressPercent?: number | null;
+		progressLabel?: string | null;
+	} = $props();
 
 	const isInWatchlist = $derived(movie ? watchlist.isInWatchlist(movie.id) : false);
 	const posterUrl = $derived(getImageUrl(movie?.posterPath, 'w342'));
@@ -24,6 +34,16 @@
 	let hoverTimer: ReturnType<typeof setTimeout> | null = null;
 	let isHovering = $state(false);
 	let shouldFetchProviders = $state(false);
+
+	function handleBlurError(e: Event) {
+		(e.target as HTMLElement).style.display = 'none';
+	}
+
+	function handlePosterError(e: Event) {
+		const img = e.target as HTMLImageElement;
+		img.onerror = null;
+		img.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 342 513'%3E%3Crect fill='%23333' width='342' height='513'/%3E%3Ctext x='171' y='256' text-anchor='middle' fill='%23666' font-size='20'%3ENo Image%3C/text%3E%3C/svg%3E";
+	}
 
 	let trailerKey = $derived.by(() => {
 		if (!movie?.trailerUrl) return null;
@@ -94,16 +114,18 @@
 	role="button"
 	tabindex="0"
 	aria-label={movie ? `View details for ${movie.title}` : 'Loading movie'}
+	style="touch-action: manipulation; -webkit-tap-highlight-color: transparent;"
 >
 	<div
 		class="card-inner relative overflow-hidden rounded-xl transition-all duration-500 ease-out {showPreview
-			? 'w-[340px] scale-110 md:w-[400px]'
-			: 'h-72 w-48'} {showPreview
-			? 'shadow-[0_0_30px_oklch(0.6_0.2_300/0.4),0_0_60px_oklch(0.5_0.18_280/0.2),0_20px_60px_oklch(0_0_0/0.5)]'
-			: 'shadow-lg shadow-purple-900/10'} bg-background/40 backdrop-blur-sm"
+			? 'z-50 shadow-[0_0_30px_oklch(0.6_0.2_300/0.4),0_0_60px_oklch(0.5_0.18_280/0.2),0_20px_60px_oklch(0_0_0/0.5)]'
+			: 'h-40 w-28 sm:h-52 sm:w-36 md:h-72 md:w-48 shadow-lg shadow-purple-900/10'} bg-background/40 backdrop-blur-sm"
 	>
 		{#if movie}
 			<div class="relative h-full w-full">
+				<div class="mobile-card-title hidden max-[768px]:block absolute bottom-0 left-0 right-0 z-30 bg-gradient-to-t from-black/80 to-transparent px-1.5 pb-1 pt-4">
+					<span class="text-[11px] font-medium text-white/90 leading-tight line-clamp-1">{movie.title}</span>
+				</div>
 				{#if showPreview && trailerKey}
 					<div class="video-fade-in absolute inset-0 z-20">
 						<iframe
@@ -113,7 +135,7 @@
 							style="pointer-events: none;"
 							loading="lazy"
 							allow="autoplay; encrypted-media"
-							sandbox="allow-same-origin allow-scripts allow-presentation"
+							sandbox="allow-scripts allow-same-origin" allowfullscreen
 						></iframe>
 						<div class="absolute inset-0 bg-linear-to-t from-background/90 via-background/10 to-transparent"></div>
 					</div>
@@ -128,6 +150,8 @@
 							class:loaded={imageLoaded}
 							aria-hidden="true"
 							loading={priority ? 'eager' : 'lazy'}
+							decoding="async"
+							onerror={handleBlurError}
 						/>
 						<img
 							src={posterUrl}
@@ -135,8 +159,10 @@
 							class="absolute inset-0 h-full w-full object-cover transition-opacity duration-400"
 							class:opacity-0={!imageLoaded}
 							loading={priority ? 'eager' : 'lazy'}
+							decoding="async"
 							fetchpriority={priority ? 'high' : undefined}
 							onload={() => (imageLoaded = true)}
+							onerror={handlePosterError}
 						/>
 					{:else}
 						<div class="flex h-full w-full flex-1 items-center justify-center bg-muted/50">
@@ -145,8 +171,19 @@
 					{/if}
 				</a>
 
-				<!-- Rating badge (top-left) -->
-				<div class="absolute top-3 left-3 z-30 opacity-0 transition-all duration-400 ease-out group-hover:opacity-100 {showPreview ? '!opacity-100' : ''}">
+				{#if progressPercent != null && progressPercent > 0 && progressPercent < 95}
+					<div class="absolute bottom-0 left-0 right-0 z-30">
+						<div class="h-1 w-full bg-black/40">
+							<div class="h-full bg-indigo-500 transition-all" style="width: {progressPercent}%"></div>
+						</div>
+						{#if progressLabel}
+							<div class="bg-black/60 px-1.5 py-0.5 text-[10px] text-white/80">{progressLabel}</div>
+						{/if}
+					</div>
+				{/if}
+
+				<!-- Rating badge (top-left desktop, bottom-left mobile) -->
+				<div class="mobile-rating-badge absolute top-3 left-3 z-30 opacity-0 transition-all duration-400 ease-out group-hover:opacity-100 {showPreview ? '!opacity-100' : ''}">
 					<Badge variant="secondary" class="flex items-center gap-1 bg-black/70 text-white backdrop-blur-sm">
 						<Star class="size-3.5 text-yellow-500" fill="currentColor" stroke="currentColor" />
 						{ratingLabel ?? 'N/A'}

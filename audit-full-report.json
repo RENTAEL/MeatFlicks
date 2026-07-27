@@ -1,12 +1,12 @@
 {
-  "timestamp": "2026-07-23T13:43:58.612Z",
+  "timestamp": "2026-07-24T08:38:24.617Z",
   "baseUrl": "https://streamium-cosmic.vercel.app",
   "summary": {
-    "totalPages": 10,
-    "totalIssues": 11,
+    "totalPages": 9,
+    "totalIssues": 9,
     "critical": 0,
     "high": 0,
-    "medium": 8,
+    "medium": 6,
     "low": 3
   },
   "pages": [
@@ -14,7 +14,7 @@
       "route": "Homepage",
       "path": "/",
       "status": "OK",
-      "cardCount": 14,
+      "cardCount": 32,
       "issues": [
         {
           "severity": "LOW",
@@ -44,7 +44,7 @@
       "route": "Anime",
       "path": "/anime",
       "status": "OK",
-      "cardCount": 11,
+      "cardCount": 2,
       "issues": []
     },
     {
@@ -63,10 +63,6 @@
       "path": "/movie/27205",
       "status": "OK",
       "issues": [
-        {
-          "severity": "MEDIUM",
-          "detail": "No player appeared (no streaming sources available)"
-        },
         {
           "severity": "MEDIUM",
           "detail": "No suggested movies"
@@ -90,7 +86,7 @@
     },
     {
       "route": "Anime Detail",
-      "path": "/anime/55809",
+      "path": "/anime/50250",
       "status": "OK",
       "issues": [
         {
@@ -100,17 +96,6 @@
         {
           "severity": "MEDIUM",
           "detail": "Anime play no player"
-        }
-      ]
-    },
-    {
-      "route": "Performance",
-      "path": "all",
-      "status": "INFO",
-      "issues": [
-        {
-          "severity": "MEDIUM",
-          "detail": "Most images not lazy-loaded"
         }
       ]
     },

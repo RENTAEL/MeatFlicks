@@ -1,13 +1,7 @@
 <script lang="ts">
 	import { ChevronRight } from '@lucide/svelte';
-	import {
-		Carousel,
-		CarouselContent,
-		CarouselItem,
-		CarouselNext,
-		CarouselPrevious
-	} from '$lib/components/ui/carousel';
 	import MediaCard from '$lib/components/media/MediaCard.svelte';
+	import ScrollRow from '$lib/components/ScrollRow.svelte';
 	import type { LibraryMedia } from '$lib/types/library';
 
 	let {
@@ -21,9 +15,6 @@
 	} = $props();
 
 	let itemsCount = $derived(items?.length ?? 0);
-	let hasMultipleItems = $derived(itemsCount > 1);
-
-	const carouselOpts = { align: 'start' } as const;
 
 	function getResolvedPath(path: string | undefined): string {
 		if (!path) return '/#';
@@ -31,7 +22,7 @@
 	}
 </script>
 
-<div class="px-[10%] py-8 group/row">
+<div class="px-[10%] py-8">
 	{#if linkTo}
 		<a
 			rel="external"
@@ -55,19 +46,13 @@
 		</div>
 	{/if}
 
-	<Carousel class="relative w-full" opts={carouselOpts}>
-		<CarouselContent class="pb-4">
+	<ScrollRow gap="1rem" snap={true}>
+		{#snippet children()}
 			{#each items as item (item.id)}
-				<CarouselItem class="basis-auto pl-4">
-					<div class="flex justify-center">
-						<MediaCard movie={item} />
-					</div>
-				</CarouselItem>
+				<div class="shrink-0">
+					<MediaCard movie={item} />
+				</div>
 			{/each}
-		</CarouselContent>
-		{#if hasMultipleItems}
-			<CarouselPrevious class="hidden md:inline-flex -left-4 opacity-0 transition-all duration-300 group-hover/row:opacity-100" />
-			<CarouselNext class="hidden md:inline-flex -right-4 opacity-0 transition-all duration-300 group-hover/row:opacity-100" />
-		{/if}
-	</Carousel>
+		{/snippet}
+	</ScrollRow>
 </div>

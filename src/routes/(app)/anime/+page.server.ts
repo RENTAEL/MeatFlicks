@@ -2,6 +2,24 @@ import type { PageServerLoad } from './$types';
 import { fetchTrendingAnime, fetchTopAiringAnime, fetchSeasonalAnime, fetchSchedule, fetchPopularAnime, mapMiruroToAniwatch, type MiruroAnimeCard } from '$lib/server/services/anime/miruroApi.client';
 import { fallbackHome, type AniwatchHome, type SpotlightAnime, type TrendCard, type LatestEpisode } from '$lib/server/services/anime/animeFallback';
 
+function dedupeById<T extends { id: string | number }>(arr: T[]): T[] {
+	const seen = new Set<string>();
+	const dupes: string[] = [];
+	const result = arr.filter((item) => {
+		const key = String(item.id);
+		if (seen.has(key)) {
+			dupes.push(key);
+			return false;
+		}
+		seen.add(key);
+		return true;
+	});
+	if (dupes.length > 0) {
+		console.warn('[anime] Removed duplicate IDs:', [...new Set(dupes)]);
+	}
+	return result;
+}
+
 export const load: PageServerLoad = async () => {
 	try {
 		const [trending, topAiring, seasonal, schedule, popular] = await Promise.allSettled([
@@ -18,7 +36,7 @@ export const load: PageServerLoad = async () => {
 		const scheduleData = schedule.status === 'fulfilled' ? schedule.value : [];
 		const popularData = popular.status === 'fulfilled' ? popular.value : [];
 
-		const allData = [...trendingData, ...topAiringData, ...seasonalData, ...popularData];
+		const allData = dedupeById([...trendingData, ...topAiringData, ...seasonalData, ...popularData]);
 
 		if (allData.length === 0) {
 			return { home: fallbackHome };

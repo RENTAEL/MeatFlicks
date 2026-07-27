@@ -1,8 +1,9 @@
 <script lang="ts">
 	import '../../app.css';
+	import '$lib/css/mobile.css';
 
 	import AppShell from '$lib/components/navigation/Sidebar.svelte';
-	import BottomNav from '$lib/components/navigation/BottomNav.svelte';
+	import MobileNav from '$lib/components/navigation/MobileNav.svelte';
 	import Footer from '$lib/components/navigation/Footer.svelte';
 	import GlobalErrorDisplay from '$lib/components/global/GlobalErrorDisplay.svelte';
 	import { NotificationPortal } from '$lib/components/global';
@@ -59,7 +60,7 @@
 	<WatchlistContext>
 		<ErrorContext>
 			<AppShell>
-				<div class="relative flex min-h-svh flex-col text-foreground">
+				<div class="relative flex min-h-dvh-fallback flex-col text-foreground">
 					<div class="pointer-events-none fixed inset-0 z-0 overflow-hidden">
 						{#each Array.from({ length: 20 }) as _, i}
 							<div
@@ -77,10 +78,10 @@
 							></div>
 						{/each}
 					</div>
-					<div class="relative z-10 flex-1 pb-16 md:pb-0">
+					<div class="relative z-10 flex-1" style="padding-bottom: max(4rem, calc(env(safe-area-inset-bottom, 20px) + 0.5rem));">
 						<slot />
 					</div>
-					<BottomNav />
+					<MobileNav />
 					<Footer class="relative z-10 hidden md:block" />
 				</div>
 			</AppShell>

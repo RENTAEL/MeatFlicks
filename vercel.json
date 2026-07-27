@@ -62,7 +62,7 @@
 				},
 				{
 					"key": "Permissions-Policy",
-					"value": "geolocation=(), microphone=(), camera=(), payment=(), usb=(), magnetometer=(), gyroscope=(), accelerometer=(), ambient-light-sensor=(), battery=(), screen-wake-lock=(), popup=(), window-placement=()"
+					"value": "fullscreen=*"
 				}
 			]
 		}

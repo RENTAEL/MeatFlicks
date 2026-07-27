@@ -4,6 +4,7 @@
 	import SearchHeader from '$lib/components/search/SearchHeader.svelte';
 	import FilterPanel from '$lib/components/filters/FilterPanel.svelte';
 	import ActiveFilters from '$lib/components/filters/ActiveFilters.svelte';
+	import MobileShell from '$lib/components/MobileShell.svelte';
 	import { Alert, AlertDescription, AlertTitle } from '$lib/components/ui/alert';
 	import type { LibraryMedia } from '$lib/types/library';
 	import { onDestroy, onMount } from 'svelte';
@@ -23,17 +24,19 @@ const SKELETON_COUNT_INITIAL = 12;
 const SKELETON_COUNT_MORE = 6;
 const DEBOUNCE_DELAY = 600;
 const API_FETCH_LIMIT = 24;
+const LOADING_TIMEOUT_MS = 15000;
 
 let query = $state(pageState.url.searchParams.get('q') || '');
 let items = $state<LibraryMedia[]>([]);
 let loading = $state(false);
 let error = $state<string | null>(null);
 let debounceTimeout: ReturnType<typeof setTimeout> | null = null;
-let controller: AbortController | null = null;
+let fetchController: AbortController | null = null;
 let page = $state(1);
 let hasMore = $state(true);
 let lastSubmittedQuery = $state('');
 let availableGenres = $state<Array<{ id: number; name: string; count: number }>>([]);
+let urlSyncTimeout: ReturnType<typeof setTimeout> | null = null;
 
 let filters = $state<MovieFilters>({
 	genres: pageState.url.searchParams.get('genres')?.split(',').filter(Boolean) || [],
@@ -79,18 +82,32 @@ let sortOrder = $state<'asc' | 'desc'>(sortOrderValue);
 let totalItems = $state(0);
 let sentinel: HTMLDivElement | null = $state(null);
 
-async function fetchItems(searchTerm: string, pageToLoad: number, isInitial = false) {
+	async function fetchItems(searchTerm: string, pageToLoad: number, isInitial = false) {
 		if (loading) return;
 		if (!isInitial && pageToLoad > 1 && !hasMore) return;
+
+		if (searchTerm.trim().length < 2) {
+			items = [];
+			hasMore = false;
+			totalItems = 0;
+			return;
+		}
 
 		loading = true;
 		error = null;
 
-		if (isInitial) {
-			controller?.abort();
-			controller = new AbortController();
+		if (isInitial || pageToLoad === 1) {
+			fetchController?.abort();
+			fetchController = new AbortController();
 			page = 1;
 		}
+
+		const timeoutId = setTimeout(() => {
+			if (loading) {
+				loading = false;
+				error = 'Search timed out. Please try again.';
+			}
+		}, LOADING_TIMEOUT_MS);
 
 		try {
 			const params = new SvelteURLSearchParams();
@@ -112,7 +129,7 @@ async function fetchItems(searchTerm: string, pageToLoad: number, isInitial = fa
 			params.set('sortOrder', sortOrder);
 
 			const url = `/api/search/enhanced?${params.toString()}`;
-			const res = await fetch(url, { signal: controller?.signal, credentials: 'include' });
+			const res = await fetch(url, { signal: fetchController!.signal });
 
 			if (!res.ok) throw new Error('Failed to fetch search results');
 
@@ -134,30 +151,43 @@ async function fetchItems(searchTerm: string, pageToLoad: number, isInitial = fa
 
 			page = pageToLoad;
 			hasMore = items.length < totalItems;
-
-			if (browser) {
-				const newUrl = new URL(window.location.href);
-				if (searchTerm) newUrl.searchParams.set('q', searchTerm);
-				else newUrl.searchParams.delete('q');
-
-				if (filters.genres?.length) newUrl.searchParams.set('genres', filters.genres.join(','));
-				else newUrl.searchParams.delete('genres');
-
-				if (mediaType) newUrl.searchParams.set('type', mediaType);
-				else newUrl.searchParams.delete('type');
-
-				window.history.replaceState({}, '', newUrl.toString());
-			}
+			syncUrl();
 		} catch (err) {
-			if (err instanceof DOMException && err.name === 'AbortError') return;
+			if (err instanceof DOMException && (err.name === 'AbortError' || err.name === 'TimeoutError')) return;
 			error = err instanceof Error ? err.message : 'Unable to fetch search results.';
 		} finally {
+			clearTimeout(timeoutId);
 			loading = false;
 		}
 	}
 
+	function syncUrl() {
+		if (urlSyncTimeout) clearTimeout(urlSyncTimeout);
+		urlSyncTimeout = setTimeout(() => {
+			if (!browser) return;
+			const newUrl = new URL(window.location.href);
+			if (query.trim()) newUrl.searchParams.set('q', query.trim());
+			else newUrl.searchParams.delete('q');
+			if (filters.genres?.length) newUrl.searchParams.set('genres', filters.genres.join(','));
+			else newUrl.searchParams.delete('genres');
+			if (mediaType) newUrl.searchParams.set('type', mediaType);
+			else newUrl.searchParams.delete('type');
+			if (sortBy !== 'relevance') newUrl.searchParams.set('sort', sortBy);
+			else newUrl.searchParams.delete('sort');
+			window.history.replaceState({}, '', newUrl.toString());
+		}, 1000);
+	}
+
 	async function performSearch(term: string) {
+		if (term.trim().length < 2 && !term.trim()) {
+			items = [];
+			hasMore = false;
+			totalItems = 0;
+			lastSubmittedQuery = '';
+			return;
+		}
 		lastSubmittedQuery = term;
+		fetchController?.abort();
 		await fetchItems(term, 1, true);
 	}
 
@@ -168,6 +198,7 @@ async function fetchItems(searchTerm: string, pageToLoad: number, isInitial = fa
 
 	function handleFiltersChange(newFilters: MovieFilters) {
 		filters = newFilters;
+		syncUrl();
 		void performSearch(query);
 	}
 
@@ -183,11 +214,19 @@ async function fetchItems(searchTerm: string, pageToLoad: number, isInitial = fa
 			language: undefined
 		};
 		mediaType = undefined;
+		syncUrl();
 		void performSearch(query);
 	}
 
 	$effect(() => {
 		const currentQuery = query;
+		if (!currentQuery.trim()) {
+			items = [];
+			lastSubmittedQuery = '';
+			hasMore = false;
+			totalItems = 0;
+			return;
+		}
 		if (debounceTimeout) clearTimeout(debounceTimeout);
 		debounceTimeout = setTimeout(() => {
 			if (currentQuery !== lastSubmittedQuery) {
@@ -213,23 +252,25 @@ async function fetchItems(searchTerm: string, pageToLoad: number, isInitial = fa
 	});
 
 	onMount(() => {
-		lastSubmittedQuery = query;
-		void fetchItems(query, 1, true);
+		if (query.trim()) {
+			lastSubmittedQuery = query;
+		}
 	});
 
 	onDestroy(() => {
 		if (debounceTimeout) clearTimeout(debounceTimeout);
-		controller?.abort();
+		fetchController?.abort();
+		if (urlSyncTimeout) clearTimeout(urlSyncTimeout);
 	});
 
+	const hasSearched = $derived(lastSubmittedQuery !== '');
 	const resultsSummary = $derived.by(() => {
 		if (error) return '';
 		if (items.length === 0 && loading) return 'Searching...';
 
 		if (items.length === 0 && !loading) {
-			return lastSubmittedQuery
-				? `No matches for "${lastSubmittedQuery}".`
-				: 'No items found matching these filters.';
+			if (!hasSearched) return '';
+			return `No matches for "${lastSubmittedQuery}".`;
 		}
 
 		let summary = `Showing ${items.length}`;
@@ -246,9 +287,11 @@ async function fetchItems(searchTerm: string, pageToLoad: number, isInitial = fa
 	const skeletonCount = $derived(items.length > 0 ? SKELETON_COUNT_MORE : SKELETON_COUNT_INITIAL);
 </script>
 
+<MobileShell />
+
 <div class="page-transition min-h-screen pt-20">
-	<main class="container mx-auto px-4 py-8">
-		<div class="flex flex-col gap-8 lg:flex-row">
+	<main class="mx-auto max-w-7xl px-4 pb-24">
+		<div class="flex flex-col gap-6 lg:flex-row">
 			<aside class="w-full shrink-0 lg:w-64 xl:w-80">
 				<div class="sticky top-24 space-y-6">
 					<FilterPanel
@@ -299,26 +342,22 @@ async function fetchItems(searchTerm: string, pageToLoad: number, isInitial = fa
 					{/if}
 
 					{#if items.length > 0}
-						<div
-							class="grid grid-cols-2 justify-center gap-4 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5"
-						>
-							{#each items as item (item.id)}
+						<div class="movie-grid">
+							{#each items as item, i (item.id + '-' + i)}
 								<MediaCard movie={item} />
 							{/each}
 						</div>
 					{/if}
 
 					{#if loading}
-						<div
-							class="grid grid-cols-2 justify-center gap-4 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5"
-						>
+						<div class="movie-grid">
 							{#each Array.from({ length: skeletonCount }) as _, index (index)}
 								<MediaCard movie={null} />
 							{/each}
 						</div>
 					{/if}
 
-					{#if !loading && items.length === 0 && !error}
+					{#if !loading && items.length === 0 && !error && lastSubmittedQuery}
 						<Alert class="border-border/60 bg-background/60">
 							<AlertTitle>No matches found</AlertTitle>
 							<AlertDescription>

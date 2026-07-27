@@ -2,8 +2,7 @@ import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 
 const PROVIDER_ORDER = [
-	'vidcore',
-	'vixsrc',
+	'vidsrc',
 	'streamsrc',
 	'2embed.skin',
 	'vidlink',
@@ -16,25 +15,20 @@ const PROVIDER_ORDER = [
 ];
 
 const PROVIDERS: Record<string, (tmdbId: string, type: string, season?: string, episode?: string) => string> = {
-	vidcore: (id, type, s, e) =>
+	vidsrc: (id, type, s, e) =>
 		type === 'movie'
-			? `https://vidcore.org/embed/movie/${id}`
-			: `https://vidcore.org/embed/tv/${id}/${s || '1'}/${e || '1'}`,
-
-	vixsrc: (id, type, s, e) =>
-		type === 'movie'
-			? `https://vixsrc.to/movie/${id}`
-			: `https://vixsrc.to/tv/${id}/${s || '1'}/${e || '1'}`,
+			? `https://vidsrc.to/embed/movie/${id}`
+			: `https://vidsrc.to/embed/tv/${id}/${s || '1'}/${e || '1'}`,
 
 	streamsrc: (id, type) =>
 		type === 'movie'
 			? `https://streamsrc.cc/watch/movie/${id}`
 			: `https://streamsrc.cc/watch/series/${id}`,
 
-	'2embed.skin': (id, type, s, e) =>
+	'2embed.skin': (id, type, s, e, mediaId) =>
 		type === 'movie'
-			? `https://2embed.skin/embed/movie/${id}`
-			: `https://2embed.skin/embed/tv/${id}/${s || '1'}/${e || '1'}`,
+			? `https://2embed.skin/embed/movie/${mediaId || id}`
+			: `https://2embed.skin/embed/tv/${mediaId || id}/${s || '1'}/${e || '1'}`,
 
 	vidlink: (id, type, s, e) =>
 		type === 'movie'
@@ -48,10 +42,10 @@ const PROVIDERS: Record<string, (tmdbId: string, type: string, season?: string, 
 			? `https://vidsrcme.su/embed/movie?tmdb=${id}`
 			: `https://vidsrcme.su/embed/tv?tmdb=${id}&season=${s || '1'}&episode=${e || '1'}`,
 
-	'2embed': (id, type, s, e) =>
+	'2embed': (id, type, s, e, mediaId) =>
 		type === 'movie'
-			? `https://hnembed.cc/embed/movie/${id}`
-			: `https://hnembed.cc/embed/tv/${id}/${s || '1'}/${e || '1'}`,
+			? `https://hnembed.cc/embed/movie/${mediaId || id}`
+			: `https://hnembed.cc/embed/tv/${mediaId || id}/${s || '1'}/${e || '1'}`,
 
 	superembed: (id, type, s, e) =>
 		`https://player.autoembed.cc/embed/${type === 'movie' ? 'movie' : 'tv'}/${id}${type !== 'movie' ? `/${s || '1'}/${e || '1'}` : ''}`,
@@ -59,21 +53,23 @@ const PROVIDERS: Record<string, (tmdbId: string, type: string, season?: string, 
 	autoembed: (id, type, s, e) =>
 		`https://player.autoembed.cc/embed/${type === 'movie' ? 'movie' : 'tv'}/${id}${type !== 'movie' ? `/${s || '1'}/${e || '1'}` : ''}`,
 
-	multiembed: (id, type, s, e) => {
-		const isImdb = /^tt\d+$/.test(id);
+	multiembed: (id, type, s, e, mediaId) => {
+		const mid = mediaId || id;
+		const isImdb = /^tt\d+$/.test(mid);
 		if (type === 'movie')
-			return `https://multiembed.mov/movie?${isImdb ? 'imdb' : 'tmdb'}=${id}`;
-		return `https://multiembed.mov/tv?${isImdb ? 'imdb' : 'tmdb'}=${id}&s=${s || '1'}&e=${e || '1'}`;
+			return `https://multiembed.mov/movie?${isImdb ? 'imdb' : 'tmdb'}=${mid}`;
+		return `https://multiembed.mov/tv?${isImdb ? 'imdb' : 'tmdb'}=${mid}&s=${s || '1'}&e=${e || '1'}`;
 	},
 
 	embed: (id, type) => `https://embed.su/embed/${type}/${id}`
 };
 
-async function testProvider(provider: string, tmdbId: string, type: string, season: string, episode: string): Promise<{ url: string; provider: string } | null> {
+async function testProvider(provider: string, tmdbId: string, type: string, season: string, episode: string, imdbId?: string): Promise<{ url: string; provider: string } | null> {
 	const builder = PROVIDERS[provider];
 	if (!builder) return null;
 
-	const streamUrl = builder(tmdbId, type, season, episode);
+	const mediaId = imdbId || tmdbId;
+	const streamUrl = builder(tmdbId, type, season, episode, mediaId);
 
 	try {
 		const controller = new AbortController();
@@ -94,19 +90,22 @@ async function testProvider(provider: string, tmdbId: string, type: string, seas
 
 export const GET: RequestHandler = async ({ url }) => {
 	const tmdbId = url.searchParams.get('tmdbId') || '';
+	const imdbId = url.searchParams.get('imdbId') || '';
 	const type = url.searchParams.get('type') || 'movie';
 	const season = url.searchParams.get('season') || '1';
 	const episode = url.searchParams.get('episode') || '1';
 
-	if (!tmdbId) {
-		return json({ error: 'Missing tmdbId' }, { status: 400 });
+	const resolvedId = imdbId || tmdbId;
+
+	if (!tmdbId && !imdbId) {
+		return json({ error: 'Missing tmdbId or imdbId' }, { status: 400 });
 	}
 
 	const allTested: string[] = [];
 
 	for (const provider of PROVIDER_ORDER) {
 		allTested.push(provider);
-		const result = await testProvider(provider, tmdbId, type, season, episode);
+		const result = await testProvider(provider, tmdbId, type, season, episode, imdbId);
 
 		if (result) {
 			return json({

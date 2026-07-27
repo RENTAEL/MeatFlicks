@@ -1,14 +1,12 @@
 ## Fix all issues
 
-### MEDIUM (8)
+### MEDIUM (6)
 1. [Homepage] Missing nav: /explore/movies, /explore/tv-shows, /anime, /search
-2. [Movie Detail] No player appeared (no streaming sources available)
-3. [Movie Detail] No suggested movies
-4. [TV Detail] No season/episode selector
-5. [Anime Detail] No episode selector
-6. [Anime Detail] Anime play no player
-7. [Performance] Most images not lazy-loaded
-8. [API Health] Consumet: 451
+2. [Movie Detail] No suggested movies
+3. [TV Detail] No season/episode selector
+4. [Anime Detail] No episode selector
+5. [Anime Detail] Anime play no player
+6. [API Health] Consumet: 451
 
 ### LOW (3)
 1. [Homepage] No hero/banner

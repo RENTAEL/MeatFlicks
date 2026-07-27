@@ -2,7 +2,7 @@
 	import { browser } from '$app/environment';
 	import { Input } from '$lib/components/ui/input';
 	import { Button } from '$lib/components/ui/button';
-	import { Search as SearchIcon, History as HistoryIcon } from '@lucide/svelte';
+	import { Search as SearchIcon, History as HistoryIcon, X } from '@lucide/svelte';
 	import { addToSearchHistory, getSearchHistory, clearSearchHistory } from '$lib/utils/searchUtils';
 	import type { SortOption, QualityFilter } from '$lib/utils/searchUtils';
 
@@ -63,7 +63,7 @@
 				<Input
 					type="search"
 					placeholder="Search titles, people, or keywords..."
-					class="h-12 w-full rounded-2xl border-0 bg-background/60 pl-12 text-base shadow-sm backdrop-blur-md focus-visible:ring-2 focus-visible:ring-primary/40"
+					class="h-12 w-full rounded-2xl border-0 bg-background/60 pl-12 pr-12 text-base shadow-sm backdrop-blur-md focus-visible:ring-2 focus-visible:ring-primary/40"
 					bind:value={query}
 					onfocus={() => (isFocused = true)}
 					onblur={() => (isFocused = false)}
@@ -75,6 +75,22 @@
 					}}
 					aria-label="Search the Streamium library"
 				/>
+				{#if query}
+					<button
+						type="button"
+						onclick={() => {
+							query = '';
+							if (typeof window !== 'undefined') {
+								const input = document.querySelector<HTMLInputElement>('input[type="search"]');
+								input?.focus();
+							}
+						}}
+						class="absolute right-3 top-1/2 flex -translate-y-1/2 items-center justify-center size-9 rounded-full text-muted-foreground hover:text-foreground hover:bg-white/10 transition-colors"
+						aria-label="Clear search"
+					>
+						<X class="size-4" />
+					</button>
+				{/if}
 			</div>
 		</div>
 

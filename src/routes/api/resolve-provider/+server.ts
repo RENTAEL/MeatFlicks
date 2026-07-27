@@ -2,15 +2,10 @@ import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 
 const PROVIDERS: Record<string, (tmdbId: string, type: string, season?: string, episode?: string, malId?: string) => string> = {
-	vidcore: (id, type, s, e) =>
+	vidsrc: (id, type, s, e) =>
 		type === 'movie'
-			? `https://vidcore.org/embed/movie/${id}`
-			: `https://vidcore.org/embed/tv/${id}/${s || '1'}/${e || '1'}`,
-
-	vixsrc: (id, type, s, e) =>
-		type === 'movie'
-			? `https://vixsrc.to/movie/${id}`
-			: `https://vixsrc.to/tv/${id}/${s || '1'}/${e || '1'}`,
+			? `https://vidsrc.to/embed/movie/${id}`
+			: `https://vidsrc.to/embed/tv/${id}/${s || '1'}/${e || '1'}`,
 
 	vidlink: (id, type, s, e) =>
 		type === 'movie'

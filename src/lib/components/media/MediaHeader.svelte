@@ -1,7 +1,6 @@
 <script lang="ts">
 	import { Button } from '$lib/components/ui/button';
 	import { Star, Film, Play, Bookmark, BookmarkMinus } from '@lucide/svelte';
-	import { createEventDispatcher } from 'svelte';
 	import { watchlist } from '$lib/state/stores/watchlistStore.svelte';
 
 	import { getImageUrl } from '$lib/utils/image';
@@ -10,7 +9,8 @@
 		movie,
 		logoPath,
 		providers = [],
-		onProviderSelect
+		onProviderSelect,
+		onplay
 	} = $props<{
 		movie: {
 			id: string;
@@ -29,13 +29,12 @@
 		logoPath?: string | null;
 		providers?: ProviderResolution[];
 		onProviderSelect?: (providerId: string) => void;
+		onplay?: () => void;
 	}>();
 
 	const isInWatchlist = $derived(movie ? watchlist.isInWatchlist(movie.id) : false);
 	const backdropUrl = $derived(getImageUrl(movie?.backdropPath, 'w1280'));
 	const logoUrl = $derived(getImageUrl(logoPath, 'w500'));
-
-	const dispatch = createEventDispatcher();
 
 	function handleWatchlistToggle() {
 		if (!movie) return;
@@ -92,8 +91,7 @@
 	const runtimeLabel = $derived(getRuntimeLabel());
 
 	const defaultProviders = [
-		{ providerId: 'vidcore', label: 'VidCore', success: true },
-		{ providerId: 'vixsrc', label: 'VixSrc', success: true },
+
 		{ providerId: 'vidlink', label: 'VidLink', success: true },
 		{ providerId: 'vidsrc', label: 'VidSrc', success: true },
 		{ providerId: '2embed', label: '2Embed', success: true },
@@ -194,7 +192,7 @@
 							variant="default"
 							size="lg"
 							class="h-12 gap-2 bg-primary px-8 text-lg font-semibold hover:bg-primary/90"
-							onclick={() => dispatch('play')}
+							onclick={() => onplay?.()}
 						>
 							<Play class="size-5 fill-current" />
 							Play

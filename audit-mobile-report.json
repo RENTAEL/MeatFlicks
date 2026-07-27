@@ -1,14 +1,14 @@
 {
-  "timestamp": "2026-07-23T13:42:52.659Z",
+  "timestamp": "2026-07-27T10:41:18.825Z",
   "device": "iPhone X (375x812)",
   "baseUrl": "https://streamium-cosmic.vercel.app",
   "summary": {
     "totalTests": 9,
-    "totalIssues": 16,
+    "totalIssues": 13,
     "critical": 0,
-    "high": 3,
+    "high": 2,
     "medium": 8,
-    "low": 5
+    "low": 3
   },
   "pages": [
     {
@@ -16,15 +16,15 @@
       "path": "/",
       "device": "mobile",
       "status": "OK",
-      "cardCount": 10,
+      "cardCount": 3,
       "issues": [
         {
-          "severity": "MEDIUM",
-          "detail": "1 cards below 44px touch target"
+          "severity": "HIGH",
+          "detail": "Only 3 visible cards — grid probably broken"
         },
         {
-          "severity": "LOW",
-          "detail": "13 elements with font-size < 12px"
+          "severity": "MEDIUM",
+          "detail": "2 cards below 44px touch target"
         }
       ]
     },
@@ -33,7 +33,7 @@
       "path": "/explore/movies",
       "device": "mobile",
       "status": "OK",
-      "cardCount": 21,
+      "cardCount": 30,
       "issues": []
     },
     {
@@ -41,7 +41,7 @@
       "path": "/explore/tv-shows",
       "device": "mobile",
       "status": "OK",
-      "cardCount": 21,
+      "cardCount": 33,
       "issues": []
     },
     {
@@ -68,15 +68,11 @@
         },
         {
           "severity": "MEDIUM",
-          "detail": "Play button narrow: 97px — should be full-width on mobile"
+          "detail": "Play button narrow: 35px — should be full-width on mobile"
         },
         {
           "severity": "HIGH",
           "detail": "No player appeared after tapping play"
-        },
-        {
-          "severity": "HIGH",
-          "detail": "Suggested card tap did not navigate"
         }
       ]
     },
@@ -105,12 +101,8 @@
       "path": "/anime",
       "device": "mobile",
       "status": "OK",
-      "cardCount": 11,
+      "cardCount": 42,
       "issues": [
-        {
-          "severity": "HIGH",
-          "detail": "No anime title on mobile"
-        },
         {
           "severity": "MEDIUM",
           "detail": "No anime player on mobile"
@@ -124,12 +116,12 @@
       "status": "TESTED",
       "issues": [
         {
-          "severity": "LOW",
-          "detail": "No back button on detail page (mobile users expect one)"
+          "severity": "MEDIUM",
+          "detail": "Scroll not working"
         },
         {
-          "severity": "MEDIUM",
-          "detail": "2 overlapping touch targets"
+          "severity": "LOW",
+          "detail": "No back button on detail page (mobile users expect one)"
         }
       ]
     },
@@ -142,10 +134,6 @@
         {
           "severity": "MEDIUM",
           "detail": "No responsive images (no srcset, no mobile-specific sizes)"
-        },
-        {
-          "severity": "LOW",
-          "detail": "No user-scalable=no — may have 300ms tap delay"
         }
       ]
     }

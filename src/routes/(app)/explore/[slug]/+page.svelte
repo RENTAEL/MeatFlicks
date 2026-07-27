@@ -1,10 +1,14 @@
 <script lang="ts">
-	import { Clapperboard, Search, Sparkles, Filter } from '@lucide/svelte';
+	import { Clapperboard, Search, Sparkles, Filter, AlertCircle, RotateCw } from '@lucide/svelte';
 	import { SvelteMap } from 'svelte/reactivity';
 	import { goto } from '$app/navigation';
+	import { page } from '$app/stores';
+	import { onMount } from 'svelte';
 	import Hero from '$lib/components/home/Hero.svelte';
 	import CarouselContainer from '$lib/components/home/CarouselContainer.svelte';
 	import MediaCard from '$lib/components/media/MediaCard.svelte';
+	import TrendingCard from '$lib/components/media/TrendingCard.svelte';
+	import ScrollRow from '$lib/components/ScrollRow.svelte';
 	import FilterPanel from '$lib/components/filters/FilterPanel.svelte';
 	import ActiveFilters from '$lib/components/filters/ActiveFilters.svelte';
 	import SortDropdown from '$lib/components/filters/SortDropdown.svelte';
@@ -39,17 +43,97 @@
 			: []
 	);
 
+	const trending = $derived(Array.isArray(data.trending) ? data.trending : []);
+	const tmdbPopularMovies = $derived(Array.isArray(data.tmdbPopularMovies) ? data.tmdbPopularMovies : []);
+	const tmdbTotalPages = $derived(data.tmdbTotalPages ?? 1);
+	const tmdbFetchError = $derived(data.tmdbFetchError ?? '');
+
 	const include_anime = $derived(data.include_anime ?? 'include');
 
 	const hasContent = $derived(
 		useFilters
 			? Boolean(data.hasContent && movies.length > 0)
-			: Boolean(data.hasContent && genreData.length > 0)
+			: trending.length > 0
+				? Boolean(data.hasContent || tmdbPopularMovies.length > 0)
+				: Boolean(data.hasContent && genreData.length > 0)
 	);
 	const singleGenreMode = $derived(Boolean(data.singleGenreMode));
 	const primaryGenre = $derived(genreData[0]);
 
 	const numberFormatter = new Intl.NumberFormat('en-US');
+
+	let allMovies = $state<LibraryMovie[]>(tmdbPopularMovies as LibraryMovie[]);
+	let currentPage = $state(1);
+	let isLoadingMore = $state(false);
+	let fetchError = $state('');
+	let sentinel = $state<HTMLDivElement | null>(null);
+
+	function mapTmdbResult(item: any, mediaType: string = 'movie'): LibraryMovie {
+		return {
+			id: String(item.id),
+			tmdbId: item.id,
+			title: item.title || item.name || 'Untitled',
+			overview: item.overview || null,
+			posterPath: item.poster_path || null,
+			backdropPath: item.backdrop_path || null,
+			releaseDate: item.release_date || item.first_air_date || null,
+			rating: item.vote_average || null,
+			durationMinutes: null,
+			is4K: false,
+			isHD: true,
+			mediaType,
+			media_type: mediaType,
+			genres: [],
+			imdbId: null,
+			trailerUrl: null
+		} as LibraryMovie;
+	}
+
+	$effect(() => {
+		currentPage = 1;
+		isLoadingMore = false;
+		fetchError = '';
+	});
+
+	const currentSlug = $derived($page.params.slug ?? 'movies');
+	const currentMediaType = $derived(currentSlug === 'tv-shows' ? 'tv' : 'movie');
+
+	async function loadMore() {
+		if (isLoadingMore || currentPage >= tmdbTotalPages) return;
+		isLoadingMore = true;
+		fetchError = '';
+		const nextPage = currentPage + 1;
+		try {
+			const apiEndpoint = `/api/tmdb/discover/${currentMediaType}?page=${nextPage}&sort_by=popularity.desc&vote_count.gte=50`;
+			const res = await fetch(apiEndpoint);
+			const json = await res.json();
+			if (!res.ok) throw new Error(json.error || `API error ${res.status}`);
+			const existingIds = new Set(allMovies.map((m) => m.id));
+			const newMovies = (json.results ?? [])
+				.filter((m: any) => !existingIds.has(String(m.id)))
+				.map((m: any) => mapTmdbResult(m, currentMediaType));
+			allMovies = [...allMovies, ...newMovies];
+			currentPage = nextPage;
+		} catch (e: any) {
+			fetchError = e.message || 'Failed to load more movies';
+		} finally {
+			isLoadingMore = false;
+		}
+	}
+
+	onMount(() => {
+		if (!sentinel) return;
+		const observer = new IntersectionObserver(
+			(entries) => {
+				if (entries[0].isIntersecting && !isLoadingMore && currentPage < tmdbTotalPages) {
+					loadMore();
+				}
+			},
+			{ rootMargin: '400px' }
+		);
+		observer.observe(sentinel);
+		return () => observer.disconnect();
+	});
 
 	function normalizeId(movie: LibraryMovie): string {
 		if (typeof movie.id === 'string' && movie.id) return movie.id;
@@ -196,12 +280,32 @@
 				<Hero movie={highlightMovie} />
 			</section>
 		{:else}
-			<section class="px-[5%] py-24 text-center">
+			<section class="page-header px-[5%] py-12 text-center md:py-24">
 				<h1 class="text-4xl font-bold text-foreground capitalize">{categoryTitle}</h1>
 				<p class="mx-auto mt-3 max-w-xl text-sm text-muted-foreground">
 					Discover the best selections tailored for film lovers, binge-watchers, and otaku alike.
 				</p>
 			</section>
+		{/if}
+
+		{#if trending.length > 0}
+			<section class="trending-section">
+				<h2 class="trending-heading">
+					<span class="trending-fire">🔥</span>
+					<span class="trending-label">Trending{currentMediaType === 'tv' ? ' TV' : ''} This Week</span>
+				</h2>
+				<ScrollRow gap="0.75rem" snap={true}>
+					{#snippet children()}
+						{#each trending as movie, i (movie.id)}
+							<div class="shrink-0">
+								<TrendingCard {movie} rank={i + 1} />
+							</div>
+						{/each}
+					{/snippet}
+				</ScrollRow>
+			</section>
+
+			<Separator class="trending-divider" />
 		{/if}
 
 		{#if hasContent}
@@ -250,22 +354,20 @@
 
 							<!-- Movies Grid -->
 							{#if movies.length > 0}
-								<div
-									class="grid justify-center gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6"
-								>
-									{#each movies as movie (normalizeId(movie))}
-										<MediaCard {movie} />
-									{/each}
-								</div>
+								<div class="explore-grid">
+					{#each movies as movie (normalizeId(movie))}
+						<MediaCard {movie} />
+					{/each}
+				</div>
 
-								<!-- Pagination -->
-								{#if pagination && pagination.totalPages > 1}
-									<div class="flex justify-center pt-6">
-										<Pagination {pagination} onPageChange={handlePageChange} />
-									</div>
-								{/if}
-							{:else}
-								<div class="py-24 text-center">
+				<!-- Pagination -->
+				{#if pagination && pagination.totalPages > 1}
+					<div class="flex justify-center pt-6">
+						<Pagination {pagination} onPageChange={handlePageChange} />
+					</div>
+				{/if}
+			{:else}
+				<div class="py-24 text-center">
 									<div class="mx-auto max-w-md space-y-4">
 										<Filter class="mx-auto size-12 text-muted-foreground" />
 										<h2 class="text-2xl font-semibold text-foreground">No results found</h2>
@@ -283,6 +385,65 @@
 						</div>
 					</div>
 				</section>
+			{:else if trending.length > 0}
+				<section class="popular-section">
+					<h2 class="section-title">Popular {currentMediaType === 'tv' ? 'TV Shows' : 'Movies'}</h2>
+					<div class="explore-grid">
+						{#each allMovies as movie (movie.id)}
+							<MediaCard {movie} />
+						{/each}
+					</div>
+				</section>
+
+				{#if fetchError}
+					<div class="load-error">
+						<AlertCircle class="size-5" />
+						<span>{fetchError}</span>
+						<button onclick={loadMore}>Retry</button>
+					</div>
+				{/if}
+
+				{#if isLoadingMore}
+					<div class="explore-grid">
+						{#each Array.from({ length: 12 }) as _, index (index)}
+							<MediaCard movie={null} />
+						{/each}
+					</div>
+				{/if}
+
+				{#if currentPage < tmdbTotalPages}
+					<div class="load-more">
+						<button onclick={loadMore} disabled={isLoadingMore}>
+							{isLoadingMore ? 'Loading more...' : 'Load More'}
+						</button>
+						<span class="page-info">Page {currentPage} of {tmdbTotalPages}</span>
+					</div>
+				{:else if allMovies.length > 0 && !isLoadingMore}
+					<p class="end-message">You've reached the end — {allMovies.length} movies loaded.</p>
+				{/if}
+
+				<div bind:this={sentinel} class="h-10 w-full"></div>
+
+				{#if genreData.length > 0}
+					<section class="space-y-6 px-[5%]">
+						<Separator class="bg-border/60" />
+						{#if singleGenreMode}
+							{#if primaryGenre}
+								<CarouselContainer title={primaryGenre.genre} movies={primaryGenre.movies} />
+							{/if}
+						{:else}
+							{#each genreData as entry (entry.slug)}
+								{#if entry.movies.length > 0}
+									<CarouselContainer
+										title={entry.genre}
+										movies={entry.movies}
+										linkTo={`/genre/${entry.slug}`}
+									/>
+								{/if}
+							{/each}
+						{/if}
+					</section>
+				{/if}
 			{:else}
 				<!-- Legacy Genre-based UI -->
 				<section class="space-y-8 px-[5%]">
@@ -355,6 +516,24 @@
 					{/if}
 				</section>
 			{/if}
+		{:else if tmdbFetchError}
+			<section class="px-[5%] py-24 text-center">
+				<div class="mx-auto max-w-2xl space-y-4">
+					<AlertCircle class="mx-auto size-12 text-destructive" />
+					<h2 class="text-3xl font-semibold text-foreground">Failed to load content</h2>
+					<p class="text-muted-foreground">{tmdbFetchError}</p>
+					<div class="flex justify-center gap-3">
+						<Button href="." size="lg" class="gap-2">
+							<RotateCw class="size-4" />
+							Try again
+						</Button>
+						<Button href="/" variant="outline" size="lg" class="gap-2">
+							<Sparkles class="size-4" />
+							Go home
+						</Button>
+					</div>
+				</div>
+			</section>
 		{:else}
 			<section class="px-[5%] py-24 text-center">
 				<div class="mx-auto max-w-2xl space-y-4">
@@ -374,3 +553,148 @@
 		{/if}
 	</main>
 </div>
+
+<style>
+	.section-title {
+		font-size: 1.5rem;
+		font-weight: 700;
+		color: #fff;
+		margin-bottom: 1rem;
+	}
+
+	.trending-section {
+		padding: 0 5%;
+		margin-bottom: 1.5rem;
+	}
+
+	.trending-heading {
+		margin-bottom: 1.25rem;
+		font-size: 1.75rem;
+		font-weight: 700;
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+	}
+
+	.trending-fire {
+		font-size: 1.5rem;
+		line-height: 1;
+	}
+
+	.trending-label {
+		background: linear-gradient(135deg, #f59e0b, #ef4444, #f59e0b);
+		-webkit-background-clip: text;
+		-webkit-text-fill-color: transparent;
+		background-clip: text;
+		background-size: 200% 100%;
+		animation: shimmer 4s ease-in-out infinite;
+	}
+
+	@keyframes shimmer {
+		0%, 100% { background-position: 0% 50%; }
+		50% { background-position: 100% 50%; }
+	}
+
+	.trending-divider {
+		margin: 2.5rem 5% 0;
+		width: auto;
+	}
+
+	@media (max-width: 767px) {
+		.page-header {
+			padding-top: 2rem !important;
+			padding-bottom: 1.5rem !important;
+		}
+		.explore-grid {
+			grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+			gap: 0.75rem;
+			padding: 0 0.5rem;
+		}
+	}
+
+	@media (max-width: 480px) {
+		.explore-grid {
+			grid-template-columns: repeat(2, 1fr);
+			gap: 0.5rem;
+			padding: 0 0.25rem;
+		}
+	}
+
+	.popular-section {
+		padding: 0 5%;
+		margin-bottom: 2.5rem;
+	}
+
+	.explore-grid {
+		display: grid;
+		grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+		gap: 1rem;
+		padding: 0 1rem;
+		justify-items: center;
+	}
+
+	.explore-grid :global(.media-card) {
+		max-width: 200px;
+		width: 100%;
+	}
+
+	.load-more {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		margin-top: 2rem;
+		gap: 0.5rem;
+	}
+
+	.load-more button {
+		padding: 12px 32px;
+		background: linear-gradient(135deg, #6366f1, #8b5cf6);
+		color: white;
+		border: none;
+		border-radius: 8px;
+		font-size: 1rem;
+		cursor: pointer;
+		transition: opacity 0.2s;
+	}
+
+	.load-more button:disabled {
+		opacity: 0.6;
+		cursor: not-allowed;
+	}
+
+	.load-more button:hover:not(:disabled) {
+		opacity: 0.9;
+	}
+
+	.page-info {
+		font-size: 0.85rem;
+		color: #888;
+	}
+
+	.end-message {
+		text-align: center;
+		color: #666;
+		margin-top: 2rem;
+		font-style: italic;
+	}
+
+	.load-error {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		gap: 0.5rem;
+		color: #ef4444;
+		margin-top: 1rem;
+		text-align: center;
+	}
+
+	.load-error button {
+		background: none;
+		border: none;
+		color: #6366f1;
+		cursor: pointer;
+		text-decoration: underline;
+		padding: 0;
+		font-size: inherit;
+	}
+</style>

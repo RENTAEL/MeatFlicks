@@ -56,7 +56,7 @@
 	<Sidebar
 		aria-label={sidebarLabel}
 		collapsible={isDesktop ? 'icon' : 'offcanvas'}
-		class="min-h-svh border-r border-border/30 bg-background/40 backdrop-blur-xl group-data-[side=right]:border-l-0 md:sticky md:top-0"
+		class="desktop-nav border-r border-border/30 bg-background/40 backdrop-blur-xl group-data-[side=right]:border-l-0 md:sticky md:top-0 min-h-dvh-fallback"
 	>
 		<SidebarContent class="px-2 pt-0 pb-2">
 			<div class="flex flex-1 flex-col justify-center rounded-lg">
@@ -84,7 +84,7 @@
 		</SidebarContent>
 	</Sidebar>
 
-	<SidebarInset class="flex min-h-svh flex-1 flex-col text-foreground">
+	<SidebarInset class="flex min-h-dvh-fallback flex-1 flex-col text-foreground">
 		{@render children?.()}
 	</SidebarInset>
 

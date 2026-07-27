@@ -181,6 +181,11 @@ export const bulkUpsertMovies = async (payloads: UpsertMoviePayload[]): Promise<
 					})
 				);
 			}
+			try {
+				await db.all(sql`INSERT INTO movie_fts(movie_fts) VALUES('rebuild')`);
+			} catch (e) {
+				console.warn('FTS rebuild failed:', e);
+			}
 			return syncedMedia;
 		});
 };

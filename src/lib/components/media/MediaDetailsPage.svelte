@@ -20,6 +20,9 @@
 	import { Separator } from '$lib/components/ui/separator';
 	import { playbackStore } from '$lib/state/stores/playbackStore.svelte';
 	import InlinePlayer from '$lib/components/player/InlinePlayer.svelte';
+	import ServerGrid from '$lib/components/ServerGrid.svelte';
+	import { scanAllProviders, type ProbeResult } from '$lib/providers/scanner';
+	import { SORTED_PROVIDERS, type ProviderParams } from '$lib/providers/index';
 
 	type MediaGenre = { id: number; name: string };
 	type MediaCastMember = {
@@ -104,8 +107,16 @@
 	let activeEmbedUrl = $state<string | null>(null);
 	let fallbackQueue = $state<string[]>([]);
 	let currentFallbackProvider = $state<string | null>(null);
+	let isAutoSwitching = $state(false);
+	let autoSwitchLabel = $state('');
+	let showShortcutsHelp = $state(false);
 
-	// Provider selector state
+	// Server scanner state
+	let serverResults = $state<ProbeResult[]>([]);
+	let serverScanning = $state(false);
+	let activeProviderId = $state<string | null>(null);
+
+	// Provider selector state (legacy fallback)
 	let showProviderSelector = $state(false);
 	let providers: Provider[] = $state([]);
 
@@ -118,25 +129,59 @@
 		fallbackQueue = [];
 		currentFallbackProvider = null;
 		activeTab = 'suggested';
-		streamingService.reset();
-		playerService.cleanup();
-		playerService.init();
+		untrack(() => {
+			streamingService.reset();
+			playerService.cleanup();
+			playerService.init();
 
-		streamingService.setCurrentMedia({
-			mediaId: movie.id,
-			tmdbId: movie.tmdbId,
-			mediaType: mediaType,
-			season: mediaType === 'tv' || mediaType === 'anime' ? 1 : undefined,
-			episode: mediaType === 'tv' || mediaType === 'anime' ? 1 : undefined
-		});
-		if (data.streaming) {
-			streamingService.initializeFromServerData({
-				source: data.streaming.source ?? null,
-				resolutions: Array.isArray(data.streaming.resolutions)
-					? [...data.streaming.resolutions]
-					: []
+			streamingService.setCurrentMedia({
+				mediaId: movie.id,
+				tmdbId: movie.tmdbId,
+				mediaType: mediaType,
+				season: mediaType === 'tv' || mediaType === 'anime' ? 1 : undefined,
+				episode: mediaType === 'tv' || mediaType === 'anime' ? 1 : undefined
 			});
-		}
+			if (data.streaming) {
+				streamingService.initializeFromServerData({
+					source: data.streaming.source ?? null,
+					resolutions: Array.isArray(data.streaming.resolutions)
+						? [...data.streaming.resolutions]
+						: []
+				});
+			}
+
+			if (movie?.id) {
+				const normalizedGenres = movie.genres?.map((g: MediaGenre) => g.name || String(g)) ?? [];
+				watchHistory.recordWatch({
+					id: movie.id,
+					title: movie.title,
+					posterPath: movie.posterPath ?? null,
+					backdropPath: movie.backdropPath ?? null,
+					overview: movie.overview ?? null,
+					releaseDate: movie.releaseDate ? new Date(movie.releaseDate).toISOString() : null,
+					rating: movie.rating ?? 0,
+					genres: normalizedGenres,
+					trailerUrl: movie.trailerUrl ?? null,
+					mediaType: mediaType,
+					is4K: Boolean(movie.is4K),
+					isHD: movie.isHD ?? undefined,
+					tmdbId: movie.tmdbId ?? undefined,
+					imdbId: movie.imdbId ?? undefined,
+					durationMinutes: movie.durationMinutes ?? null,
+					collectionId: movie.collectionId ?? null,
+					...(mediaType !== 'movie'
+						? {
+								season: 1,
+								episode: 1
+							}
+						: {})
+				});
+			}
+
+			if (mediaType !== 'movie' && movie?.tmdbId) {
+				episodeService.fetchEpisodes(movie.tmdbId, 1);
+			}
+		});
 
 		return () => {
 			if (currentMovieId) playerService.destroy();
@@ -196,8 +241,6 @@
 	}
 
 	const EMBED_PROVIDERS = [
-		{ id: 'vidcore', label: 'VidCore' },
-		{ id: 'vixsrc', label: 'VixSrc' },
 		{ id: 'streamsrc', label: 'StreamSrc' },
 		{ id: '2embed.skin', label: '2Embed.Skin' },
 		{ id: 'vidlink', label: 'VidLink' },
@@ -212,15 +255,7 @@
 		if (!movie?.tmdbId) return null;
 		const customParams = `primaryColor=63b8bc&secondaryColor=a2a2a2&iconColor=eefdec&icons=default&player=default&title=false&poster=true&autoplay=true&nextbutton=false`;
 
-		if (providerId === 'vidcore') {
-			if (mediaType === 'movie') return `https://vidcore.org/embed/movie/${movie.tmdbId}`;
-			return `https://vidcore.org/embed/tv/${movie.tmdbId}/${selectedSeason}/${selectedEpisode}`;
-		}
 
-		if (providerId === 'vixsrc') {
-			if (mediaType === 'movie') return `https://vixsrc.to/movie/${movie.tmdbId}`;
-			return `https://vixsrc.to/tv/${movie.tmdbId}/${selectedSeason}/${selectedEpisode}`;
-		}
 
 		if (providerId === 'streamsrc') {
 			if (mediaType === 'movie') return `https://streamsrc.cc/watch/movie/${movie.tmdbId}`;
@@ -246,20 +281,10 @@
 		}
 
 		if (providerId === 'vidsrc') {
-			const baseUrls = [
-				'https://vidsrcme.su',
-				'https://vidsrc-embed.su',
-				'https://vidsrc-embed.ru',
-				'https://vidsrc.me',
-				'https://vsrc.su'
-			];
-			for (const base of baseUrls) {
-				const url = mediaType === 'movie'
-					? `${base}/embed/movie?tmdb=${movie.tmdbId}`
-					: `${base}/embed/tv?tmdb=${movie.tmdbId}&season=${selectedSeason}&episode=${selectedEpisode}`;
-				return url;
-			}
-			return null;
+			const path = mediaType === 'movie'
+				? `embed/movie/${movie.tmdbId}`
+				: `embed/tv/${movie.tmdbId}/${selectedSeason}/${selectedEpisode}`;
+			return `/api/stream-proxy/vidsrc/${path}`;
 		}
 
 		if (providerId === '2embed') {
@@ -338,6 +363,7 @@
 		if (embedUrl) {
 			activeEmbedUrl = embedUrl;
 			showProviderSelector = false;
+			startProgressTracking();
 		}
 	}
 
@@ -353,25 +379,180 @@
 			return;
 		}
 
-		try {
-			const resp = await fetch(embedUrl, {
-				method: 'HEAD',
-				signal: AbortSignal.timeout(5000),
-				headers: { 'User-Agent': 'Mozilla/5.0' }
-			});
-			callback(resp.ok || resp.status < 500);
-		} catch {
+		const start = performance.now();
+		const { testWithFallback } = await import('$lib/streaming/iframeProbe');
+		const { providerScoring } = await import('$lib/streaming/provider-scoring');
+		const result = await testWithFallback(embedUrl);
+		if (result.works) {
+			providerScoring.recordSuccess(providerId, performance.now() - start);
+			callback(true);
+		} else {
+			providerScoring.recordFailure(providerId);
 			callback(false);
 		}
 	}
 
-	function handlePlayClick() {
+	async function handlePlayClick() {
 		providers = buildProviderList();
-		showProviderSelector = true;
+		if (providers.length === 0) return;
+
+		if (!movie?.tmdbId) return;
+
+		serverScanning = true;
+		serverResults = SORTED_PROVIDERS.map((p) => ({
+			provider: p,
+			url: '',
+			status: 'checking' as const
+		}));
+
+		try {
+			const params: ProviderParams = {
+				tmdbId: movie.tmdbId,
+				type: mediaType,
+				season: mediaType !== 'movie' ? selectedSeason : undefined,
+				episode: mediaType !== 'movie' ? selectedEpisode : undefined,
+				imdbId: movie.imdbId ?? null,
+				malId: movie.malId ?? null,
+				subOrDub
+			};
+
+			let autoPlayed = false;
+			const { results, firstUp } = await scanAllProviders(params, (updated) => {
+				serverResults = updated;
+				if (!autoPlayed) {
+					const found = updated.find((r) => r.status === 'up');
+					if (found) {
+						autoPlayed = true;
+						activeProviderId = found.provider.id;
+						activeEmbedUrl = found.url;
+						showProviderSelector = false;
+						startProgressTracking();
+					}
+				}
+			});
+
+			serverResults = results;
+			serverScanning = false;
+
+			if (!autoPlayed && firstUp) {
+				activeProviderId = firstUp.provider.id;
+				activeEmbedUrl = firstUp.url;
+				showProviderSelector = false;
+				startProgressTracking();
+			}
+
+			if (!activeEmbedUrl) {
+				showProviderSelector = true;
+			}
+		} catch {
+			serverScanning = false;
+			showProviderSelector = true;
+		}
 	}
 
-	function closePlayer() {
+	function handleServerSelect(result: ProbeResult) {
+		if (result.status !== 'up') return;
+		activeProviderId = result.provider.id;
+		activeEmbedUrl = result.url;
+		showProviderSelector = false;
+		startProgressTracking();
+	}
+
+	function startProgressTracking() {
+		if (movie?.durationMinutes) {
+			playerService.startProgressTracking(movie.durationMinutes, async (progress) => {
+				if (!movie) return;
+				playbackStore.saveProgress({
+					mediaId: movie.id,
+					mediaType,
+					progress,
+					duration: movie.durationMinutes ? movie.durationMinutes * 60 : 0,
+					seasonNumber: mediaType !== 'movie' ? selectedSeason : undefined,
+					episodeNumber: mediaType !== 'movie' ? selectedEpisode : undefined,
+					updatedAt: Date.now(),
+					mediaData: { ...movie, mediaType } as LibraryMedia
+				});
+			});
+
+			if (mediaType !== 'movie') {
+				playerService.setupAutoPlayTimer(movie.durationMinutes, () => {
+					goToNextEpisode();
+				});
+			}
+		}
+	}
+
+	let autoNextCountdown = $state(30);
+	let autoNextTimer: ReturnType<typeof setInterval> | null = null;
+
+	function cancelAutoNext() {
+		playerService.cancelAutoPlay();
+		if (autoNextTimer) {
+			clearInterval(autoNextTimer);
+			autoNextTimer = null;
+		}
+	}
+
+	function onNextOverlayShown() {
+		autoNextCountdown = 30;
+		if (autoNextTimer) clearInterval(autoNextTimer);
+		autoNextTimer = setInterval(() => {
+			autoNextCountdown--;
+			if (autoNextCountdown <= 0 && autoNextTimer) {
+				clearInterval(autoNextTimer);
+				autoNextTimer = null;
+			}
+		}, 1000);
+	}
+
+	$effect(() => {
+		if (playerService.showNextOverlay) {
+			onNextOverlayShown();
+		} else {
+			if (autoNextTimer) {
+				clearInterval(autoNextTimer);
+				autoNextTimer = null;
+			}
+		}
+	});
+
+	function closePlayer(reason?: 'error' | 'user') {
+		if (reason === 'error') {
+			triggerAutoSwitch();
+			return;
+		}
 		activeEmbedUrl = null;
+		isAutoSwitching = false;
+		autoSwitchLabel = '';
+		playerService.stopProgressTracking();
+	}
+
+	async function triggerAutoSwitch() {
+		if (isAutoSwitching) return;
+		isAutoSwitching = true;
+		const total = fallbackQueue.length + 1;
+		const tried = EMBED_PROVIDERS.length - fallbackQueue.length;
+		autoSwitchLabel = `Source failed — trying ${tried + 1}/${total}...`;
+
+		if (fallbackQueue.length > 0) {
+			const nextProvider = fallbackQueue.shift()!;
+			currentFallbackProvider = nextProvider;
+			const embedUrl = tryPlayWithFallback(nextProvider);
+			if (embedUrl) {
+				activeEmbedUrl = embedUrl;
+				isAutoSwitching = false;
+				autoSwitchLabel = '';
+				startProgressTracking();
+				return;
+			}
+			triggerAutoSwitch();
+		} else {
+			isAutoSwitching = false;
+			autoSwitchLabel = '';
+			activeEmbedUrl = null;
+			streamingService.state.error = 'No working stream found.';
+			playerService.stopProgressTracking();
+		}
 	}
 
 	async function handleHeaderPlay(providerId: string) {
@@ -405,6 +586,7 @@
 		if (embedUrl) {
 			console.log('[PLAY] Using embed URL for provider:', providerId, embedUrl);
 			activeEmbedUrl = embedUrl;
+			startProgressTracking();
 			return;
 		}
 
@@ -413,6 +595,7 @@
 		if (playbackUrl) {
 			console.log('[PLAY] Using resolved stream URL:', playbackUrl);
 			activeEmbedUrl = playbackUrl;
+			startProgressTracking();
 			return;
 		}
 
@@ -429,39 +612,6 @@
 	}
 
 	$effect(() => {
-		if (!streamingService.hasResolutions) return;
-		untrack(() => {
-			const id =
-				streamingService.state.source?.providerId ??
-				streamingService.state.resolutions.find((r) => r.success)?.providerId ??
-				streamingService.state.resolutions[0]?.providerId;
-			if (id) streamingService.selectProvider(id);
-		});
-	});
-
-	$effect(() => {
-		if (streamingService.isResolved && movie) {
-			untrack(() => {
-				playerService.startProgressTracking(movie.durationMinutes, async (progress) => {
-					if (!movie) return;
-					playbackStore.saveProgress({
-						mediaId: movie.id,
-						mediaType,
-						progress,
-						duration: movie.durationMinutes ? movie.durationMinutes * 60 : 0,
-						seasonNumber: mediaType !== 'movie' ? selectedSeason : undefined,
-						episodeNumber: mediaType !== 'movie' ? selectedEpisode : undefined,
-						updatedAt: Date.now(),
-						mediaData: { ...movie, mediaType } as LibraryMedia
-					});
-				});
-			});
-		} else {
-			playerService.stopProgressTracking();
-		}
-	});
-
-	$effect(() => {
 		function handleKeyDown(event: KeyboardEvent) {
 			if (
 				event.target instanceof HTMLInputElement ||
@@ -472,6 +622,10 @@
 			}
 
 			switch (event.key.toLowerCase()) {
+				case '?':
+					event.preventDefault();
+					showShortcutsHelp = !showShortcutsHelp;
+					break;
 				case 'n':
 					if (streamingService.isResolved && mediaType !== 'movie') {
 						event.preventDefault();
@@ -508,42 +662,6 @@
 
 		window.addEventListener('keydown', handleKeyDown);
 		return () => window.removeEventListener('keydown', handleKeyDown);
-	});
-
-	$effect(() => {
-		if (!movie?.id) return;
-		const normalizedGenres = movie.genres?.map((g: MediaGenre) => g.name || String(g)) ?? [];
-
-		watchHistory.recordWatch({
-			id: movie.id,
-			title: movie.title,
-			posterPath: movie.posterPath ?? null,
-			backdropPath: movie.backdropPath ?? null,
-			overview: movie.overview ?? null,
-			releaseDate: movie.releaseDate ? new Date(movie.releaseDate).toISOString() : null,
-			rating: movie.rating ?? 0,
-			genres: normalizedGenres,
-			trailerUrl: movie.trailerUrl ?? null,
-			mediaType: mediaType,
-			is4K: Boolean(movie.is4K),
-			isHD: movie.isHD ?? undefined,
-			tmdbId: movie.tmdbId ?? undefined,
-			imdbId: movie.imdbId ?? undefined,
-			durationMinutes: movie.durationMinutes ?? null,
-			collectionId: movie.collectionId ?? null,
-			...(mediaType !== 'movie'
-				? {
-						season: 1,
-						episode: 1
-					}
-				: {})
-		});
-	});
-
-	$effect(() => {
-		if (mediaType !== 'movie' && movie?.tmdbId) {
-			episodeService.fetchEpisodes(movie.tmdbId, 1);
-		}
 	});
 
 	const ogImage = $derived(
@@ -609,7 +727,7 @@
 			<MediaHeader
 				{movie}
 				logoPath={movie.logoPath}
-				on:play={handlePlayClick}
+				onplay={handlePlayClick}
 			/>
 
 			{#if mediaType === 'anime'}
@@ -755,6 +873,25 @@
 									title={movie.title}
 									overview={movie.overview ?? null}
 								/>
+								<div class="flex gap-3 pt-2">
+									<button
+										class="inline-flex items-center gap-2 rounded-lg bg-muted/60 px-4 py-2 text-sm font-medium text-foreground transition hover:bg-muted/80"
+										onclick={() => {
+											const key = `${mediaType}:${movie.id}`;
+											playbackStore.saveProgress({
+												mediaId: movie.id,
+												mediaType,
+												progress: Number.MAX_SAFE_INTEGER,
+												duration: movie.durationMinutes ? movie.durationMinutes * 60 : 3600,
+												updatedAt: Date.now(),
+												mediaData: { ...movie, mediaType } as LibraryMedia
+											});
+										}}
+									>
+										<svg class="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+										Mark as Watched
+									</button>
+								</div>
 							</div>
 						</section>
 					</div>
@@ -765,16 +902,82 @@
 
 	<!-- Player Container -->
 	{#if activeEmbedUrl}
-		<div class="player-container fixed inset-0 z-50 bg-black/95 backdrop-blur-sm">
-			<button
-				class="absolute top-4 right-4 z-10 rounded-full bg-black/60 p-2 text-white hover:bg-black/80 transition"
-				onclick={closePlayer}
-			>
-				<svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-				</svg>
-			</button>
-			<InlinePlayer src={activeEmbedUrl} title={movie?.title ?? 'Player'} onClose={closePlayer} />
+		<div class="player-overlay fixed inset-0 z-50 flex flex-col bg-black/95 backdrop-blur-sm">
+			<!-- Top bar -->
+			<div class="relative flex shrink-0 items-center justify-between px-4 py-2">
+				<div class="flex items-center gap-2">
+					{#if isAutoSwitching}
+						<span class="rounded-lg bg-yellow-500/90 px-3 py-1 text-xs font-semibold text-yellow-900">
+							{autoSwitchLabel || 'Switching source...'}
+						</span>
+					{/if}
+				</div>
+				<div class="flex gap-2">
+					<button
+						class="rounded-full bg-black/60 p-2 text-white hover:bg-black/80 transition"
+						onclick={() => (showShortcutsHelp = !showShortcutsHelp)}
+						title="Keyboard shortcuts (?)"
+					>
+						<svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+					</button>
+					<button
+						class="rounded-full bg-black/60 p-2 text-white hover:bg-black/80 transition"
+						onclick={() => closePlayer('user')}
+					>
+						<svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+						</svg>
+					</button>
+				</div>
+			</div>
+
+			<!-- Player -->
+			<div class="shrink-0" style="height: min(60vh, 600px);">
+				<InlinePlayer src={activeEmbedUrl} title={movie?.title ?? 'Player'} onClose={closePlayer} compact />
+			</div>
+
+			<!-- Overlays -->
+			{#if showShortcutsHelp}
+				<div class="absolute inset-0 z-30 flex items-start justify-center pt-20">
+					<div class="w-full max-w-md rounded-xl bg-black/85 p-6 shadow-2xl backdrop-blur-md mx-4">
+						<div class="mb-4 flex items-center justify-between">
+							<h3 class="text-lg font-bold text-white">Keyboard Shortcuts</h3>
+							<button class="text-white/50 hover:text-white" onclick={() => (showShortcutsHelp = false)}>
+								<svg class="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+							</button>
+						</div>
+						<div class="space-y-2 text-sm">
+							<div class="flex justify-between"><span class="text-white/60">N</span><span class="text-white">Next episode</span></div>
+							<div class="flex justify-between"><span class="text-white/60">P</span><span class="text-white">Previous episode</span></div>
+							<div class="flex justify-between"><span class="text-white/60">+ / -</span><span class="text-white">Adjust playback speed</span></div>
+							<div class="flex justify-between"><span class="text-white/60">?</span><span class="text-white">Toggle this help</span></div>
+							<div class="flex justify-between"><span class="text-white/60">Esc</span><span class="text-white">Close player / help</span></div>
+						</div>
+						<p class="mt-4 text-xs text-white/40">Shortcuts work while the player is active.</p>
+					</div>
+				</div>
+			{/if}
+			{#if playerService.showNextOverlay && mediaType !== 'movie'}
+				<div class="absolute bottom-40 left-1/2 z-20 -translate-x-1/2">
+					<div class="flex flex-col items-center gap-3 rounded-xl bg-black/80 px-6 py-4 shadow-lg backdrop-blur-md">
+						<p class="text-sm text-white/70">Next episode starting in <span class="font-bold text-white">{autoNextCountdown}</span>s</p>
+						<div class="flex gap-3">
+							<button class="rounded-lg bg-white/20 px-4 py-2 text-sm font-semibold text-white transition hover:bg-white/30" onclick={cancelAutoNext}>Cancel</button>
+							<button class="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-indigo-500" onclick={() => { cancelAutoNext(); goToNextEpisode(); }}>Play Now</button>
+						</div>
+					</div>
+				</div>
+			{/if}
+
+			<!-- Server Grid (scrollable) -->
+			<div class="flex-1 overflow-y-auto px-4 pb-6">
+				<ServerGrid
+					results={serverResults}
+					activeProviderId={activeProviderId}
+					scanning={serverScanning}
+					onselect={handleServerSelect}
+				/>
+			</div>
 		</div>
 	{/if}
 
@@ -785,8 +988,8 @@
 		isTv={mediaType !== 'movie'}
 		season={selectedSeason}
 		episode={selectedEpisode}
-		on:select={handleProviderSelect}
-		on:testProvider={handleProviderTest}
-		on:close={() => (showProviderSelector = false)}
+		onselect={handleProviderSelect}
+		ontestProvider={handleProviderTest}
+		onclose={() => (showProviderSelector = false)}
 	/>
 {/if}

@@ -64,6 +64,55 @@ export const load: PageServerLoad = async ({ params, url }) => {
 	const { slug } = params;
 	const { filters, sort, pagination, include_anime } = parseAllFromURL(url.searchParams);
 
+	const mediaType = slug === 'tv-shows' ? 'tv' : 'movie';
+	let trending: any[] = [];
+	let tmdbPopularMovies: any[] = [];
+	let tmdbTotalPages = 1;
+	let tmdbFetchError = '';
+
+	if (slug === 'movies' || slug === 'tv-shows') {
+		try {
+			const { api } = await import('$lib/server/services/tmdb.client');
+
+			const [trendingData, popularData] = await Promise.all([
+				api(`/trending/${mediaType}/week`, { query: { language: 'en-US', page: '1' } }),
+				api(`/discover/${mediaType}`, {
+					query: { language: 'en-US', sort_by: 'popularity.desc', page: '1', vote_count: '50' }
+				})
+			]);
+
+			trending = (trendingData.results || []).slice(0, 10);
+
+			const trendingIds = new Set(trending.map((m: any) => m.id));
+			tmdbPopularMovies = ((popularData.results || []) as Array<any>)
+				.filter((m: any) => !trendingIds.has(m.id))
+				.slice(0, 12)
+				.map((item: any) => ({
+					id: String(item.id),
+					tmdbId: item.id,
+					title: item.title || item.name || 'Untitled',
+					overview: item.overview || null,
+					posterPath: item.poster_path || null,
+					backdropPath: item.backdrop_path || null,
+					releaseDate: item.release_date || item.first_air_date || null,
+					rating: item.vote_average || null,
+					durationMinutes: null,
+					is4K: false,
+					isHD: true,
+					mediaType,
+					media_type: mediaType,
+					genres: [],
+					imdbId: null,
+					trailerUrl: null,
+					canonicalPath: `/${mediaType}/${item.id}`
+				}));
+			tmdbTotalPages = Math.min(popularData.total_pages ?? 1, 500);
+		} catch (e: any) {
+			tmdbFetchError = e?.message || 'Failed to fetch from TMDB';
+			console.error('[explore] TMDB fetch failed:', tmdbFetchError);
+		}
+	}
+
 	const hasActiveFilters =
 		filters.yearFrom ||
 		filters.yearTo ||
@@ -111,7 +160,8 @@ export const load: PageServerLoad = async ({ params, url }) => {
 						singleGenreMode: true,
 						availableGenres,
 						useFilters: true,
-						include_anime
+						include_anime,
+						tmdbFetchError
 					};
 				}
 
@@ -126,7 +176,8 @@ export const load: PageServerLoad = async ({ params, url }) => {
 					singleGenreMode: true,
 					availableGenres,
 					useFilters: true,
-					include_anime
+					include_anime,
+					tmdbFetchError
 				};
 			}
 
@@ -137,7 +188,8 @@ export const load: PageServerLoad = async ({ params, url }) => {
 				singleGenreMode: true,
 				availableGenres: await getGenres(),
 				useFilters: false,
-				include_anime
+				include_anime,
+				tmdbFetchError
 			};
 		}
 
@@ -178,7 +230,11 @@ export const load: PageServerLoad = async ({ params, url }) => {
 				singleGenreMode,
 				availableGenres,
 				useFilters: true,
-				include_anime
+				include_anime,
+				trending,
+				tmdbPopularMovies,
+				tmdbTotalPages,
+				tmdbFetchError
 			};
 		}
 
@@ -193,7 +249,11 @@ export const load: PageServerLoad = async ({ params, url }) => {
 			singleGenreMode,
 			availableGenres,
 			useFilters: true,
-			include_anime
+			include_anime,
+			trending,
+			tmdbPopularMovies,
+			tmdbTotalPages,
+			tmdbFetchError
 		};
 	}
 
@@ -233,13 +293,17 @@ export const load: PageServerLoad = async ({ params, url }) => {
 				filters: {} as MovieFilters,
 				sort: { field: 'popularity', order: 'desc' } as SortOptions,
 				pagination: { page: 1, pageSize: DEFAULT_PAGE_SIZE } as PaginationParams,
-				include_anime
+				include_anime,
+				trending,
+				tmdbPopularMovies,
+				tmdbTotalPages,
+				tmdbFetchError
 			};
 		}
 	}
 
 	const availableGenres = await getGenres();
-	const hasContent = totalMovies > 0;
+	const hasContent = totalMovies > 0 || tmdbPopularMovies.length > 0;
 
 	return {
 		categoryTitle,
@@ -251,6 +315,10 @@ export const load: PageServerLoad = async ({ params, url }) => {
 		filters: {} as MovieFilters,
 		sort: { field: 'popularity', order: 'desc' } as SortOptions,
 		pagination: { page: 1, pageSize: DEFAULT_PAGE_SIZE } as PaginationParams,
-		include_anime
+		include_anime,
+		trending,
+		tmdbPopularMovies,
+		tmdbTotalPages,
+		tmdbFetchError
 	};
 };

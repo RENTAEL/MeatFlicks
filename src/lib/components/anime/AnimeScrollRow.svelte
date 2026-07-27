@@ -39,7 +39,7 @@
 			class="scrollbar-thin flex gap-3 overflow-x-auto pb-2"
 			style="scrollbar-width: none; -ms-overflow-style: none;"
 		>
-			{#each items as item, i (item.id)}
+			{#each items as item, i (item.id + '-' + i)}
 				<AnimeCard anime={item} rank={ranked ? i + 1 : undefined} />
 			{/each}
 		</div>

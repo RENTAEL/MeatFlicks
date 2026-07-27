@@ -112,6 +112,15 @@ const runInitSql = async (client: Client) => {
 			"expiresAt" INTEGER NOT NULL
 		)`);
 
+		await client.execute(`CREATE VIRTUAL TABLE IF NOT EXISTS movie_fts USING fts5(
+			title, overview, content='media', content_rowid='numericId',
+			tokenize='porter unicode61'
+		)`);
+
+		try { await client.execute('CREATE INDEX IF NOT EXISTS idx_media_numericId ON media("numericId")'); } catch {}
+
+		try { await client.execute("INSERT INTO movie_fts(movie_fts) VALUES('rebuild')"); } catch (e) { logger.warn({ err: e }, 'FTS rebuild warning'); }
+
 		await client.execute('PRAGMA optimize');
 
 		logger.info('Database initialization completed successfully');
@@ -119,6 +128,13 @@ const runInitSql = async (client: Client) => {
 		logger.warn({ err }, 'Database init SQL warning (non-fatal)');
 	}
 };
+
+// Initialize database eagerly before any module imports complete
+const initUrl = resolveDatabasePath();
+ensureDirectory(initUrl);
+const initClient = createClient({ url: initUrl });
+await runInitSql(initClient);
+await initClient.close();
 
 export const runMaintenance = async () => {
 	if (!clientInstance) return;
@@ -138,7 +154,10 @@ const createDatabaseClient = (): Client => {
 	ensureDirectory(url);
 	const client = createClient({ url });
 	client.execute('PRAGMA busy_timeout = 30000');
-	runInitSql(client).catch((e) => logger.warn({ error: e }, 'Init SQL warning'));
+	client.execute('PRAGMA journal_mode = WAL');
+	client.execute('PRAGMA synchronous = NORMAL');
+	client.execute('PRAGMA cache_size = -64000');
+	client.execute('PRAGMA foreign_keys = ON');
 	return client;
 };
 

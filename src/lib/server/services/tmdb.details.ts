@@ -339,6 +339,7 @@ export async function fetchTmdbRecommendations(
 		}
 
 		return Array.from(unique.values())
+			.filter((item) => item.id !== tmdbId)
 			.slice(0, limit)
 			.map((item) => {
 				const title = item.title || item.name || 'Untitled';

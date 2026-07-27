@@ -5,6 +5,9 @@ import path from 'path';
 
 export default defineConfig({
 	plugins: [tailwindcss(), sveltekit()],
+	build: {
+		cssCodeSplit: false,
+	},
 	resolve: {
 		alias: {
 			$lib: path.resolve('./src/lib')

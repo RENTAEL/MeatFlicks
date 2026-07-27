@@ -137,5 +137,11 @@ export const handle: Handle = async ({ event, resolve }) => {
 
 	await validateSession(event);
 	const response = await resolve(event);
+
+	response.headers.delete('Permissions-Policy');
+	response.headers.delete('permissions-policy');
+	response.headers.delete('Feature-Policy');
+	response.headers.set('Permissions-Policy', 'fullscreen=*');
+
 	return applySecurityHeaders(event, response);
 };
