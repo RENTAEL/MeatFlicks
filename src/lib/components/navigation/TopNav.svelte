@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { page } from '$app/state';
 	import { Search, Bell, Menu } from '@lucide/svelte';
+	import { menuOpen } from '$lib/stores/menu';
 
 	let scrolled = $state(false);
 
@@ -34,7 +35,7 @@
 			type="button"
 			class="flex size-9 items-center justify-center rounded-lg text-muted-foreground hover:bg-muted/50 hover:text-foreground md:hidden"
 			aria-label="Open navigation menu"
-			onclick={() => {}}
+			onclick={() => menuOpen.update(v => !v)}
 		>
 			<Menu class="size-5" />
 		</button>
