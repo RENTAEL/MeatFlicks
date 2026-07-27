@@ -8,7 +8,13 @@ interface ScanResult {
   movieUrl: string;
   tvUrl: string | null;
   status: 'working' | 'blocked' | 'dead';
+  requiresNoRestrictions: boolean;
 }
+
+const RESTRICTION_FREE_PROVIDERS = new Set([
+  'vidlink', 'vidsrc', 'vidbinge', 'superembed', 'vidsrc-rip',
+  'vidsrc-me', 'vidsrc-icu', 'embed-su', 'filmxy', 'vidstream'
+]);
 
 export const GET: RequestHandler = async ({ url, fetch }) => {
   const tmdbId = parseInt(url.searchParams.get('tmdbId') || '');
@@ -48,12 +54,13 @@ export const GET: RequestHandler = async ({ url, fetch }) => {
             movieUrl: type === 'movie' ? embedUrl : provider.getMovieUrl(tmdbId),
             tvUrl: type === 'tv' ? embedUrl : (provider.getTVUrl(tmdbId, 1, 1) || null),
             status: res.ok ? ('working' as const) : ('blocked' as const),
+            requiresNoRestrictions: RESTRICTION_FREE_PROVIDERS.has(provider.id),
           };
         }
 
-        return { id: provider.id, name: provider.name, movieUrl: embedUrl, tvUrl: null, status: 'dead' as const };
+        return { id: provider.id, name: provider.name, movieUrl: embedUrl, tvUrl: null, status: 'dead' as const, requiresNoRestrictions: RESTRICTION_FREE_PROVIDERS.has(provider.id) };
       } catch {
-        return { id: provider.id, name: provider.name, movieUrl: embedUrl, tvUrl: null, status: 'dead' as const };
+        return { id: provider.id, name: provider.name, movieUrl: embedUrl, tvUrl: null, status: 'dead' as const, requiresNoRestrictions: RESTRICTION_FREE_PROVIDERS.has(provider.id) };
       }
     })
   );
