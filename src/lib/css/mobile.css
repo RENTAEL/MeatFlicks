@@ -410,4 +410,46 @@
 		max-width: 105px !important;
 		margin: 0 auto;
 	}
+
+	/* ─── SMOOTH SCROLLING ─── */
+	.row-scroll, .cast-scroll, .scroll-container, [class*="scroll"] {
+		-webkit-overflow-scrolling: touch;
+		scroll-behavior: smooth;
+	}
+
+	/* ─── TOUCH FEEDBACK ─── */
+	button:active, a:active, [role="button"]:active {
+		transform: scale(0.97);
+		transition: transform 0.1s ease;
+	}
+
+	/* ─── PLAYER OVERRIDES ─── */
+	.player-iframe, iframe[class*="player"] {
+		/* Allow native fullscreen gesture on iOS */
+		-webkit-overflow-scrolling: touch;
+	}
+
+	/* ─── REDUCED MOTION ─── */
+	@media (prefers-reduced-motion: reduce) {
+		*, *::before, *::after {
+			animation-duration: 0.01ms !important;
+			animation-iteration-count: 1 !important;
+			transition-duration: 0.01ms !important;
+		}
+	}
+
+	/* ─── SAFE AREA FORMS ─── */
+	input, textarea, select {
+		font-size: 16px !important;
+	}
+
+	/* ─── BOTTOM SHEET ANIMATION ─── */
+	.bottom-sheet-enter {
+		animation: slideUp 0.3s cubic-bezier(0.32, 0.72, 0, 1);
+	}
+
+	@keyframes slideUp {
+		from { transform: translateY(100%); }
+		to { transform: translateY(0); }
+	}
 }

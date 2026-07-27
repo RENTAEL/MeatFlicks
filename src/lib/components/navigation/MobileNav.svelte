@@ -1,12 +1,13 @@
 <script lang="ts">
 	import { page } from '$app/state';
 	import { goto } from '$app/navigation';
+	import { searchOpen } from '$lib/stores/search';
 	import { Home, Search, TrendingUp, Heart, User } from '@lucide/svelte';
 
 	const navItems = [
 		{ href: '/', icon: Home, iconActive: Home, label: 'Home' },
 		{ href: '/explore/movies', icon: TrendingUp, iconActive: TrendingUp, label: 'Trending' },
-		{ href: '/search', icon: Search, iconActive: Search, label: 'Search' },
+		{ href: '', icon: Search, iconActive: Search, label: 'Search', action: 'search' as const },
 		{ href: '/watchlist', icon: Heart, iconActive: Heart, label: 'Watchlist' },
 		{ href: '/profile', icon: User, iconActive: User, label: 'Profile' },
 	];
@@ -32,15 +33,15 @@
 	style="padding-bottom: max(8px, calc(env(safe-area-inset-bottom, 20px) + 4px)); background: rgba(0,0,0,0.85); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);"
 >
 	<div class="flex items-center justify-around py-1.5">
-		{#each navItems as { href, icon: Icon, label }}
-			{@const isActive = page.url.pathname === href || (href !== '/' && page.url.pathname.startsWith(href))}
+		{#each navItems as { href, icon: Icon, label, action }}
+			{@const isActive = action === 'search' ? false : page.url.pathname === href || (href !== '/' && page.url.pathname.startsWith(href))}
 			<button
 				type="button"
 				class="flex flex-col items-center gap-0.5 px-3 py-1 text-[10px] font-medium min-h-[44px] min-w-[44px] rounded-lg transition-colors"
 				class:text-primary={isActive}
 				class:text-muted-foreground={!isActive}
 				style={isActive ? '--tw-text-opacity: 1; color: #f59e0b;' : ''}
-				onclick={() => goto(href)}
+				onclick={() => action === 'search' ? searchOpen.set(true) : goto(href)}
 			>
 				{#if isActive}
 					<Icon class="size-5" style="fill: #f59e0b; color: #f59e0b;" />

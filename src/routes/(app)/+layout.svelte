@@ -8,6 +8,7 @@
 	import Footer from '$lib/components/navigation/Footer.svelte';
 	import GlobalErrorDisplay from '$lib/components/global/GlobalErrorDisplay.svelte';
 	import { NotificationPortal } from '$lib/components/global';
+	import SearchOverlay from '$lib/components/SearchOverlay.svelte';
 	import { OfflineIndicator } from '$lib/components/ui';
 	import ThemeContext from '$lib/state/contexts/ThemeContext.svelte';
 	import WatchlistContext from '$lib/state/contexts/WatchlistContext.svelte';
@@ -93,3 +94,5 @@
 		</ErrorContext>
 	</WatchlistContext>
 </ThemeContext>
+
+<SearchOverlay />
