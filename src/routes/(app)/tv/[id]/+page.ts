@@ -1,4 +1,5 @@
-import { PUBLIC_TMDB_API_KEY } from '$env/static/public';
+import { env } from '$lib/config/env';
+const PUBLIC_TMDB_API_KEY = env.PUBLIC_TMDB_API_KEY;
 
 const TMDB_BASE = 'https://api.themoviedb.org/3';
 
