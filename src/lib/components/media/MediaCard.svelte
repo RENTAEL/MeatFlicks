@@ -135,7 +135,7 @@
 							style="pointer-events: none;"
 							loading="lazy"
 							allow="autoplay; encrypted-media"
-							allowfullscreen
+							sandbox="allow-scripts allow-same-origin" allowfullscreen
 						></iframe>
 						<div class="absolute inset-0 bg-linear-to-t from-background/90 via-background/10 to-transparent"></div>
 					</div>

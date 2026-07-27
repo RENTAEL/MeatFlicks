@@ -118,7 +118,7 @@
 				allow="autoplay; fullscreen; picture-in-picture"
 				onload={() => playerService.handleIframeLoad(currentQualities, currentSubtitles)}
 				referrerpolicy="no-referrer"
-				allowfullscreen
+				sandbox="allow-scripts allow-same-origin" allowfullscreen
 				webkit-airplay="allow"
 				x-webkit-airplay="allow"
 				playsinline

@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-07-27T12:06:28.378Z",
+  "timestamp": "2026-07-27T12:25:12.208Z",
   "movie": "Inception (27205)",
   "steps": [
     {
@@ -60,22 +60,22 @@
     {
       "name": "Scroll to bottom reveals content",
       "status": "PASS",
-      "detail": "no lazy growth (1316 → 1316px)"
+      "detail": "no lazy growth (1316 → 900px)"
     },
     {
       "name": "Suggested/related section exists",
-      "status": "PASS",
-      "detail": "found heading: \"Inception\n8.4\n2010\n•\n148 min\n•\nAction\nAdventure\nScience Fiction\n\nCobb, a skilled thief who commits corporate espionage by infiltrating the subconscious of his targets is offered a chance to regain his old life as payment for a task considered to be impossible: \"inception\", the implantation of another person's idea into a target's subconscious.\n\nMore\nPlay\nTrailer\nSuggested\nDetails\n5.8\n6.6\n6.1\n6.2\n6.1\n6.1\n6.3\n7.0\n6.5\n7.1\n6.1\n6.1\n🎯 Servers\nScanning 11 remaining...\n🎬 StreamSrc\n1080p\n✓ Working\nNOW PLAYING\n🎬 VidSrc\n1080p\n✓ Working\n🎬 VidSrc (alt)\n1080p\n⟳ Checking\n🎬 VidSrc PRO\n4K\n⟳ Checking\n🎬 VidSrc ICU\n1080p\n⟳ Checking\n🎥 2Embed\n1080p\n⟳ Checking\n🎥 2Embed.Skin\n1080p\n⟳ Checking\n🔄 AutoEmbed\n1080p\n⟳ Checking\n🔗 MultiEmbed\n1080p\n⟳ Checking\n▶️ Embed.su\n1080p\n⟳ Checking\n⚡ Smashy\n4K\n⟳ Checking\n📡 VidLink\n720p\n⟳ Checking\n🌐 NontonGo\n1080p\n⟳ Checking\n\n© 2025 Streamium. All Rights Reserved. This site does not store any files on the server, we only linked to the media which is hosted on 3rd party services.\""
+      "status": "FAIL",
+      "detail": "no \"suggested/related/similar\" heading"
     },
     {
       "name": "Suggested cards are present (≥3)",
-      "status": "PASS",
-      "detail": "12 cards (e.g., )"
+      "status": "FAIL",
+      "detail": "zero suggested cards below main content"
     },
     {
       "name": "Clicking suggested card navigates to new movie",
       "status": "FAIL",
-      "detail": "still on same page: https://streamium-cosmic.vercel.app/movie/tt1375666"
+      "detail": "still on same page: about:blank"
     },
     {
       "name": "TMDB API calls on detail page succeed",
@@ -85,8 +85,8 @@
   ],
   "summary": {
     "total": 16,
-    "passed": 13,
-    "failed": 3,
+    "passed": 11,
+    "failed": 5,
     "errors": 0
   }
 }

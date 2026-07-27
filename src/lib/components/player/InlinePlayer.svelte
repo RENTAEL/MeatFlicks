@@ -426,7 +426,7 @@
 			onload={handleIframeLoad}
 			onerror={handleIframeError}
 			referrerpolicy="no-referrer"
-			allowfullscreen
+			sandbox="allow-scripts allow-same-origin" allowfullscreen
 			webkit-airplay="allow"
 			x-webkit-airplay="allow"
 		></iframe>
