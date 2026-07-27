@@ -6,7 +6,7 @@ const PROVIDER_ORDER = [
 	'streamsrc',
 	'2embed.skin',
 	'vidlink',
-	'vidsrc',
+	'vidsrcme',
 	'2embed',
 	'superembed',
 	'autoembed',
@@ -37,7 +37,7 @@ const PROVIDERS: Record<string, (tmdbId: string, type: string, season?: string, 
 				? `https://vidlink.pro/tv/${id}/${s || '1'}/${e || '1'}?primaryColor=63b8bc&secondaryColor=a2a2a2&iconColor=eefdec&icons=default&player=default&title=false&poster=true&autoplay=true&nextbutton=false`
 				: `https://vidlink.pro/anime/${id}/${e || '1'}/sub?primaryColor=63b8bc&secondaryColor=a2a2a2&iconColor=eefdec&icons=default&player=default&title=false&poster=true&autoplay=true&nextbutton=false`,
 
-	vidsrc: (id, type, s, e) =>
+	vidsrcme: (id, type, s, e) =>
 		type === 'movie'
 			? `https://vidsrcme.su/embed/movie?tmdb=${id}`
 			: `https://vidsrcme.su/embed/tv?tmdb=${id}&season=${s || '1'}&episode=${e || '1'}`,

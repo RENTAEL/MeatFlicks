@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-07-27T10:27:18.549Z",
+  "timestamp": "2026-07-27T11:33:13.452Z",
   "movie": "Inception (27205)",
   "steps": [
     {
@@ -45,7 +45,7 @@
     {
       "name": "Video player or iframe appears",
       "status": "PASS",
-      "detail": "stream iframe visible (1280×540px) → https://streamsrc.cc/watch/movie/27205"
+      "detail": "stream iframe visible (1×1px) → https://streamsrc.cc/watch/movie/27205"
     },
     {
       "name": "Streaming API/resolver requests made",
@@ -80,7 +80,7 @@
     {
       "name": "TMDB API calls on detail page succeed",
       "status": "FAIL",
-      "detail": "1 failed TMDB calls: https://image.tmdb.org/t/p/w1280"
+      "detail": "no TMDB API calls at all — data is not being fetched from TMDB"
     }
   ],
   "summary": {

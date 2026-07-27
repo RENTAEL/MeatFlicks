@@ -129,9 +129,6 @@ export const streamingConfig = {
 	vixsrc: {
 		baseUrl: normalizeBase(envValues.VIXSRC_BASE_URL)
 	},
-	vidsrc: {
-		baseUrl: normalizeBase(envValues.VIXSRC_BASE_URL)
-	},
 	twoEmbed: {
 		baseUrl: normalizeBase(envValues.TWOEMBED_BASE_URL)
 	},
