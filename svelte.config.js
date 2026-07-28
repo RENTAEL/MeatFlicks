@@ -12,6 +12,9 @@ const config = {
 		alias: {
 			'@': './src',
 			types: '$lib/types'
+		},
+		csrf: {
+			checkOrigin: false
 		}
 	}
 };
