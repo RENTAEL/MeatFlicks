@@ -48,7 +48,6 @@
       "short_name": "TV",
       "description": "View trending TV shows",
       "url": "/tv"
-    },
-
+    }
   ]
 }
