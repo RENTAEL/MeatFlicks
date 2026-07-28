@@ -5,25 +5,6 @@ const PUBLIC_TMDB_API_KEY = env.PUBLIC_TMDB_API_KEY;
 const TMDB_BASE = 'https://api.themoviedb.org/3';
 const LANG = 'af';
 
-async function findYoutubeSource(title: string, year?: string): Promise<string | null> {
-	const query = encodeURIComponent(`${title} ${year || ''} volledige film Afrikaans`);
-	try {
-		const res = await fetch(
-			`https://www.youtube.com/results?search_query=${query}`,
-			{ headers: { 'Accept-Language': 'af,en' } }
-		);
-		if (!res.ok) return null;
-		const html = await res.text();
-		const match = html.match(/\/watch\?v=([a-zA-Z0-9_-]{11})/);
-		if (match) {
-			return `https://www.youtube.com/embed/${match[1]}?autoplay=1&rel=0&hl=af`;
-		}
-		return null;
-	} catch {
-		return null;
-	}
-}
-
 export async function load({ params, fetch }) {
 	const { id } = params;
 
@@ -45,9 +26,6 @@ export async function load({ params, fetch }) {
 
 		const curated = AFRIKAANS_FILMS.find((f) => f.tmdbId === Number(id));
 
-		const year = movie.release_date?.slice(0, 4);
-		const youtubeUrl = await findYoutubeSource(movie.title, year);
-
 		return {
 			movie: {
 				id: movie.id,
@@ -66,7 +44,6 @@ export async function load({ params, fetch }) {
 				budget: movie.budget,
 				revenue: movie.revenue
 			},
-			youtubeUrl,
 			similarMovies: (similar.results || []).slice(0, 12).map((m: any) => ({
 				id: m.id,
 				title: m.title,
@@ -78,7 +55,6 @@ export async function load({ params, fetch }) {
 	} catch (e) {
 		return {
 			movie: null,
-			youtubeUrl: null,
 			similarMovies: [],
 			error: 'Kon nie filmdata laai nie'
 		};

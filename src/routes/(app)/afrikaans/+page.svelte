@@ -13,8 +13,10 @@
 	let hasMore = $state(data.hasMore ?? false);
 	let loadingMore = $state(false);
 	let searchQuery = $state('');
+	type SortMode = 'default' | 'newest';
+	let sortMode: SortMode = $state('default');
 
-	let filteredMovies = $derived(
+	let searchedMovies = $derived(
 		searchQuery
 			? movies.filter((m: any) => {
 				const q = searchQuery.toLowerCase();
@@ -28,6 +30,20 @@
 			})
 			: movies
 	);
+
+	let filteredMovies = $derived(
+		sortMode === 'newest'
+			? [...searchedMovies].sort((a: any, b: any) => {
+				const dateA = a.release_date ? new Date(a.release_date).getTime() : a.year ? new Date(String(a.year)).getTime() : 0;
+				const dateB = b.release_date ? new Date(b.release_date).getTime() : b.year ? new Date(String(b.year)).getTime() : 0;
+				return dateB - dateA;
+			})
+			: searchedMovies
+	);
+
+	function toggleSort() {
+		sortMode = sortMode === 'default' ? 'newest' : 'default';
+	}
 
 	$effect(() => {
 		if (data.movies) movies = data.movies;
@@ -68,21 +84,35 @@
 
 	<p class="mb-6 text-sm text-zinc-500">Afrikaans-language cinema and South African film</p>
 
-	<div class="relative mb-6">
-		<svg class="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-zinc-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
-		<input
-			type="text"
-			placeholder="Search by title, director, year…"
-			bind:value={searchQuery}
-			class="w-full rounded-xl border border-zinc-800 bg-zinc-900/60 py-2.5 pl-10 pr-10 text-sm text-zinc-200 placeholder-zinc-500 backdrop-blur-sm transition-colors focus:border-indigo-500/50 focus:outline-none"
-		/>
-		{#if searchQuery}
-			<button
-				onclick={() => searchQuery = ''}
-				class="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-300"
-			>✕</button>
-		{/if}
+	<div class="toolbar">
+		<div class="search-input-wrap">
+			<svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+				<circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
+			</svg>
+			<input
+				type="text"
+				class="search-input"
+				placeholder="Search by title, director, year…"
+				bind:value={searchQuery}
+			/>
+			{#if searchQuery}
+				<button class="search-clear" onclick={() => searchQuery = ''}>✕</button>
+			{/if}
+		</div>
+		<button
+			class="sort-btn"
+			class:active={sortMode === 'newest'}
+			onclick={toggleSort}
+		>
+			<svg class="sort-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+				<path d="M3 6h13M3 12h9M3 18h5" />
+			</svg>
+			<span>{sortMode === 'newest' ? 'Nuutste' : 'Sorteer'}</span>
+		</button>
 	</div>
+	{#if searchQuery}
+		<p class="mb-4 text-sm text-zinc-500">{filteredMovies.length} van {movies.length} resultate</p>
+	{/if}
 
 	{#if initialLoad}
 		<div class="grid grid-cols-3 gap-4 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6">
@@ -113,10 +143,6 @@
 			<p class="mt-1 text-sm text-zinc-600">Probeer 'n ander soektog / Try a different search.</p>
 		</div>
 	{:else}
-		{#if searchQuery}
-			<p class="mb-4 text-sm text-zinc-500">{filteredMovies.length} result{filteredMovies.length === 1 ? '' : 's'}</p>
-		{/if}
-
 		<div class="grid grid-cols-3 gap-4 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6">
 			{#each filteredMovies as movie, i (movie.id)}
 				<div in:fly={{ y: 20, duration: 200, delay: Math.min(i * 30, 400) }}>
@@ -138,3 +164,46 @@
 		{/if}
 	{/if}
 </div>
+
+<style>
+	.toolbar {
+		display: flex; align-items: center; gap: 12px; margin-bottom: 28px; flex-wrap: wrap;
+	}
+	.search-input-wrap {
+		position: relative; flex: 1; max-width: 480px; min-width: 200px;
+	}
+	.search-icon {
+		position: absolute; left: 12px; top: 50%; transform: translateY(-50%);
+		width: 16px; height: 16px; color: #71717a; pointer-events: none;
+	}
+	.search-input {
+		width: 100%; padding: 10px 36px 10px 36px;
+		border-radius: 12px; border: 1px solid #27272a;
+		background: rgba(24,24,27,0.6); color: #e4e4e7;
+		font-size: 14px; outline: none; transition: border-color 0.15s;
+	}
+	.search-input:focus { border-color: rgba(99,102,241,0.5); }
+	.search-input::placeholder { color: #52525b; }
+	.search-clear {
+		position: absolute; right: 10px; top: 50%; transform: translateY(-50%);
+		background: none; border: none; color: #71717a; cursor: pointer; font-size: 16px; padding: 4px;
+	}
+	.search-clear:hover { color: #e4e4e7; }
+
+	.sort-btn {
+		display: flex; align-items: center; gap: 6px;
+		padding: 10px 16px; background: rgba(30,27,75,0.7);
+		border: 1px solid rgba(129,140,248,0.15); border-radius: 12px;
+		color: #a5b4fc; font-size: 13px; font-weight: 500;
+		cursor: pointer; white-space: nowrap; transition: all 0.15s; flex-shrink: 0;
+	}
+	.sort-btn:hover { border-color: rgba(129,140,248,0.3); color: #c7d2fe; }
+	.sort-btn.active { background: rgba(129,140,248,0.15); border-color: rgba(129,140,248,0.4); color: #e0e7ff; }
+	.sort-icon { width: 16px; height: 16px; flex-shrink: 0; }
+
+	@media (max-width: 640px) {
+		.toolbar { flex-direction: column; align-items: stretch; }
+		.search-input-wrap { max-width: 100%; }
+		.sort-btn { justify-content: center; }
+	}
+</style>
