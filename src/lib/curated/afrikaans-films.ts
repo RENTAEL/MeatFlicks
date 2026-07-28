@@ -1,3 +1,10 @@
+export interface AfrikaansSource {
+	label: string;
+	url: string;
+	type: 'youtube' | 'direct' | 'embed';
+	quality?: string;
+}
+
 export interface AfrikaansFilm {
 	tmdbId: number;
 	title: string;
@@ -5,6 +12,8 @@ export interface AfrikaansFilm {
 	year: number;
 	director?: string;
 	youtubeId?: string;
+	youtubeTrailerId?: string;
+	sources?: AfrikaansSource[];
 	poster?: string;
 }
 

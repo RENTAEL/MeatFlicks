@@ -156,9 +156,6 @@
 				src={currentUrl}
 				class="player-iframe"
 				allow="autoplay; fullscreen; encrypted-media; picture-in-picture; accelerometer; gyroscope"
-				allowfullscreen
-				webkitallowfullscreen
-				mozallowfullscreen
 				referrerpolicy="origin"
 				title="{title} S{season} E{episode}"
 				onload={onIframeLoad}

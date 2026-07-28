@@ -40,6 +40,8 @@ export async function load({ url }) {
 				titleEn: film.titleEn || null,
 				director: film.director || null,
 				youtubeId: film.youtubeId || null,
+				youtubeTrailerId: film.youtubeTrailerId || null,
+				sources: film.sources || [],
 			};
 		}).filter(Boolean).filter((m) => m.poster);
 

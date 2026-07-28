@@ -6,13 +6,15 @@
 		type = 'movie' as 'movie' | 'tv',
 		season = 1,
 		episode = 1,
-		title = ''
+		title = '',
+		onerror
 	}: {
 		tmdbId: number;
 		type?: 'movie' | 'tv';
 		season?: number;
 		episode?: number;
 		title?: string;
+		onerror?: (detail: { message: string }) => void;
 	} = $props();
 
 	interface ScanResult {
@@ -161,9 +163,6 @@
 				src={currentUrl}
 				class="player-iframe"
 				allow="autoplay; fullscreen; encrypted-media; picture-in-picture; accelerometer; gyroscope"
-				allowfullscreen
-				webkitallowfullscreen
-				mozallowfullscreen
 				referrerpolicy="origin"
 				title={title || 'Video Player'}
 				onload={onIframeLoad}

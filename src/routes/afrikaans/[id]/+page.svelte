@@ -1,9 +1,14 @@
 <script lang="ts">
 	import type { PageData } from './$types';
 	import { fly, fade } from 'svelte/transition';
+	import MultiSourcePlayer from '$lib/components/MultiSourcePlayer.svelte';
 
 	let { data }: { data: PageData } = $props();
 	let { movie, trailer, subtitles } = data;
+
+	let youtubeId = $derived(movie.youtubeId || '');
+	let youtubeTrailerId = $derived(movie.youtubeTrailerId || '');
+	let sources = $derived(movie.sources || []);
 
 	let showPlayer = $state(false);
 	let showTrailer = $state(false);
@@ -144,24 +149,25 @@
 	<div class="overlay" transition:fade={{ duration: 200 }}>
 		<button class="overlay-close" onclick={() => { showPlayer = false; }}>✕ Sluit</button>
 		<div class="player-container">
-			<iframe
-				src="/api/stream/{movie.id}?type=movie"
-				class="player-iframe"
-				allow="autoplay; fullscreen"
-				allowfullscreen
-			></iframe>
+			<MultiSourcePlayer
+				tmdbId={movie.id}
+				title={movie.title}
+				type="movie"
+				subtitleUrl={subtitles?.url}
+				{youtubeId}
+				{sources}
+			/>
 		</div>
 	</div>
 {/if}
 
-{#if showTrailer && trailer}
+{#if showTrailer && (youtubeTrailerId || trailer)}
 	<div class="overlay" transition:fade={{ duration: 200 }}>
 		<button class="overlay-close" onclick={() => { showTrailer = false; }}>✕ Sluit</button>
 		<div class="youtube-wrap">
 			<iframe
-				src="https://www.youtube.com/embed/{trailer.key}?autoplay=1"
-				allow="autoplay; fullscreen"
-				allowfullscreen
+				src="https://www.youtube.com/embed/{youtubeTrailerId || trailer.key}?autoplay=1"
+				allow="autoplay; fullscreen; picture-in-picture"
 				class="youtube-iframe"
 			></iframe>
 		</div>
@@ -269,7 +275,6 @@
 		border: none; padding: 10px 16px; border-radius: 8px; cursor: pointer;
 	}
 	.player-container { width: 90vw; max-width: 1100px; aspect-ratio: 16/9; }
-	.player-iframe { width: 100%; height: 100%; border: none; border-radius: 12px; }
 	.youtube-wrap { width: 90vw; max-width: 960px; aspect-ratio: 16/9; }
 	.youtube-iframe { width: 100%; height: 100%; border: none; border-radius: 12px; }
 
