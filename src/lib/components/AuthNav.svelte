@@ -9,7 +9,9 @@
 	function closeDropdown() { dropdownOpen = false; }
 
 	async function logout() {
-		await fetch('/logout', { method: 'POST' });
+		const form = new FormData();
+		form.append('csrf_token', page.data.csrfToken || '');
+		await fetch('/logout', { method: 'POST', body: form });
 		goto('/login');
 	}
 </script>

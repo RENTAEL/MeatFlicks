@@ -288,7 +288,9 @@ async function run() {
     try {
       const wasLoggedIn = !!(await page.$('.user-btn'));
       if (wasLoggedIn) {
-        await page.evaluate(() => fetch('/logout', { method: 'POST' }));
+        await page.evaluate(async () => {
+          await fetch('/logout', { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: 'csrf_token=' });
+        });
         await wait(1500);
         await page.goto(`${BASE_URL}/`, { waitUntil: 'networkidle2', timeout: 15000 }).catch(() => {});
         await wait(1000);
