@@ -7,7 +7,8 @@
 		season = 1,
 		episode = 1,
 		title = '',
-		onerror
+		onerror,
+		preResolvedSource = null as string | null
 	}: {
 		tmdbId: number;
 		type?: 'movie' | 'tv';
@@ -15,6 +16,7 @@
 		episode?: number;
 		title?: string;
 		onerror?: (detail: { message: string }) => void;
+		preResolvedSource?: string | null;
 	} = $props();
 
 	interface ScanResult {
@@ -42,6 +44,19 @@
 	let loadedProviders = $state<Set<string>>(new Set());
 
 	async function scan() {
+		if (preResolvedSource) {
+			allProviders = [{
+				id: 'youtube',
+				name: 'YouTube',
+				movieUrl: preResolvedSource,
+				tvUrl: null,
+				status: 'working',
+			}];
+			currentIndex = 0;
+			isScanning = false;
+			return;
+		}
+
 		isScanning = true;
 		scanError = '';
 		loadedProviders = new Set();

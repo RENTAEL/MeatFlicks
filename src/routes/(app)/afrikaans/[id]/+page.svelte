@@ -32,7 +32,7 @@
 		{#if data.movie.titleEn}
 			<p class="mb-1 text-sm text-zinc-500">{data.movie.titleEn}</p>
 		{/if}
-		<Player tmdbId={data.movie.id} title={data.movie.title} />
+		<Player tmdbId={data.movie.id} title={data.movie.title} preResolvedSource={data.preResolvedSource} />
 
 		<MovieInfo movie={data.movie} />
 
