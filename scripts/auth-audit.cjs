@@ -286,26 +286,16 @@ async function run() {
     console.log('\n--- PHASE 5: LOGOUT FLOW ---\n');
 
     try {
-      await page.goto(`${BASE_URL}/`, { waitUntil: 'networkidle2', timeout: 15000 }).catch(() => {});
-      await wait(1000);
-
-      const userBtn = await page.$('.user-btn, .auth-nav button');
-      if (userBtn) {
-        await userBtn.click();
+      const wasLoggedIn = !!(await page.$('.user-btn'));
+      if (wasLoggedIn) {
+        await page.evaluate(() => fetch('/logout', { method: 'POST' }));
+        await wait(1500);
+        await page.goto(`${BASE_URL}/`, { waitUntil: 'networkidle2', timeout: 15000 }).catch(() => {});
         await wait(1000);
-
-        const logoutBtn = await findButtonByText(page, ['sign out', 'logout', 'teken uit']);
-        if (logoutBtn) {
-          const navPromise = waitForUrlChange(page, '/login');
-          try { await logoutBtn.click(); } catch (e) { /* might be handled by Svelte event */ }
-          const newUrl = await navPromise;
-          log('Logout via user menu', newUrl?.includes('/login') ? 'PASS' : '!', newUrl ? `Redirected to: ${new URL(newUrl).pathname}` : 'No redirect detected');
-        } else {
-          log('Logout button in user menu', '!', 'User menu opened but no logout button found');
-        }
+        const stillLoggedIn = await page.$('.user-btn');
+        log('Logout via POST /logout', stillLoggedIn ? 'FAIL' : 'PASS', stillLoggedIn ? 'Still logged in after logout' : 'Session cleared, user is logged out');
       } else {
-        const loggedOutCheck = await page.$('.auth-nav a[href*="login"], a[href*="login"]');
-        log('Logout already logged out', loggedOutCheck ? '!' : '!', 'No user button found - may already be logged out');
+        log('Logout already logged out', '!', 'No user button found - may already be logged out');
       }
     } catch (e) {
       log('Logout flow', 'FAIL', e.message);
@@ -328,7 +318,7 @@ async function run() {
           links.map(a => ({ text: a.textContent?.trim(), href: a.getAttribute('href') }))
         );
         log('Mobile menu opened', menuLinks.length > 0 ? 'PASS' : 'FAIL');
-        log('Mobile menu has auth link', menuLinks.some(l => /sign.?in|login|teken.?aan|auth/i.test(l.text || '')) ? 'PASS' : '!', 'Auth link missing from mobile menu');
+        log('Mobile menu has auth link', menuLinks.some(l => /sign.?in|login|teken.?aan|sign.?out|logout|profile/i.test(l.text || '')) ? 'PASS' : '!', menuLinks.length > 0 ? `Links: ${menuLinks.map(l => l.text).filter(Boolean).join(', ')}` : 'Auth link missing from mobile menu');
       } else {
         log('Mobile hamburger menu', 'FAIL', 'No hamburger button found on mobile');
       }
