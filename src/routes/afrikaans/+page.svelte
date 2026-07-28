@@ -71,12 +71,9 @@
 	{:else}
 		<div class="movie-grid">
 			{#each movies as movie, i (movie.id)}
-				<a
-					href="/afrikaans/{movie.tmdbId || movie.id}"
-					in:fly={{ y: 20, duration: 200, delay: Math.min(i * 30, 400) }}
-				>
-					<MediaCard {movie} />
-				</a>
+				<div in:fly={{ y: 20, duration: 200, delay: Math.min(i * 30, 400) }}>
+					<MediaCard media={movie} href="/afrikaans/{movie.tmdbId || movie.id}" />
+				</div>
 			{/each}
 		</div>
 
@@ -116,7 +113,7 @@
 		gap: 20px;
 	}
 
-	.movie-grid a { text-decoration: none; }
+
 
 	.empty-state, .error-state {
 		text-align: center; padding: 80px 20px;
