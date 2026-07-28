@@ -300,7 +300,7 @@ export function csrfMiddleware() {
 				}
 			}
 
-			if (!event.url.pathname.startsWith('/api/')) {
+			if (!event.url.pathname.startsWith('/api/') && !['/login', '/signup'].includes(event.url.pathname)) {
 			const csrfValidation = await validateSecureCsrfToken(event);
 
 			if (!csrfValidation.valid) {

@@ -277,16 +277,17 @@ async function runAudit() {
           credentials: 'include'
         });
         const text = await res.text();
-        return { status: res.status, body: text.slice(0, 300) };
+        const contentType = res.headers.get('content-type') || '';
+        return { status: res.status, body: text.slice(0, 400), contentType };
       } catch (e) {
-        return { status: 0, body: e.message };
+        return { status: 0, body: e.message, contentType: '' };
       }
     });
-    log('AUTH-FLOW', `POST /login \u2192 HTTP ${result.status}`, result.status >= 400 ? 'WARN' : 'INFO');
+    log('AUTH-FLOW', `POST /login \u2192 HTTP ${result.status} (${result.contentType})`, result.status >= 400 ? 'WARN' : 'INFO');
     if (result.status < 400 && result.body.toLowerCase().includes('incorrect')) {
       log('AUTH-FLOW', 'Validation shown for empty form \u2014 good', 'INFO');
     } else if (result.status >= 400) {
-      log('AUTH-FLOW', `Server rejected: HTTP ${result.status}`, 'WARN');
+      log('AUTH-FLOW', `Response body: ${result.body.slice(0, 120).trim()}`, 'WARN');
     } else {
       log('AUTH-FLOW', `No validation msg: ${result.body.slice(0, 100).trim()}`, 'WARN');
     }
