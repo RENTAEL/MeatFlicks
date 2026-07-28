@@ -121,6 +121,19 @@ const runInitSql = async (client: Client) => {
 
 		try { await client.execute("INSERT INTO movie_fts(movie_fts) VALUES('rebuild')"); } catch (e) { logger.warn({ err: e }, 'FTS rebuild warning'); }
 
+		await client.execute(`CREATE TABLE IF NOT EXISTS users (
+			"id" TEXT PRIMARY KEY NOT NULL,
+			"username" TEXT NOT NULL UNIQUE,
+			"password_hash" TEXT NOT NULL,
+			"role" TEXT NOT NULL DEFAULT 'USER'
+		)`);
+
+		await client.execute(`CREATE TABLE IF NOT EXISTS sessions (
+			"id" TEXT PRIMARY KEY NOT NULL,
+			"user_id" TEXT NOT NULL REFERENCES users("id"),
+			"expires_at" INTEGER NOT NULL
+		)`);
+
 		await client.execute('PRAGMA optimize');
 
 		logger.info('Database initialization completed successfully');
