@@ -1,0 +1,101 @@
+{
+  "summary": {
+    "passed": 15,
+    "failed": 0,
+    "warnings": 0
+  },
+  "results": [
+    {
+      "step": "Header exists on homepage",
+      "status": "PASS",
+      "detail": "",
+      "time": "2026-07-28T15:27:23.489Z"
+    },
+    {
+      "step": "Sign-in button visible on homepage",
+      "status": "PASS",
+      "detail": "",
+      "time": "2026-07-28T15:27:23.495Z"
+    },
+    {
+      "step": "Auth UI element on homepage",
+      "status": "PASS",
+      "detail": "Auth component visible",
+      "time": "2026-07-28T15:27:23.499Z"
+    },
+    {
+      "step": "Login page found at /login",
+      "status": "PASS",
+      "detail": "",
+      "time": "2026-07-28T15:27:24.913Z"
+    },
+    {
+      "step": "Signup page found at /signup",
+      "status": "PASS",
+      "detail": "",
+      "time": "2026-07-28T15:27:26.317Z"
+    },
+    {
+      "step": "Signup form fields found",
+      "status": "PASS",
+      "detail": "username, password, submit",
+      "time": "2026-07-28T15:27:26.330Z"
+    },
+    {
+      "step": "Signup submitted successfully",
+      "status": "PASS",
+      "detail": "Redirected to: /",
+      "time": "2026-07-28T15:27:29.079Z"
+    },
+    {
+      "step": "Login form already logged in",
+      "status": "PASS",
+      "detail": "Skipped: session active from signup (at /)",
+      "time": "2026-07-28T15:27:42.530Z"
+    },
+    {
+      "step": "Post-login auth UI (from signup session)",
+      "status": "PASS",
+      "detail": "Auth component visible (logged in)",
+      "time": "2026-07-28T15:27:43.064Z"
+    },
+    {
+      "step": "Logout via POST /logout",
+      "status": "PASS",
+      "detail": "Session cleared, user is logged out",
+      "time": "2026-07-28T15:27:46.858Z"
+    },
+    {
+      "step": "Mobile menu opened",
+      "status": "PASS",
+      "detail": "",
+      "time": "2026-07-28T15:27:50.136Z"
+    },
+    {
+      "step": "Mobile menu has auth link",
+      "status": "PASS",
+      "detail": "Links: Home, Movies, TV Series, Afrikaans, Home, Movies, TV Series, Afrikaans, Search, Home, Movies, TV Shows, Afrikaans, My List, Search, History, Sign In",
+      "time": "2026-07-28T15:27:50.136Z"
+    },
+    {
+      "step": "Mobile auth element visible",
+      "status": "PASS",
+      "detail": "",
+      "time": "2026-07-28T15:27:50.139Z"
+    },
+    {
+      "step": "Console errors (excluding blocked ads/preloads)",
+      "status": "PASS",
+      "detail": "0 errors found",
+      "time": "2026-07-28T15:27:50.139Z"
+    },
+    {
+      "step": "Auth network failures",
+      "status": "PASS",
+      "detail": "0 failure(s)",
+      "time": "2026-07-28T15:27:50.139Z"
+    }
+  ],
+  "errors": [],
+  "networkFails": []
+}

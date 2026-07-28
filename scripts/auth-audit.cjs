@@ -96,7 +96,7 @@ async function run() {
     // PHASE 1
     console.log('--- PHASE 1: AUTH UI ON HOMEPAGE ---\n');
 
-    await page.goto(BASE_URL, { waitUntil: 'networkidle2', timeout: 30000 });
+    await page.goto(BASE_URL, { waitUntil: 'domcontentloaded', timeout: 60000 });
     await wait(2000);
 
     const header = await page.$('header');
@@ -125,7 +125,7 @@ async function run() {
 
     for (const path of loginPaths) {
       try {
-        await page.goto(`${BASE_URL}${path}`, { waitUntil: 'networkidle2', timeout: 15000 });
+        await page.goto(`${BASE_URL}${path}`, { waitUntil: 'domcontentloaded', timeout: 30000 });
         await wait(1000);
         const form = await page.$('form');
         const usernameInput = await page.$('input[name="username"], input[type="text"], input[placeholder*="username"], input[placeholder*="Username"], input[placeholder*="gebruiker"]');
@@ -142,7 +142,7 @@ async function run() {
       log('Login page', 'FAIL', 'No login form found at /login, /signin, /auth, or /auth/login');
       if (signInBtn) {
         try {
-          await page.goto(BASE_URL, { waitUntil: 'networkidle2' });
+          await page.goto(BASE_URL, { waitUntil: 'domcontentloaded', timeout: 30000 });
           await wait(1000);
           const btn = await page.$('[data-testid="signin-btn"], .signin-btn, .auth-signin, a[href*="login"], a[href*="signin"], a[href*="auth"]')
             || await findButtonByText(page, ['sign in', 'login', 'teken aan']);
@@ -166,7 +166,7 @@ async function run() {
 
     for (const path of signupPaths) {
       try {
-        await page.goto(`${BASE_URL}${path}`, { waitUntil: 'networkidle2', timeout: 15000 });
+        await page.goto(`${BASE_URL}${path}`, { waitUntil: 'domcontentloaded', timeout: 30000 });
         await wait(1000);
         const form = await page.$('form');
         if (form) {
@@ -233,7 +233,7 @@ async function run() {
     console.log('\n--- PHASE 4: LOGIN FLOW ---\n');
 
     try {
-      await page.goto(`${BASE_URL}/login`, { waitUntil: 'networkidle2', timeout: 15000 }).catch(() => {});
+      await page.goto(`${BASE_URL}/login`, { waitUntil: 'domcontentloaded', timeout: 30000 }).catch(() => {});
       await wait(1000);
 
       const atLoginPage = page.url().includes('/login');
@@ -292,7 +292,7 @@ async function run() {
           await fetch('/logout', { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: 'csrf_token=' });
         });
         await wait(1500);
-        await page.goto(`${BASE_URL}/`, { waitUntil: 'networkidle2', timeout: 15000 }).catch(() => {});
+        await page.goto(`${BASE_URL}/`, { waitUntil: 'domcontentloaded', timeout: 30000 }).catch(() => {});
         await wait(1000);
         const stillLoggedIn = await page.$('.user-btn');
         log('Logout via POST /logout', stillLoggedIn ? 'FAIL' : 'PASS', stillLoggedIn ? 'Still logged in after logout' : 'Session cleared, user is logged out');
@@ -309,7 +309,7 @@ async function run() {
     await page.setViewport({ width: 375, height: 812 });
 
     try {
-      await page.goto(BASE_URL, { waitUntil: 'networkidle2', timeout: 15000 });
+      await page.goto(BASE_URL, { waitUntil: 'domcontentloaded', timeout: 30000 });
       await wait(1500);
 
       const hamburgerBtn = await page.$('[data-hamburger], .hamburger-btn, button[aria-label*="menu" i], button[aria-label*="open" i]');
