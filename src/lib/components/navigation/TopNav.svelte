@@ -75,3 +75,9 @@
 		</div>
 	</div>
 </header>
+
+<style>
+	header { overflow: visible; }
+	header a, header button { white-space: nowrap; flex-shrink: 0; }
+	nav { flex-shrink: 0; }
+</style>
