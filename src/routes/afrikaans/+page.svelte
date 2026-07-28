@@ -16,7 +16,7 @@
 
 	let filteredMovies = $derived(
 		searchQuery
-			? movies.filter((m) => {
+			? movies.filter((m: any) => {
 				const q = searchQuery.toLowerCase();
 				return (
 					(m.title?.toLowerCase() ?? '').includes(q) ||

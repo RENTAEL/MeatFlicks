@@ -19,46 +19,56 @@ async function fetchMovie(id: number) {
 export async function load({ url }) {
 	const page = Number(url.searchParams.get('page')) || 1;
 
-	if (page === 1) {
-		const curatedIds = AFRIKAANS_FILMS.map((f) => f.tmdbId);
-		const tmdbResults = await Promise.all(curatedIds.map(fetchMovie));
+	try {
+		if (page === 1) {
+			const curatedIds = AFRIKAANS_FILMS.map((f) => f.tmdbId);
+			const tmdbResults = await Promise.all(curatedIds.map(fetchMovie));
 
-		const movies = AFRIKAANS_FILMS.map((film, i) => {
-			const tmdb = tmdbResults[i];
-			if (!tmdb) {
-				console.warn(`[afrikaans] TMDB fetch returned null for ${film.title} (ID ${film.tmdbId})`);
-			}
-			return {
-				...formatMovie(tmdb || {}),
-				id: film.tmdbId,
-				title: tmdb?.title || film.title,
-				poster: tmdb?.poster_path
-					? `https://image.tmdb.org/t/p/w342${tmdb.poster_path}`
-					: null,
-				year: String(film.year),
-				titleEn: film.titleEn || null,
-				director: film.director || null,
-			};
-		}).filter(Boolean).filter((m) => m.poster);
+			const movies = AFRIKAANS_FILMS.map((film, i) => {
+				const tmdb = tmdbResults[i];
+				if (!tmdb) {
+					console.warn(`[afrikaans] TMDB fetch returned null for ${film.title} (ID ${film.tmdbId})`);
+				}
+				return {
+					...formatMovie(tmdb || {}),
+					id: film.tmdbId,
+					title: tmdb?.title || film.title,
+					poster: tmdb?.poster_path
+						? `https://image.tmdb.org/t/p/w342${tmdb.poster_path}`
+						: null,
+					year: String(film.year),
+					titleEn: film.titleEn || null,
+					director: film.director || null,
+				};
+			}).filter(Boolean).filter((m: any) => m.poster);
 
-		return { movies, page: 1, hasMore: movies.length >= 20, source: 'curated' };
+			return { movies, page: 1, hasMore: movies.length >= 20, source: 'curated' };
+		}
+
+		const discoverRes = await fetch(
+			`${TMDB_BASE}/discover/movie?api_key=${env.PUBLIC_TMDB_API_KEY}` +
+			`&language=af&with_original_language=af&sort_by=popularity.desc&page=${page}&region=ZA`
+		);
+		const discoverData = await discoverRes.json();
+
+		const curatedIds = new Set(AFRIKAANS_FILMS.map((f) => f.tmdbId));
+		const movies = (discoverData.results || [])
+			.filter((m: any) => !curatedIds.has(m.id))
+			.map(formatMovie);
+
+		return {
+			movies,
+			page,
+			hasMore: page < (discoverData.total_pages || 1),
+			source: 'discover',
+		};
+	} catch (e) {
+		return {
+			movies: [],
+			error: 'Failed to load films',
+			page: 1,
+			hasMore: false,
+			source: 'error',
+		};
 	}
-
-	const discoverRes = await fetch(
-		`${TMDB_BASE}/discover/movie?api_key=${env.PUBLIC_TMDB_API_KEY}` +
-		`&language=af&with_original_language=af&sort_by=popularity.desc&page=${page}&region=ZA`
-	);
-	const discoverData = await discoverRes.json();
-
-	const curatedIds = new Set(AFRIKAANS_FILMS.map((f) => f.tmdbId));
-	const movies = (discoverData.results || [])
-		.filter((m: any) => !curatedIds.has(m.id))
-		.map(formatMovie);
-
-	return {
-		movies,
-		page,
-		hasMore: page < (discoverData.total_pages || 1),
-		source: 'discover',
-	};
 }
