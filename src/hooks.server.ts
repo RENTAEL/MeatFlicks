@@ -5,9 +5,9 @@ import type { Handle, RequestEvent } from '@sveltejs/kit';
 import { validateApiKeys, runMaintenance } from '$lib/server';
 import { logger } from '$lib/server/logger';
 import { apiRateLimiter, authRateLimiter } from '$lib/server/rate-limiter';
-import { lucia } from '$lib/server/auth';
 import { applySecurityHeaders } from '$lib/server/security-headers';
 import { csrfMiddleware } from '$lib/server/csrf';
+import { decryptSession, createSessionCookieName, getSessionCookieOptions } from '$lib/server/session-crypto';
 
 
 
@@ -38,7 +38,6 @@ async function validateSession(event: RequestEvent) {
 		const session = event.locals.session;
 		if (session.expiresAt && Date.now() > session.expiresAt.getTime()) {
 			logger.warn(`Expired session detected for user ${session.userId}`);
-			await lucia.invalidateSession(session.id);
 			event.locals.session = null;
 			event.locals.user = null;
 		}
@@ -101,28 +100,22 @@ export const handle: Handle = async ({ event, resolve }) => {
 		}
 	}
 
-	const sessionId = event.cookies.get(lucia.sessionCookieName);
-	if (!sessionId) {
+	const raw = event.cookies.get(createSessionCookieName());
+	const sessionData = raw ? decryptSession(raw) : null;
+	if (sessionData) {
+		event.locals.user = {
+			id: sessionData.userId,
+			username: sessionData.username,
+			role: sessionData.role,
+		};
+		event.locals.session = {
+			id: createSessionCookieName(),
+			userId: sessionData.userId,
+			expiresAt: new Date(sessionData.expiresAt),
+		};
+	} else {
 		event.locals.user = null;
 		event.locals.session = null;
-	} else {
-		const { session, user } = await lucia.validateSession(sessionId);
-		if (session && session.fresh) {
-			const sessionCookie = lucia.createSessionCookie(session.id);
-			event.cookies.set(sessionCookie.name, sessionCookie.value, {
-				path: '.',
-				...sessionCookie.attributes
-			});
-		}
-		if (!session) {
-			const sessionCookie = lucia.createBlankSessionCookie();
-			event.cookies.set(sessionCookie.name, sessionCookie.value, {
-				path: '.',
-				...sessionCookie.attributes
-			});
-		}
-		event.locals.user = user;
-		event.locals.session = session;
 	}
 
 	const csrfResponse = await csrfMiddleware().handle({ event, resolve });

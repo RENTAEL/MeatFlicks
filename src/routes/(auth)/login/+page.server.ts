@@ -2,8 +2,8 @@ import { fail, redirect } from '@sveltejs/kit';
 import { verify } from '@node-rs/argon2';
 import { db } from '$lib/server/db';
 import { users } from '$lib/server/db/schema';
-import { lucia } from '$lib/server/auth';
 import { getCsrfToken } from '$lib/server/csrf';
+import { encryptSession, createSessionCookieName, getSessionCookieOptions } from '$lib/server/session-crypto';
 import type { Actions, PageServerLoad } from './$types';
 import { eq } from 'drizzle-orm';
 
@@ -49,15 +49,13 @@ export const actions: Actions = {
 			});
 		}
 
-		const session = await lucia.createSession(existingUser.id, {
-			created_at: Date.now(),
-			expires_at: Date.now() + 86400 * 1000
+		const cookie = encryptSession({
+			userId: existingUser.id,
+			username: existingUser.username,
+			role: existingUser.role,
+			expiresAt: Date.now() + 86400 * 1000 * 30,
 		});
-		const sessionCookie = lucia.createSessionCookie(session.id);
-		cookies.set(sessionCookie.name, sessionCookie.value, {
-			path: '.',
-			...sessionCookie.attributes
-		});
+		cookies.set(createSessionCookieName(), cookie, getSessionCookieOptions());
 
 		return redirect(302, '/');
 	}
