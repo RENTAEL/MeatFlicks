@@ -10,6 +10,7 @@
 			<a href="/" class="transition-colors hover:text-foreground">Home</a>
 			<a href="/movies" class="transition-colors hover:text-foreground">Movies</a>
 			<a href="/tv-shows" class="transition-colors hover:text-foreground">TV Series</a>
+			<a href="/afrikaans" class="transition-colors hover:text-foreground">Afrikaans</a>
 			<a href="/search" class="transition-colors hover:text-foreground">Search</a>
 		</nav>
 
