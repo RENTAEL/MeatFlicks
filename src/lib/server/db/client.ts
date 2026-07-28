@@ -13,7 +13,12 @@ let connectionAttempts = 0;
 let initFailed = false;
 const MAX_CONNECTION_ATTEMPTS = 1;
 
-const resolveDatabasePath = () => {
+const isTurso = () => !!(process.env.TURSO_DATABASE_URL || env.TURSO_DATABASE_URL);
+
+const resolveDatabaseUrl = () => {
+	if (isTurso()) {
+		return process.env.TURSO_DATABASE_URL || env.TURSO_DATABASE_URL || '';
+	}
 	let target = env.SQLITE_DB_PATH;
 	if (process.env.VERCEL === '1') {
 		target = '/tmp/streamium.db';
@@ -22,7 +27,12 @@ const resolveDatabasePath = () => {
 	return `file:${absPath}`;
 };
 
+const getAuthToken = () => {
+	return process.env.TURSO_AUTH_TOKEN || env.TURSO_AUTH_TOKEN || undefined;
+};
+
 const ensureDirectory = (dbPath: string) => {
+	if (isTurso()) return;
 	try {
 		const folder = dirname(dbPath.replace(/^file:/, ''));
 		mkdirSync(folder, { recursive: true });
@@ -32,10 +42,12 @@ const ensureDirectory = (dbPath: string) => {
 
 const runInitSql = async (client: Client) => {
 	try {
-		await client.execute('PRAGMA journal_mode = WAL');
-		await client.execute('PRAGMA synchronous = NORMAL');
-		await client.execute('PRAGMA cache_size = -64000');
-		await client.execute('PRAGMA foreign_keys = ON');
+		if (!isTurso()) {
+			await client.execute('PRAGMA journal_mode = WAL');
+			await client.execute('PRAGMA synchronous = NORMAL');
+			await client.execute('PRAGMA cache_size = -64000');
+			await client.execute('PRAGMA foreign_keys = ON');
+		}
 
 		await client.execute(`CREATE TABLE IF NOT EXISTS media (
 			"numericId" INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
@@ -134,7 +146,9 @@ const runInitSql = async (client: Client) => {
 			"expires_at" INTEGER NOT NULL
 		)`);
 
-		await client.execute('PRAGMA optimize');
+		if (!isTurso()) {
+			await client.execute('PRAGMA optimize');
+		}
 
 		logger.info('Database initialization completed successfully');
 	} catch (err) {
@@ -143,9 +157,9 @@ const runInitSql = async (client: Client) => {
 };
 
 // Initialize database eagerly before any module imports complete
-const initUrl = resolveDatabasePath();
+const initUrl = resolveDatabaseUrl();
 ensureDirectory(initUrl);
-const initClient = createClient({ url: initUrl });
+const initClient = createClient({ url: initUrl, authToken: isTurso() ? getAuthToken() : undefined });
 await runInitSql(initClient);
 await initClient.close();
 
@@ -163,14 +177,16 @@ export const runMaintenance = async () => {
 
 const createDatabaseClient = (): Client => {
 	if (initFailed) throw new Error('Previous DB init failed');
-	const url = resolveDatabasePath();
+	const url = resolveDatabaseUrl();
 	ensureDirectory(url);
-	const client = createClient({ url });
-	client.execute('PRAGMA busy_timeout = 30000');
-	client.execute('PRAGMA journal_mode = WAL');
-	client.execute('PRAGMA synchronous = NORMAL');
-	client.execute('PRAGMA cache_size = -64000');
-	client.execute('PRAGMA foreign_keys = ON');
+	const client = createClient({ url, authToken: isTurso() ? getAuthToken() : undefined });
+	if (!isTurso()) {
+		client.execute('PRAGMA busy_timeout = 30000');
+		client.execute('PRAGMA journal_mode = WAL');
+		client.execute('PRAGMA synchronous = NORMAL');
+		client.execute('PRAGMA cache_size = -64000');
+		client.execute('PRAGMA foreign_keys = ON');
+	}
 	return client;
 };
 
