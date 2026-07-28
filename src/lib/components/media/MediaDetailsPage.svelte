@@ -16,7 +16,7 @@
 	import MediaHeader from '$lib/components/media/MediaHeader.svelte';
 	import EpisodeGrid from '$lib/components/episodes/EpisodeGrid.svelte';
 	import MediaOverview from '$lib/components/media/MediaOverview.svelte';
-	import ProviderSelector, { type Provider } from '$lib/components/media/ProviderSelector.svelte';
+	import ProviderSelector from '$lib/components/media/ProviderSelector.svelte';
 	import { Separator } from '$lib/components/ui/separator';
 	import { playbackStore } from '$lib/state/stores/playbackStore.svelte';
 	import InlinePlayer from '$lib/components/player/InlinePlayer.svelte';
@@ -77,6 +77,15 @@
 		flatrate: WatchProvider[];
 		rent: WatchProvider[];
 		buy: WatchProvider[];
+	};
+
+	type Provider = {
+		id: string;
+		name: string;
+		quality?: string;
+		type?: string;
+		icon?: string;
+		working: boolean | null;
 	};
 
 	const props = $props<{

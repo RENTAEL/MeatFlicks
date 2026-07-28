@@ -2,8 +2,10 @@
 	import { Button } from '$lib/components/ui/button';
 	import { Star, Film, Play, Bookmark, BookmarkMinus } from '@lucide/svelte';
 	import { watchlist } from '$lib/state/stores/watchlistStore.svelte';
+	import { error as errorStore } from '$lib/state/stores/errorStore';
 
 	import { getImageUrl } from '$lib/utils/image';
+	import type { ProviderResolution } from '$lib/streaming/provider-registry';
 
 	let {
 		movie,

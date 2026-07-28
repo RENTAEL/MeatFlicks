@@ -155,7 +155,7 @@
 			autoplay
 			playsinline
 			onerror={(e) => {
-				const video = e.currentTarget;
+				const video = e.currentTarget as HTMLVideoElement;
 				loadError = video.error?.message || 'An unknown error occurred while loading the video.';
 			}}
 			ontimeupdate={(e) => checkSkip(e.currentTarget.currentTime)}

@@ -13,9 +13,9 @@
 		onselect?: (result: ProbeResult) => void;
 	}>();
 
-	let upCount = $derived(results.filter((r) => r.status === 'up').length);
-	let downCount = $derived(results.filter((r) => r.status === 'down').length);
-	let checkingCount = $derived(results.filter((r) => r.status === 'checking').length);
+	let upCount = $derived(results.filter((r: ProbeResult) => r.status === 'up').length);
+	let downCount = $derived(results.filter((r: ProbeResult) => r.status === 'down').length);
+	let checkingCount = $derived(results.filter((r: ProbeResult) => r.status === 'checking').length);
 </script>
 
 <div class="server-grid-wrapper">

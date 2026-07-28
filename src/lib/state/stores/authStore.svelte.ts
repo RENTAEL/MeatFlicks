@@ -178,6 +178,7 @@ function createAuthStore() {
 		if (state.isGuest || !state.user) return;
 		try {
 			const db = getFirestoreDb();
+			if (!db) return;
 			await setDoc(doc(db, 'users', state.user.uid, 'progress', mediaId), data, { merge: true });
 		} catch (e) {
 			console.error('[auth] Failed to save progress to cloud:', e);
@@ -188,6 +189,7 @@ function createAuthStore() {
 		if (state.isGuest || !state.user) return;
 		try {
 			const db = getFirestoreDb();
+			if (!db) return;
 			await setDoc(doc(db, 'users', state.user.uid, 'watchlist', String(item.id)), item, { merge: true });
 		} catch (e) {
 			console.error('[auth] Failed to save watchlist to cloud:', e);
@@ -198,6 +200,7 @@ function createAuthStore() {
 		if (state.isGuest || !state.user) return;
 		try {
 			const db = getFirestoreDb();
+			if (!db) return;
 			await deleteDoc(doc(db, 'users', state.user.uid, 'watchlist', mediaId));
 		} catch (e) {
 			console.error('[auth] Failed to remove watchlist from cloud:', e);

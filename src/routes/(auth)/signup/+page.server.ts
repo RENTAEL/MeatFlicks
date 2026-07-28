@@ -27,7 +27,7 @@ export const actions: Actions = {
 			typeof username !== 'string' ||
 			username.length < 3 ||
 			username.length > 31 ||
-			!/^[a-z0-9_-]+$/.test(username)
+			!/^[a-zA-Z0-9_-]+$/.test(username)
 		) {
 			return fail(400, {
 				message: 'Invalid username'
@@ -39,7 +39,8 @@ export const actions: Actions = {
 			});
 		}
 
-		const existingUser = await db.select().from(users).where(eq(users.username, username)).get();
+		const normalizedUsername = username.toLowerCase();
+		const existingUser = await db.select().from(users).where(eq(users.username, normalizedUsername)).get();
 		if (existingUser) {
 			return fail(400, {
 				message: 'Username already taken'
@@ -57,7 +58,7 @@ export const actions: Actions = {
 		try {
 			await db.insert(users).values({
 				id: userId,
-				username,
+				username: normalizedUsername,
 				passwordHash,
 				role: 'USER'
 			});

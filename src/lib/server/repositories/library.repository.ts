@@ -328,10 +328,14 @@ export const libraryRepository = {
 			return {
 				items: [],
 				pagination: {
-					page: pagination.page,
+					currentPage: pagination.page,
 					pageSize: pagination.pageSize,
 					totalItems: 0,
-					totalPages: 0
+					totalPages: 0,
+					hasNextPage: false,
+					hasPreviousPage: false,
+					startIndex: 0,
+					endIndex: 0
 				}
 			};
 		}

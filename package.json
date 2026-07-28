@@ -18,7 +18,9 @@
 		"db:studio": "drizzle-kit studio",
 		"import-data": "bun run import-data.js",
 		"db:generate": "drizzle-kit generate",
-		"db:migrate": "bun run migrate.ts"
+		"db:migrate": "bun run migrate.ts",
+		"audit": "node scripts/audit.js",
+		"audit:prod": "AUDIT_URL=https://your-domain.com node scripts/audit.js"
 	},
 	"devDependencies": {
 		"@eslint/compat": "^1.4.1",

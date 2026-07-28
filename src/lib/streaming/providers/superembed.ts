@@ -77,7 +77,7 @@ export const superEmbedProvider: StreamingProvider = {
 	priority: 20,
 	supportedMedia: ['movie', 'tv'],
 	async fetchSource(context) {
-		if (!context.tmdbId && !context.imdbId && !context.malId) return null;
+		if (!context.tmdbId && !context.imdbId && !(context as any).malId) return null;
 
 		const result = await tryFetchSource(context);
 		if (result) {

@@ -1,8 +1,4 @@
-<script lang="ts">
-	import { fade, fly } from 'svelte/transition';
-	import { providerSettings } from '$lib/streaming/providerSettingsStore.svelte';
-	import type { ProviderSettings } from '$lib/streaming/providerSettingsStore.svelte';
-
+<script module lang="ts">
 	export interface Provider {
 		id: string;
 		name: string;
@@ -11,6 +7,12 @@
 		icon?: string;
 		working: boolean | null;
 	}
+</script>
+
+<script lang="ts">
+	import { fade, fly } from 'svelte/transition';
+	import { providerSettings } from '$lib/streaming/providerSettingsStore.svelte';
+	import type { ProviderSettings } from '$lib/streaming/providerSettingsStore.svelte';
 
 	let {
 		providers = [],

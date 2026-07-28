@@ -17,7 +17,7 @@
   const fetchError = $derived(data.fetchError ?? '');
 
   const activeGenreName = $derived(
-    genres.find((g) => String(g.id) === activeGenreId)?.name || ''
+    genres.find((g: { id: number | string; name: string }) => String(g.id) === activeGenreId)?.name || ''
   );
 
   let currentPage = $state(1);
@@ -79,7 +79,9 @@
       media_type: 'movie',
       genres: [],
       imdbId: null,
-      trailerUrl: null
+      trailerUrl: null,
+      canonicalPath: null,
+      addedAt: null
     } as LibraryMovie;
   }
 

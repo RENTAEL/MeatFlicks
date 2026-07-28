@@ -31,7 +31,7 @@ const observer = new MutationObserver((mutations) => {
   for (const mutation of mutations) {
     for (const node of mutation.addedNodes) {
       if (node.nodeType !== 1) continue;
-      const el = node;
+      const el = /** @type {HTMLElement} */ (node);
       if (el.tagName === 'IFRAME') {
         const src = el.getAttribute('src') || '';
         const name = el.getAttribute('name') || '';
@@ -59,7 +59,7 @@ const observer = new MutationObserver((mutations) => {
 
 const originalFetch = window.fetch;
 window.fetch = function(input, init) {
-  const url = typeof input === 'string' ? input : input?.url || '';
+  const url = typeof input === 'string' ? input : (/** @type {Request} */ (input)).url || '';
   if (AD_URL_PATTERNS.some(p => p.test(url))) {
     debug('[AdBlocker] Blocked fetch:', url);
     return Promise.reject(new Error('Blocked by ad blocker'));

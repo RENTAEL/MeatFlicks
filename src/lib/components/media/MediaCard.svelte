@@ -109,7 +109,7 @@
 	class="media-card group relative {showPreview ? 'z-50' : 'z-10'}"
 	onmouseenter={startHover}
 	onmouseleave={endHover}
-	onclick={(e) => { if (!e.target.closest('a, button') && browser) goto(detailsHref); }}
+	onclick={(e) => { const t = e.target as HTMLElement | null; if (t && !t.closest('a, button') && browser) goto(detailsHref); }}
 	onkeydown={(e) => { if (e.key === 'Enter' && browser) goto(detailsHref); }}
 	role="button"
 	tabindex="0"

@@ -24,7 +24,7 @@
 	let filteredMovies = $derived.by(() => {
 		if (!searchQuery) return allMovies;
 		const q = searchQuery.toLowerCase();
-		return allMovies.filter(m => m.title.toLowerCase().includes(q));
+		return allMovies.filter((m: { title: string }) => m.title.toLowerCase().includes(q));
 	});
 
 	$effect(() => {

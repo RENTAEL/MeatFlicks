@@ -37,7 +37,9 @@
 	async function handleResetPassword() {
 		if (!user?.email) return;
 		try {
-			await sendPasswordResetEmail(getFirebaseAuth(), user.email);
+			const auth = getFirebaseAuth();
+			if (!auth) return;
+			await sendPasswordResetEmail(auth, user.email);
 			resetSent = true;
 		} catch (e) {
 			console.error(e);

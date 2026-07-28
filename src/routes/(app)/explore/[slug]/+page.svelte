@@ -83,7 +83,9 @@
 			media_type: mediaType,
 			genres: [],
 			imdbId: null,
-			trailerUrl: null
+			trailerUrl: null,
+			canonicalPath: null,
+			addedAt: null
 		} as LibraryMovie;
 	}
 

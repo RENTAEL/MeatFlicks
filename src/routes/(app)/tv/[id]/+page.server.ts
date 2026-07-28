@@ -5,6 +5,7 @@ import {
 	fetchTmdbRecommendations,
 	fetchTmdbWatchProviders
 } from '$lib/server/services/tmdb.service';
+import type { TmdbWatchProviderResult } from '$lib/server/services/tmdb.types';
 
 type TvWithDetails = {
 	id: string;
@@ -116,7 +117,7 @@ export const load: PageServerLoad = async ({ params, fetch, cookies }) => {
 			);
 		}
 
-		let watchProviders = { flatrate: [], rent: [], buy: [] };
+		let watchProviders: TmdbWatchProviderResult = { flatrate: [], rent: [], buy: [] };
 		if (tvShow.tmdbId) {
 			try {
 				watchProviders = await fetchTmdbWatchProviders(Number(tvShow.tmdbId), 'tv');

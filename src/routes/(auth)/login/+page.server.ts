@@ -28,7 +28,8 @@ export const actions: Actions = {
 			});
 		}
 
-		const existingUser = await db.select().from(users).where(eq(users.username, username)).get();
+		const normalizedUsername = username.toLowerCase();
+		const existingUser = await db.select().from(users).where(eq(users.username, normalizedUsername)).get();
 		if (!existingUser) {
 			return fail(400, {
 				message: 'Incorrect username or password'

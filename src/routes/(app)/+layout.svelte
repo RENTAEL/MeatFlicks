@@ -19,14 +19,16 @@
 	import { setupCloudSync } from '$lib/firebase/sync';
 	import { menuOpen } from '$lib/stores/menu';
 	import { authStore } from '$lib/state/stores/authStore.svelte.ts';
-	import UblockPrompt from '$lib/components/UblockPrompt.svelte';
+	import UblockPopup from '$lib/components/UblockPopup.svelte';
 	import UserFab from '$lib/components/UserFab.svelte';
 
-	onMount(async () => {
-		try {
-			const { initAdBlocker } = await import('$lib/utils/adBlocker.js');
-			initAdBlocker();
-		} catch {}
+	onMount(() => {
+		void (async () => {
+			try {
+				const { initAdBlocker } = await import('$lib/utils/adBlocker.js');
+				initAdBlocker();
+			} catch {}
+		})();
 		const cleanup = setupCloudSync();
 
 		const checkVersion = async () => {
@@ -103,7 +105,7 @@
 
 <SearchOverlay />
 
-<UblockPrompt />
+<UblockPopup />
 
 {#if $menuOpen}
 	<div class="menu-backdrop" onclick={() => menuOpen.set(false)} role="button" tabindex="-1" aria-label="Close menu" transition:fade={{ duration: 150 }}></div>

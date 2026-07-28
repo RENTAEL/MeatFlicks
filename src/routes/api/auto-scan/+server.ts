@@ -11,7 +11,7 @@ const PROVIDER_ORDER = [
 	'nontongo'
 ];
 
-const PROVIDERS: Record<string, (tmdbId: string, type: string, season?: string, episode?: string) => string> = {
+const PROVIDERS: Record<string, (tmdbId: string, type: string, season?: string, episode?: string, mediaId?: string) => string> = {
 	smashystream: (id, type, s, e) =>
 		type === 'movie'
 			? `https://embed.smashystream.com/playere.php?tmdb=${id}`

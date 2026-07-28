@@ -250,7 +250,7 @@ export const load: PageServerLoad = async ({ params, url }) => {
 			};
 		}
 
-	let genreData;
+	let genreData: Array<{ genre: string; slug: string; movies: LibraryMedia[] }> = [];
 	try {
 		genreData = await Promise.all(
 			genresToFetch.map(async (genreName) => ({
