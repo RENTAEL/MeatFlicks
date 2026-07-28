@@ -20,6 +20,7 @@
 	import { menuOpen } from '$lib/stores/menu';
 	import { authStore } from '$lib/state/stores/authStore.svelte.ts';
 	import UblockPrompt from '$lib/components/UblockPrompt.svelte';
+	import UserFab from '$lib/components/UserFab.svelte';
 
 	onMount(async () => {
 		try {
@@ -95,6 +96,7 @@
 			<GlobalErrorDisplay />
 			<NotificationPortal />
 			<OfflineIndicator />
+			<UserFab />
 		</ErrorContext>
 	</WatchlistContext>
 </ThemeContext>
