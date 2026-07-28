@@ -133,6 +133,10 @@
 				<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="15" rx="2" ry="2"/><polyline points="17 2 12 7 7 2"/></svg>
 				TV Shows
 			</a>
+			<a href="/afrikaans" class="menu-item" onclick={() => menuOpen.set(false)}>
+				<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+				Afrikaans
+			</a>
 			<a href="/watchlist" class="menu-item" onclick={() => menuOpen.set(false)}>
 				<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
 				My List

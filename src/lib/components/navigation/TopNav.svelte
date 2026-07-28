@@ -17,6 +17,7 @@
 		{ label: 'Home', href: '/' },
 		{ label: 'Movies', href: '/movies' },
 		{ label: 'TV Series', href: '/tv' },
+		{ label: 'Afrikaans', href: '/afrikaans' },
 	];
 
 	const isActive = (href: string) => {
