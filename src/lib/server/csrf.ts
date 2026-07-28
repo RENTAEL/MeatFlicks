@@ -25,7 +25,6 @@ type CsrfCookieAttributes = {
 	sameSite: 'lax';
 	path: '/';
 	maxAge: number;
-	partitioned?: true;
 };
 
 type CsrfTokenPayload = {
@@ -89,8 +88,7 @@ export function createCsrfCookie(token: string): {
 			secure: !isDev,
 			sameSite: 'lax' as const,
 			path: '/',
-			maxAge: Math.floor(CSRF_TOKEN_EXPIRATION_MS / 1000),
-			...(!isDev ? { partitioned: true } : {})
+			maxAge: Math.floor(CSRF_TOKEN_EXPIRATION_MS / 1000)
 		}
 	};
 }
@@ -115,8 +113,7 @@ export function createSecureCsrfCookie(tokenData: {
 			secure: !isDev,
 			sameSite: 'lax' as const,
 			path: '/',
-			maxAge: Math.floor(CSRF_TOKEN_EXPIRATION_MS / 1000),
-			...(!isDev ? { partitioned: true } : {})
+			maxAge: Math.floor(CSRF_TOKEN_EXPIRATION_MS / 1000)
 		}
 	};
 }

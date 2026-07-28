@@ -26,7 +26,7 @@
 	<div class="flex flex-col gap-6 md:flex-row">
 		<div class="w-24 shrink-0 md:hidden">
 			<img
-				src="https://image.tmdb.org/t/p/w342{movie.poster_path}"
+				src={movie.poster_path ? `https://image.tmdb.org/t/p/w342${movie.poster_path}` : '/placeholder-poster.svg'}
 				alt={movie.title}
 				class="w-full rounded-lg"
 			/>

@@ -2,6 +2,7 @@ import puppeteer from 'puppeteer';
 
 const BASE_URL = process.env.AUDIT_URL || 'http://localhost:5173';
 const REPORT = [];
+const delay = (ms) => new Promise((r) => setTimeout(r, ms));
 
 function log(phase, message, status = 'INFO') {
   const entry = { phase, message, status, timestamp: new Date().toISOString() };
@@ -17,7 +18,8 @@ function collectConsole(page, phase) {
     if (text.includes('ERR_BLOCKED_BY_CLIENT')) return;
     if (text.includes('state_referenced_locally')) return;
     if (type === 'error') {
-      log(phase, `CONSOLE ERROR: ${text}`, 'ERROR');
+      const args = msg.args().map(a => a.toString()).join(' ');
+      log(phase, `CONSOLE ERROR: ${text} ${args ? '| ' + args : ''}`, 'ERROR');
     } else if (type === 'warning') {
       log(phase, `CONSOLE WARNING: ${text}`, 'WARN');
     }
@@ -32,8 +34,14 @@ function collectNetwork(page, phase) {
     }
   });
   page.on('response', (res) => {
-    if (res.status() >= 400 && res.url().includes(BASE_URL.replace('http://', ''))) {
-      log(phase, `HTTP ${res.status()}: ${res.url()}`, 'ERROR');
+    if (res.status() >= 400) {
+      const url = res.url();
+      const host = new URL(BASE_URL).host;
+      if (url.includes(host)) {
+        log(phase, `HTTP ${res.status()}: ${url}`, 'ERROR');
+      } else {
+        log(phase, `HTTP ${res.status()}: ${url}`, 'WARN');
+      }
     }
   });
 }
@@ -100,7 +108,7 @@ async function runAudit() {
     await visualChecks(page, 'HOMEPAGE', [
       { selector: 'header', label: 'Header', required: true },
       { selector: 'header a', label: 'Logo link', required: true },
-      { selector: '.auth-nav, header a[href*="signin"], header a[href*="signup"]', label: 'Auth section (desktop)', required: false },
+      { selector: '.auth-nav, header a[href*="login"], header a[href*="signup"]', label: 'Auth section (desktop)', required: false },
       { selector: '.fab-container, .fab-btn', label: 'User FAB', required: true },
       { selector: 'footer', label: 'Footer', required: false },
     ]);
@@ -121,7 +129,7 @@ async function runAudit() {
     }
   }
 
-  await navigate(page, '/signin', 'AUTH');
+  await navigate(page, '/login', 'AUTH');
   await visualChecks(page, 'AUTH', [
     { selector: 'form', label: 'Sign-in form', required: true },
     { selector: 'input[type="text"], input[name="username"]', label: 'Username input', required: true },
@@ -135,7 +143,7 @@ async function runAudit() {
     { selector: 'form', label: 'Sign-up form', required: true },
     { selector: 'input[type="text"], input[name="username"]', label: 'Username input', required: true },
     { selector: 'input[type="password"]', label: 'Password input', required: true },
-    { selector: 'a[href*="signin"]', label: 'Link to sign-in', required: true },
+    { selector: 'a[href*="login"]', label: 'Link to sign-in', required: true },
   ]);
 
   const contentPages = [
@@ -204,7 +212,7 @@ async function runAudit() {
     }
 
     log('RESPONSIVE', `${label}: passed`, 'INFO');
-    await page.waitForTimeout(500);
+    await delay(500);
   }
 
   await page.setViewport({ width: 1440, height: 900, deviceScaleFactor: 1 });
@@ -253,24 +261,28 @@ async function runAudit() {
     log('SECURITY', `${blockedFrames} iframe(s) have zero dimensions \u2014 possibly blocked by CSP/X-Frame-Options`, 'WARN');
   }
 
-  await navigate(page, '/signin', 'AUTH-FLOW');
+  await navigate(page, '/login', 'AUTH-FLOW');
   try {
     const submitBtn = await page.$('button[type="submit"]');
     if (submitBtn) {
       await submitBtn.click();
-      await page.waitForTimeout(1000);
+      await delay(1000);
+
+      const csrfToken = await page.evaluate(() => {
+        const input = document.querySelector('input[name="csrf_token"]');
+        return input ? (input).value || '(empty)' : '(not found)';
+      });
+      log('AUTH-FLOW', `CSRF token: ${csrfToken}`, 'INFO');
 
       const stillAlive = await page.evaluate(() => document.body.innerText.length > 0);
       if (!stillAlive) {
         log('AUTH-FLOW', 'Page crashed after empty form submit', 'ERROR');
       }
 
-      const errorMsg = await page.evaluate(() => {
-        const body = document.body.innerText.toLowerCase();
-        return body.includes('required') || body.includes('invalid') || body.includes('error') || body.includes('please');
-      });
+      const bodyText = await page.evaluate(() => document.body.innerText.toLowerCase());
+      const errorMsg = bodyText.includes('required') || bodyText.includes('invalid') || bodyText.includes('error') || bodyText.includes('please') || bodyText.includes('incorrect');
       if (!errorMsg) {
-        log('AUTH-FLOW', 'No validation message after empty form submit', 'WARN');
+        log('AUTH-FLOW', `No validation msg. Body starts: ${bodyText.slice(0, 120).trim()}`, 'WARN');
       } else {
         log('AUTH-FLOW', 'Validation message shown for empty form \u2014 good', 'INFO');
       }
@@ -284,7 +296,7 @@ async function runAudit() {
     const fabBtn = await page.$('.fab-btn');
     if (fabBtn) {
       await fabBtn.click();
-      await page.waitForTimeout(500);
+      await delay(500);
 
       const panelOpen = await page.evaluate(() => {
         return !!document.querySelector('.fab-panel');
@@ -293,7 +305,7 @@ async function runAudit() {
         log('FAB', 'Panel opens on click \u2014 good', 'INFO');
 
         await page.keyboard.press('Escape');
-        await page.waitForTimeout(300);
+        await delay(300);
         const panelClosed = await page.evaluate(() => {
           return !document.querySelector('.fab-panel');
         });
@@ -317,10 +329,10 @@ async function runAudit() {
     const hamburger = await page.$('[aria-label*="menu"], .hamburger, .menu-btn, button[aria-label*="Open"]');
     if (hamburger) {
       await hamburger.click();
-      await page.waitForTimeout(500);
+      await delay(500);
 
       const drawerOpen = await page.evaluate(() => {
-        return !!document.querySelector('.menu-panel, .drawer, .menu-open, [class*="slide"]');
+        return !!document.querySelector('.menu-drawer, .menu-panel, .drawer, .menu-open, [class*="slide"], .menu-backdrop');
       });
       if (drawerOpen) {
         log('MOBILE', 'Hamburger menu opens \u2014 good', 'INFO');

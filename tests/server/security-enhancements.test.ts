@@ -154,7 +154,7 @@ describe('Security Enhancements', () => {
 			expect(cookie.name).toBe('csrf_token');
 			expect(cookie.attributes.httpOnly).toBe(true);
 			expect(cookie.attributes.secure).toBe(true);
-			expect(cookie.attributes.partitioned).toBe(true);
+			expect(cookie.attributes.sameSite).toBe('lax');
 		});
 
 		it('should validate CSRF tokens', async () => {
