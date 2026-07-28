@@ -114,10 +114,14 @@ export const cache = sqliteTable(
 export const users = sqliteTable('users', {
 	id: text('id').primaryKey(),
 	username: text('username').notNull().unique(),
+	email: text('email'),
 	passwordHash: text('password_hash').notNull(),
 	role: text('role', { enum: ['ADMIN', 'USER'] })
 		.notNull()
-		.default('USER')
+		.default('USER'),
+	createdAt: integer('created_at')
+		.notNull()
+		.$defaultFn(() => Date.now())
 });
 
 export const sessions = sqliteTable('sessions', {

@@ -140,6 +140,9 @@ const runInitSql = async (client: Client) => {
 			"role" TEXT NOT NULL DEFAULT 'USER'
 		)`);
 
+		try { await client.execute(`ALTER TABLE users ADD COLUMN "email" TEXT`); } catch {}
+		try { await client.execute(`ALTER TABLE users ADD COLUMN "created_at" INTEGER NOT NULL DEFAULT ${Date.now()}`); } catch {}
+
 		await client.execute(`CREATE TABLE IF NOT EXISTS sessions (
 			"id" TEXT PRIMARY KEY NOT NULL,
 			"user_id" TEXT NOT NULL REFERENCES users("id"),
