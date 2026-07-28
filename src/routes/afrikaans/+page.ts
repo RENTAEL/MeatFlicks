@@ -30,7 +30,6 @@ export async function load({ url }) {
 			}
 			return {
 				...formatMovie(tmdb || {}),
-				tmdbId: film.tmdbId,
 				id: film.tmdbId,
 				title: tmdb?.title || film.title,
 				poster: tmdb?.poster_path
@@ -39,9 +38,6 @@ export async function load({ url }) {
 				year: String(film.year),
 				titleEn: film.titleEn || null,
 				director: film.director || null,
-				youtubeId: film.youtubeId || null,
-				youtubeTrailerId: film.youtubeTrailerId || null,
-				sources: film.sources || [],
 			};
 		}).filter(Boolean).filter((m) => m.poster);
 
