@@ -78,6 +78,7 @@
 
 <style>
 	header { overflow: visible; }
-	header a, header button { white-space: nowrap; flex-shrink: 0; }
+	header a, header button { white-space: nowrap; flex-shrink: 0; min-width: fit-content; }
+	header a[href*="login"], header a[href*="signin"], [data-sign-in] { padding: 8px 20px; }
 	nav { flex-shrink: 0; }
 </style>
