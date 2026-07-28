@@ -263,29 +263,32 @@ async function runAudit() {
 
   await navigate(page, '/login', 'AUTH-FLOW');
   try {
-    const submitBtn = await page.$('button[type="submit"]');
-    if (submitBtn) {
-      await submitBtn.click();
-      await delay(1000);
-
-      const csrfToken = await page.evaluate(() => {
-        const input = document.querySelector('input[name="csrf_token"]');
-        return input ? (input).value || '(empty)' : '(not found)';
-      });
-      log('AUTH-FLOW', `CSRF token: ${csrfToken}`, 'INFO');
-
-      const stillAlive = await page.evaluate(() => document.body.innerText.length > 0);
-      if (!stillAlive) {
-        log('AUTH-FLOW', 'Page crashed after empty form submit', 'ERROR');
+    const result = await page.evaluate(async () => {
+      const input = document.querySelector('input[name="csrf_token"]');
+      const token = input ? input.value : '';
+      try {
+        const res = await fetch('/login', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'x-csrf-token': token
+          },
+          body: `username=&password=`,
+          credentials: 'include'
+        });
+        const text = await res.text();
+        return { status: res.status, body: text.slice(0, 300) };
+      } catch (e) {
+        return { status: 0, body: e.message };
       }
-
-      const bodyText = await page.evaluate(() => document.body.innerText.toLowerCase());
-      const errorMsg = bodyText.includes('required') || bodyText.includes('invalid') || bodyText.includes('error') || bodyText.includes('please') || bodyText.includes('incorrect');
-      if (!errorMsg) {
-        log('AUTH-FLOW', `No validation msg. Body starts: ${bodyText.slice(0, 120).trim()}`, 'WARN');
-      } else {
-        log('AUTH-FLOW', 'Validation message shown for empty form \u2014 good', 'INFO');
-      }
+    });
+    log('AUTH-FLOW', `POST /login \u2192 HTTP ${result.status}`, result.status >= 400 ? 'WARN' : 'INFO');
+    if (result.status < 400 && result.body.toLowerCase().includes('incorrect')) {
+      log('AUTH-FLOW', 'Validation shown for empty form \u2014 good', 'INFO');
+    } else if (result.status >= 400) {
+      log('AUTH-FLOW', `Server rejected: HTTP ${result.status}`, 'WARN');
+    } else {
+      log('AUTH-FLOW', `No validation msg: ${result.body.slice(0, 100).trim()}`, 'WARN');
     }
   } catch (err) {
     log('AUTH-FLOW', `Form test failed: ${err.message}`, 'ERROR');
