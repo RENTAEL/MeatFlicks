@@ -47,7 +47,7 @@ export async function load({ url }) {
 
 		const discoverRes = await fetch(
 			`${TMDB_BASE}/discover/movie?api_key=${env.PUBLIC_TMDB_API_KEY}` +
-			`&language=af&with_original_language=af&sort_by=popularity.desc&page=${page}&region=ZA`
+			`&language=af&with_original_language=af&sort_by=primary_release_date.desc&page=${page}&region=ZA`
 		);
 		const discoverData = await discoverRes.json();
 

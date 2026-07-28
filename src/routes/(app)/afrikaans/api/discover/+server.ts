@@ -8,7 +8,7 @@ export async function GET({ url }) {
 
 	const res = await fetch(
 		`https://api.themoviedb.org/3/discover/movie?api_key=${env.PUBLIC_TMDB_API_KEY}` +
-		`&language=af&with_original_language=af&sort_by=popularity.desc` +
+		`&language=af&with_original_language=af&sort_by=primary_release_date.desc` +
 		`&page=${page}&region=ZA`
 	);
 

@@ -14,7 +14,7 @@
 	let loadingMore = $state(false);
 	let searchQuery = $state('');
 	type SortMode = 'default' | 'newest';
-	let sortMode: SortMode = $state('default');
+	let sortMode = $state<SortMode>('default');
 
 	let searchedMovies = $derived(
 		searchQuery
