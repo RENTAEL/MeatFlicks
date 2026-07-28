@@ -25,6 +25,9 @@ export async function load({ url }) {
 
 		const movies = AFRIKAANS_FILMS.map((film, i) => {
 			const tmdb = tmdbResults[i];
+			if (!tmdb) {
+				console.warn(`[afrikaans] TMDB fetch returned null for ${film.title} (ID ${film.tmdbId})`);
+			}
 			return {
 				...formatMovie(tmdb || {}),
 				tmdbId: film.tmdbId,
@@ -38,7 +41,7 @@ export async function load({ url }) {
 				director: film.director || null,
 				youtubeId: film.youtubeId || null,
 			};
-		}).filter((m) => m.poster);
+		}).filter(Boolean).filter((m) => m.poster);
 
 		return { movies, page: 1, hasMore: movies.length >= 20, source: 'curated' };
 	}

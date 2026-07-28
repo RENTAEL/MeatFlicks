@@ -15,7 +15,9 @@ export async function GET({ url }) {
 	const data = await res.json();
 
 	const curatedIds = new Set(AFRIKAANS_FILMS.map((f) => f.tmdbId));
-	const results = (data.results || []).filter((m: any) => !curatedIds.has(m.id));
+	const results = (data.results || [])
+		.filter((m: any) => !curatedIds.has(m.id))
+		.filter((m: any) => m.poster_path);
 
 	return json({
 		results: results.map(formatMovie),

@@ -12,6 +12,22 @@
 	let currentPage = $state(data.page || 1);
 	let hasMore = $state(data.hasMore ?? false);
 	let loadingMore = $state(false);
+	let searchQuery = $state('');
+
+	let filteredMovies = $derived(
+		searchQuery
+			? movies.filter((m) => {
+				const q = searchQuery.toLowerCase();
+				return (
+					(m.title?.toLowerCase() ?? '').includes(q) ||
+					(m.titleEn?.toLowerCase() ?? '').includes(q) ||
+					(m.overview?.toLowerCase() ?? '').includes(q) ||
+					String(m.year ?? '').includes(q) ||
+					(m.director?.toLowerCase() ?? '').includes(q)
+				);
+			})
+			: movies
+	);
 
 	$effect(() => {
 		if (data.movies) movies = data.movies;
@@ -51,6 +67,18 @@
 		<p class="page-subtitle">Afrikaans-language cinema and South African film</p>
 	</div>
 
+	<div class="search-bar">
+		<input
+			type="search"
+			bind:value={searchQuery}
+			placeholder="Search by title, director, year…"
+			class="search-input"
+		/>
+		{#if searchQuery}
+			<button class="search-clear" onclick={() => searchQuery = ''}>✕</button>
+		{/if}
+	</div>
+
 	{#if initialLoad}
 		<div class="movie-grid">
 			{#each Array(20) as _, i}
@@ -68,16 +96,24 @@
 			<p>Failed to load films.</p>
 			<button class="retry-btn" onclick={() => goto('/afrikaans')}>Retry</button>
 		</div>
+	{:else if filteredMovies.length === 0}
+		<div class="empty-state search-empty">
+			<p>Geen resultate vir "{searchQuery}" nie.</p>
+		</div>
 	{:else}
+		{#if searchQuery}
+			<p class="result-count">{filteredMovies.length} result{filteredMovies.length === 1 ? '' : 's'}</p>
+		{/if}
+
 		<div class="movie-grid">
-			{#each movies as movie, i (movie.id)}
+			{#each filteredMovies as movie, i (movie.id)}
 				<div in:fly={{ y: 20, duration: 200, delay: Math.min(i * 30, 400) }}>
 					<MediaCard media={movie} href="/afrikaans/{movie.tmdbId || movie.id}" />
 				</div>
 			{/each}
 		</div>
 
-		{#if hasMore}
+		{#if hasMore && !searchQuery}
 			<div class="load-more-wrap">
 				{#if loadingMore}
 					<div class="spinner"></div>
@@ -115,7 +151,29 @@
 
 
 
-	.empty-state, .error-state {
+	.search-bar {
+		position: relative; max-width: 400px; margin: 0 0 28px;
+	}
+	.search-input {
+		width: 100%; padding: 10px 36px 10px 14px;
+		border-radius: 10px; border: 1px solid rgba(129,140,248,0.2);
+		background: rgba(129,140,248,0.06); color: #e0e7ff; font-size: 14px;
+		outline: none; box-sizing: border-box;
+	}
+	.search-input::placeholder { color: #6b7280; }
+	.search-input:focus { border-color: #818cf8; }
+	.search-clear {
+		position: absolute; right: 8px; top: 50%; transform: translateY(-50%);
+		background: none; border: none; color: #a5b4fc; cursor: pointer;
+		font-size: 14px; padding: 4px 6px; line-height: 1;
+	}
+	.search-clear:hover { color: #e0e7ff; }
+
+	.result-count {
+		color: #a5b4fc; font-size: 13px; margin: 0 0 16px;
+	}
+
+	.empty-state, .error-state, .search-empty {
 		text-align: center; padding: 80px 20px;
 		color: #a5b4fc; font-size: 16px;
 	}
