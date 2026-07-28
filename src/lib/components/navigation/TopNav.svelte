@@ -2,6 +2,7 @@
 	import { page } from '$app/state';
 	import { Search, Bell, Menu } from '@lucide/svelte';
 	import { menuOpen } from '$lib/stores/menu';
+	import AuthNav from '$lib/components/AuthNav.svelte';
 
 	let scrolled = $state(false);
 
@@ -57,7 +58,7 @@
 			{/each}
 		</nav>
 
-		<div class="ml-auto flex items-center gap-2">
+		<div class="ml-auto flex items-center gap-2 max-sm:gap-1">
 			<a
 				href="/search"
 				class="flex size-9 items-center justify-center rounded-lg text-muted-foreground hover:bg-muted/50 hover:text-foreground"
@@ -72,13 +73,13 @@
 			>
 				<Bell class="size-5" />
 			</button>
+			<AuthNav />
 		</div>
 	</div>
 </header>
 
 <style>
 	header { overflow: visible; }
-	header a, header button { white-space: nowrap; flex-shrink: 0; min-width: fit-content; }
-	header a[href*="login"], header a[href*="signin"], [data-sign-in] { padding: 8px 20px; }
+	header a, header button { white-space: nowrap; flex-shrink: 0; }
 	nav { flex-shrink: 0; }
 </style>
