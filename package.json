@@ -19,8 +19,10 @@
 		"import-data": "bun run import-data.js",
 		"db:generate": "drizzle-kit generate",
 		"db:migrate": "bun run migrate.ts",
-		"audit": "node scripts/audit.js",
-		"audit:prod": "AUDIT_URL=https://your-domain.com node scripts/audit.js"
+	"audit": "node scripts/audit.js",
+	"audit:prod": "AUDIT_URL=https://your-domain.com node scripts/audit.js",
+	"auth:audit": "node scripts/auth-audit.cjs",
+	"auth:audit:prod": "node scripts/auth-audit.cjs https://streamium-cosmic.vercel.app"
 	},
 	"devDependencies": {
 		"@eslint/compat": "^1.4.1",
