@@ -2,23 +2,76 @@
 	let { class: className = '' }: { class?: string } = $props();
 </script>
 
-<footer class="border-t border-border/30 bg-background/50 backdrop-blur-sm {className}">
-	<div class="mx-auto flex max-w-screen-2xl flex-col items-center gap-3 px-6 py-8 text-center text-sm text-muted-foreground">
-		<a href="/" class="text-lg font-bold tracking-tight text-foreground">Streamium</a>
-
-		<nav class="flex flex-wrap items-center justify-center gap-4">
-			<a href="/" class="transition-colors hover:text-foreground">Home</a>
-			<a href="/movies" class="transition-colors hover:text-foreground">Movies</a>
-			<a href="/tv-shows" class="transition-colors hover:text-foreground">TV Series</a>
-			<a href="/afrikaans" class="transition-colors hover:text-foreground">Afrikaans</a>
-			<a href="/search" class="transition-colors hover:text-foreground">Search</a>
-		</nav>
-
-		<p class="text-xs text-muted-foreground/60">
-			Made with dedication &bull; Powered by TMDB
-		</p>
-		<p class="text-xs text-muted-foreground/40">
-			&copy; 2026 Streamium. Not affiliated with TMDB.
-		</p>
+<footer class="footer {className}">
+	<div class="container footer-inner">
+		<div class="footer-brand">
+			<a href="/" class="footer-logo">▶ Streamium</a>
+			<p class="footer-tagline">Premium streaming, no compromises.</p>
+		</div>
+		<div class="footer-links">
+			<a href="/movies">Movies</a>
+			<a href="/tv">TV Series</a>
+			<a href="/afrikaans">Afrikaans</a>
+		</div>
+		<div class="footer-bottom">
+			<span>&copy; {new Date().getFullYear()} Streamium. All rights reserved.</span>
+		</div>
 	</div>
 </footer>
+
+<style>
+	.footer {
+		padding: 3rem 0 1.5rem;
+		border-top: 1px solid var(--border-stream);
+		margin-top: 4rem;
+	}
+
+	.footer-inner {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: 1.5rem;
+		text-align: center;
+	}
+
+	.footer-brand {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: 0.25rem;
+	}
+
+	.footer-logo {
+		font-weight: var(--font-weight-extrabold);
+		font-size: 1.1rem;
+		background: var(--gradient-brand-horizontal);
+		-webkit-background-clip: text;
+		-webkit-text-fill-color: transparent;
+		background-clip: text;
+	}
+
+	.footer-tagline {
+		color: var(--text-tertiary);
+		font-size: 0.85rem;
+	}
+
+	.footer-links {
+		display: flex;
+		gap: 2rem;
+	}
+
+	.footer-links a {
+		color: var(--text-secondary);
+		font-size: 0.9rem;
+		transition: color var(--transition-fast);
+	}
+
+	.footer-links a:hover {
+		color: var(--text-primary);
+	}
+
+	.footer-bottom {
+		color: var(--text-tertiary);
+		font-size: 0.8rem;
+	}
+</style>

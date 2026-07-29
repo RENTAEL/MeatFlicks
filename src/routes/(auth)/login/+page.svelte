@@ -5,45 +5,194 @@
 	let { data, form } = $props();
 </script>
 
-<div class="flex min-h-screen items-center justify-center p-4">
-	<div class="glass-strong w-full max-w-sm rounded-xl p-8 shadow-2xl">
-		<h1 class="mb-6 text-center text-2xl font-bold">Welcome Back</h1>
+<svelte:head>
+	<title>Sign In — Streamium</title>
+</svelte:head>
 
-		<form method="POST" use:enhance class="space-y-4">
-			<div class="space-y-2">
-				<label for="username" class="text-sm leading-none font-medium">Username</label>
-				<input
-					id="username"
-					name="username"
-					class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50"
-				/>
-			</div>
+<div class="auth-page">
+	<div class="auth-card glass scale-in">
+		<a href="/" class="auth-logo">
+			<span class="auth-logo-icon">▶</span>
+			<span class="auth-logo-text">Streamium</span>
+		</a>
 
-			<div class="space-y-2">
-				<label for="password" class="text-sm leading-none font-medium">Password</label>
-				<input
-					id="password"
-					name="password"
-					type="password"
-					class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50"
-				/>
-			</div>
+		<h1 class="auth-heading">Welcome back</h1>
+		<p class="auth-subtitle">Sign in to continue watching</p>
 
+		<form method="POST" use:enhance class="auth-form">
 			{#if form?.message}
-				<p class="text-sm font-medium text-destructive">{form.message}</p>
+				<div class="auth-error">{form.message}</div>
 			{/if}
+
+			<label>
+				<span>Username or Email</span>
+				<input
+					type="text"
+					name="username"
+					placeholder="Enter your username"
+					required
+					autocomplete="username"
+				/>
+			</label>
+
+			<label>
+				<span>Password</span>
+				<input
+					type="password"
+					name="password"
+					placeholder="Enter your password"
+					required
+					autocomplete="current-password"
+				/>
+			</label>
 
 			{#if data?.csrfToken}
 				<input type="hidden" name="csrf_token" value={data.csrfToken} />
 			{/if}
 
-			<Button type="submit" class="w-full">Sign In</Button>
-
-			<p class="text-center text-sm text-muted-foreground">
-				<!-- eslint-disable-next-line svelte/no-navigation-without-resolve -->
-				Don't have an account?
-				<a rel="external" href="/signup" class="underline hover:text-primary">Sign up</a>
-			</p>
+			<Button type="submit" class="w-full auth-submit-btn">Sign In</Button>
 		</form>
+
+		<div class="auth-divider">
+			<span>or</span>
+		</div>
+
+		<p class="auth-footer">
+			Don't have an account?
+			<a rel="external" href="/signup" class="auth-link">Create one →</a>
+		</p>
 	</div>
 </div>
+
+<style>
+	.auth-page {
+		min-height: calc(100vh - var(--header-height));
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		padding: 2rem 1rem;
+	}
+
+	.auth-card {
+		width: 100%;
+		max-width: 420px;
+		padding: 2.5rem;
+		border-radius: var(--radius-xl);
+		text-align: center;
+	}
+
+	.auth-logo {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.5rem;
+		margin-bottom: 2rem;
+	}
+
+	.auth-logo-icon {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		width: 36px;
+		height: 36px;
+		border-radius: var(--radius-md);
+		background: var(--gradient-brand);
+		color: white;
+		font-size: 0.85rem;
+	}
+
+	.auth-logo-text {
+		font-size: 1.3rem;
+		font-weight: var(--font-weight-extrabold);
+		background: var(--gradient-brand-horizontal);
+		-webkit-background-clip: text;
+		-webkit-text-fill-color: transparent;
+		background-clip: text;
+	}
+
+	.auth-heading {
+		font-size: 1.6rem;
+		margin-bottom: 0.25rem;
+	}
+
+	.auth-subtitle {
+		color: var(--text-secondary);
+		font-size: 0.95rem;
+		margin-bottom: 1.5rem;
+	}
+
+	.auth-error {
+		background: rgba(239, 68, 68, 0.12);
+		border: 1px solid rgba(239, 68, 68, 0.25);
+		color: #f87171;
+		padding: 0.75rem 1rem;
+		border-radius: var(--radius-md);
+		font-size: 0.9rem;
+		margin-bottom: 1.5rem;
+	}
+
+	.auth-form {
+		display: flex;
+		flex-direction: column;
+		gap: 1.25rem;
+		text-align: left;
+	}
+
+	.auth-form label {
+		display: flex;
+		flex-direction: column;
+		gap: 0.4rem;
+	}
+
+	.auth-form label span {
+		font-size: 0.85rem;
+		font-weight: var(--font-weight-semibold);
+		color: var(--text-secondary);
+	}
+
+	.auth-form input {
+		padding: 0.75rem 1rem;
+		background: var(--bg-input);
+		border: 1px solid var(--border-stream);
+		border-radius: var(--radius-md);
+		color: var(--text-primary);
+		font-size: 1rem;
+		font-family: inherit;
+		transition: border-color var(--transition-fast);
+	}
+
+	.auth-form input:focus {
+		outline: none;
+		border-color: var(--accent-stream);
+	}
+
+	.auth-divider {
+		display: flex;
+		align-items: center;
+		gap: 1rem;
+		margin: 1.5rem 0;
+		color: var(--text-tertiary);
+		font-size: 0.85rem;
+	}
+
+	.auth-divider::before,
+	.auth-divider::after {
+		content: '';
+		flex: 1;
+		height: 1px;
+		background: var(--border-stream);
+	}
+
+	.auth-footer {
+		color: var(--text-secondary);
+		font-size: 0.9rem;
+	}
+
+	.auth-link {
+		color: var(--accent-stream);
+		font-weight: var(--font-weight-semibold);
+	}
+
+	.auth-link:hover {
+		text-decoration: underline;
+	}
+</style>

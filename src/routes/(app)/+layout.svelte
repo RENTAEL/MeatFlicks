@@ -57,12 +57,18 @@
 </script>
 
 <svelte:head>
-	<title>Streamium - Your Ultimate Streaming Universe</title>
+	<title>Streamium — Premium Streaming</title>
 	<meta
 		name="description"
-		content="Discover and stream your favorite movies and TV shows on Streamium."
+		content="Movies, TV series, and Afrikaans content — ad-free, buffer-free, hassle-free."
 	/>
 </svelte:head>
+
+<!-- Ambient background -->
+<div class="bg-ambient">
+	<div class="bg-gradient-top"></div>
+	<div class="bg-noise"></div>
+</div>
 
 <ModeWatcher defaultMode="dark" themeColors={{ dark: '#0a0a1a', light: '#0a0a1a' }} />
 <ThemeContext>
@@ -89,7 +95,9 @@
 						{/each}
 					</div>
 					<div class="relative z-10 flex-1" style="padding-bottom: max(4rem, calc(env(safe-area-inset-bottom, 20px) + 0.5rem));">
-						<slot />
+						<div class="page-transition">
+							<slot />
+						</div>
 					</div>
 					<MobileNav />
 					<Footer class="relative z-10 hidden md:block" />
@@ -164,9 +172,43 @@
 					<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
 					Sign In
 				</a>
+			{/if}
+		</nav>
+	</aside>
 {/if}
 
 <style>
+	.bg-ambient {
+		position: fixed;
+		inset: 0;
+		z-index: -1;
+		pointer-events: none;
+	}
+
+	.bg-gradient-top {
+		position: absolute;
+		top: -40%;
+		left: 50%;
+		transform: translateX(-50%);
+		width: 1200px;
+		height: 800px;
+		background: radial-gradient(
+			ellipse at center,
+			rgba(124, 92, 252, 0.06) 0%,
+			rgba(201, 75, 140, 0.03) 40%,
+			transparent 70%
+		);
+		border-radius: 50%;
+		filter: blur(80px);
+	}
+
+	.bg-noise {
+		position: absolute;
+		inset: 0;
+		opacity: 0.015;
+		background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+	}
+
 	.menu-backdrop {
 		position: fixed;
 		inset: 0;
@@ -260,6 +302,3 @@
 	.menu-logout { color: #f87171; }
 	.menu-login { color: #818cf8; }
 </style>
-		</nav>
-	</aside>
-{/if}
