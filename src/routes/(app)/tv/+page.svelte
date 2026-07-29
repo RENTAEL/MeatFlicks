@@ -333,6 +333,24 @@
     color: var(--text-secondary, #9898ab);
   }
 
+  @media (max-width: 768px) {
+    .search-wrapper {
+      max-width: 100%;
+    }
+
+    .search-input {
+      font-size: 16px;
+    }
+
+    .search-section {
+      position: sticky;
+      top: var(--header-height, 64px);
+      z-index: 10;
+      background: var(--bg-root, #0a0a0f);
+      padding-bottom: 0.75rem;
+    }
+  }
+
   @media (max-width: 640px) {
     .show-grid {
       grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
