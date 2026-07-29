@@ -4,6 +4,7 @@
 	import { onMount } from 'svelte';
 	import { fly, fade } from 'svelte/transition';
 	import { searchOpen } from '$lib/stores/search';
+	import ThemeToggle from '$lib/themes/ThemeToggle.svelte';
 
 	let scrolled = $state(false);
 
@@ -33,7 +34,7 @@
 <header class="header" class:scrolled>
 	<div class="header-inner container">
 		<!-- Logo -->
-		<a href="/" class="logo">
+		<a href="/" class="logo" title="Streamium — blame Gavin if it's slow">
 			<span class="logo-icon">▶</span>
 			<span class="logo-text">Streamium</span>
 		</a>
@@ -48,6 +49,7 @@
 
 		<!-- Right side -->
 		<div class="header-right">
+			<ThemeToggle />
 			<button class="icon-btn search-btn" aria-label="Search" onclick={() => searchOpen.set(true)}>
 				<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
 					<circle cx="11" cy="11" r="8"></circle>

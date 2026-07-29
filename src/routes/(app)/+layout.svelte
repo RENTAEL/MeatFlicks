@@ -3,7 +3,6 @@
 	import '$lib/css/mobile.css';
 
 	import TopNav from '$lib/components/navigation/TopNav.svelte';
-	import AppShell from '$lib/components/navigation/Sidebar.svelte';
 	import MobileNav from '$lib/components/navigation/MobileNav.svelte';
 	import Footer from '$lib/components/navigation/Footer.svelte';
 	import GlobalErrorDisplay from '$lib/components/global/GlobalErrorDisplay.svelte';
@@ -21,6 +20,7 @@
 	import { authStore } from '$lib/state/stores/authStore.svelte.ts';
 	import UblockPopup from '$lib/components/UblockPopup.svelte';
 	import UserFab from '$lib/components/UserFab.svelte';
+	import GavinBadge from '$lib/components/GavinBadge.svelte';
 
 	onMount(() => {
 		void (async () => {
@@ -75,8 +75,7 @@
 	<WatchlistContext>
 		<ErrorContext>
 			<TopNav />
-			<AppShell>
-				<div class="relative flex min-h-dvh-fallback flex-col text-foreground">
+			<div class="relative flex min-h-dvh-fallback flex-col text-foreground">
 					<div class="pointer-events-none fixed inset-0 z-0 overflow-hidden">
 						{#each Array.from({ length: 20 }) as _, i}
 							<div
@@ -102,11 +101,11 @@
 					<MobileNav />
 					<Footer class="relative z-10 hidden md:block" />
 				</div>
-			</AppShell>
 			<GlobalErrorDisplay />
 			<NotificationPortal />
 			<OfflineIndicator />
 			<UserFab />
+			<GavinBadge />
 		</ErrorContext>
 	</WatchlistContext>
 </ThemeContext>

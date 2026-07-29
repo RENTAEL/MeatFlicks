@@ -81,8 +81,8 @@
 		</fieldset>
 
 		<div class="form-actions">
-			<button type="submit" class="save-btn">Save Changes</button>
-			<button type="button" class="cancel-btn" onclick={() => goto('/profile')}>
+			<button type="submit" class="btn btn-primary">Save Changes</button>
+			<button type="button" class="btn btn-secondary" onclick={() => goto('/profile')}>
 				Cancel
 			</button>
 		</div>
@@ -99,7 +99,7 @@
 	.back-btn {
 		background: none;
 		border: none;
-		color: var(--accent, #6366f1);
+		color: var(--accent-stream);
 		cursor: pointer;
 		font-size: 0.95rem;
 		padding: 0;
@@ -113,14 +113,14 @@
 	h1 {
 		font-size: 1.8rem;
 		margin: 0 0 2rem;
-		color: var(--text-primary, #fff);
+		color: var(--text-primary);
 	}
 
 	.success-banner {
-		background: #065f46;
-		color: #a7f3d0;
+		background: var(--success);
+		color: var(--text-inverse);
 		padding: 1rem;
-		border-radius: 8px;
+		border-radius: var(--radius-md);
 		margin-bottom: 1.5rem;
 		font-size: 0.95rem;
 	}
@@ -139,37 +139,37 @@
 
 	label span {
 		font-size: 0.9rem;
-		font-weight: 600;
-		color: var(--text-secondary, #94a3b8);
+		font-weight: var(--font-weight-semibold);
+		color: var(--text-secondary);
 	}
 
 	input {
 		padding: 0.75rem 1rem;
-		background: var(--bg-input, #1e293b);
-		border: 1px solid var(--border, #334155);
-		border-radius: 8px;
-		color: var(--text-primary, #fff);
+		background: var(--bg-input);
+		border: 1px solid var(--border-stream);
+		border-radius: var(--radius-md);
+		color: var(--text-primary);
 		font-size: 1rem;
-		transition: border-color 0.2s;
+		transition: border-color var(--transition-fast);
 	}
 
 	input:focus {
 		outline: none;
-		border-color: var(--accent, #6366f1);
+		border-color: var(--accent-stream);
 	}
 
 	input.error {
-		border-color: #ef4444;
+		border-color: var(--danger);
 	}
 
 	.field-error {
-		color: #f87171;
+		color: var(--danger);
 		font-size: 0.8rem;
 	}
 
 	fieldset {
-		border: 1px solid var(--border, #334155);
-		border-radius: 10px;
+		border: 1px solid var(--border-stream);
+		border-radius: var(--radius-lg);
 		padding: 1.5rem;
 		display: flex;
 		flex-direction: column;
@@ -178,8 +178,8 @@
 
 	legend {
 		font-size: 0.95rem;
-		font-weight: 600;
-		color: var(--text-secondary, #94a3b8);
+		font-weight: var(--font-weight-semibold);
+		color: var(--text-secondary);
 		padding: 0 0.5rem;
 	}
 
@@ -187,32 +187,5 @@
 		display: flex;
 		gap: 1rem;
 		margin-top: 1rem;
-	}
-
-	.save-btn {
-		flex: 1;
-		padding: 0.75rem;
-		background: var(--accent, #6366f1);
-		color: white;
-		border: none;
-		border-radius: 8px;
-		font-size: 1rem;
-		font-weight: 600;
-		cursor: pointer;
-		transition: opacity 0.2s;
-	}
-
-	.save-btn:hover {
-		opacity: 0.9;
-	}
-
-	.cancel-btn {
-		padding: 0.75rem 1.5rem;
-		background: var(--bg-input, #1e293b);
-		border: 1px solid var(--border, #334155);
-		border-radius: 8px;
-		color: var(--text-secondary, #94a3b8);
-		cursor: pointer;
-		font-size: 1rem;
 	}
 </style>

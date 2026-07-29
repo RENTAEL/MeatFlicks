@@ -8,11 +8,21 @@
 			<a href="/" class="footer-logo">▶ Streamium</a>
 			<p class="footer-tagline">Premium streaming, no compromises.</p>
 		</div>
+
+		<div class="footer-creator">
+			<span class="creator-emoji">🛠️</span>
+			<span>
+				Crafted with questionable sleep habits by
+				<span class="creator-name">Gavin</span>
+			</span>
+		</div>
+
 		<div class="footer-links">
 			<a href="/movies">Movies</a>
 			<a href="/tv">TV Series</a>
 			<a href="/afrikaans">Afrikaans</a>
 		</div>
+
 		<div class="footer-bottom">
 			<span>&copy; {new Date().getFullYear()} Streamium. All rights reserved.</span>
 		</div>
@@ -30,7 +40,7 @@
 		display: flex;
 		flex-direction: column;
 		align-items: center;
-		gap: 1.5rem;
+		gap: 0.75rem;
 		text-align: center;
 	}
 
@@ -53,6 +63,29 @@
 	.footer-tagline {
 		color: var(--text-tertiary);
 		font-size: 0.85rem;
+	}
+
+	.footer-creator {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		gap: 0.5rem;
+		padding: 0.25rem 0;
+		font-size: 0.8rem;
+		color: var(--text-tertiary);
+	}
+
+	.creator-name {
+		color: var(--accent);
+		font-weight: var(--font-weight-semibold);
+		transition: all var(--transition-fast);
+	}
+
+	.creator-name:hover {
+		background: var(--gradient-brand-horizontal);
+		-webkit-background-clip: text;
+		-webkit-text-fill-color: transparent;
+		background-clip: text;
 	}
 
 	.footer-links {

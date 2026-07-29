@@ -1,6 +1,14 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 	<head>
+		<script>
+			(function() {
+				try {
+					var theme = localStorage.getItem('streamium-theme');
+					if (theme) document.documentElement.setAttribute('data-theme', theme);
+				} catch(e) {}
+			})();
+		</script>
 		<script>
 			if ('serviceWorker' in navigator) {
 				navigator.serviceWorker.getRegistrations().then(function(regs) {
@@ -43,5 +51,42 @@
 			<div id="parallax-layer"></div>
 		</div>
 		<div style="display: contents">%sveltekit.body%</div>
+		<script>
+			(function () {
+				var style = [
+					'color: #c94b8c',
+					'font-size: 20px',
+					'font-weight: bold',
+					'padding: 8px 0',
+				].join(';');
+
+				var sub = [
+					'color: #9898ab',
+					'font-size: 13px',
+					'font-style: italic',
+				].join(';');
+
+				var link = [
+					'color: #7c5cfc',
+					'font-size: 13px',
+					'text-decoration: underline',
+				].join(';');
+
+				console.log(
+					'%c\n ╔═══════════════════════════════════╗\n ║                                   ║\n ║     🎬  S T R E A M I U M        ║\n ║                                   ║\n ╚═══════════════════════════════════╝',
+					style
+				);
+
+				console.log('%c👋 Hey there, fellow nerd! You found the secret console.', sub);
+				console.log("%cThis whole thing was hand-built by Gavin — one developer, too much coffee, and a questionable amount of Stack Overflow tabs.", sub);
+				console.log('%c', '');
+				console.log('%cIf you find a bug, no you didn\'t. 😎', sub);
+				console.log('%cBut seriously — welcome. Poke around. Just don\'t break the login.', sub);
+				console.log('%c', '');
+				console.log('%c— Gavin, your friendly neighborhood solo dev', link);
+				console.log('%c', '');
+				console.log('%cP.S. If you\'re reading this instead of watching content, go watch something. 🍿', 'color: #66667a; font-size: 11px;');
+			})();
+		</script>
 	</body>
 </html>

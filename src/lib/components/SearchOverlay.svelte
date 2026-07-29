@@ -15,7 +15,7 @@
 		try {
 			const res = await fetch(`/api/search?q=${encodeURIComponent(q)}`);
 			const data = await res.json();
-			results = data.results?.slice(0, 20) || [];
+			results = data.items?.slice(0, 20) || data.results?.slice(0, 20) || [];
 		} catch { results = []; }
 		finally { isLoading = false; }
 	}

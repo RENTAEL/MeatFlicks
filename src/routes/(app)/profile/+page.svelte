@@ -27,7 +27,7 @@
 <SEOHead title="Profile — Streamium" description="Manage your Streamium profile" noindex />
 
 <div class="profile-page">
-	<div class="profile-header">
+	<div class="profile-header glass">
 		<div class="avatar-circle">
 			{profile.username.charAt(0).toUpperCase()}
 		</div>
@@ -38,17 +38,17 @@
 			{/if}
 			<p class="member-since">Member since {profile.memberSince}</p>
 		</div>
-		<button class="edit-btn" onclick={() => goto('/profile/edit')}>
+		<button class="btn btn-secondary edit-btn" onclick={() => goto('/profile/edit')}>
 			Edit Profile
 		</button>
 	</div>
 
 	<div class="stats-row">
-		<div class="stat-card">
+		<div class="stat-card glass">
 			<span class="stat-number">{stats.watchlistCount}</span>
 			<span class="stat-label">Watchlist</span>
 		</div>
-		<div class="stat-card">
+		<div class="stat-card glass">
 			<span class="stat-number">{stats.historyCount}</span>
 			<span class="stat-label">Watched</span>
 		</div>
@@ -74,7 +74,7 @@
 					{#each recentHistory as item}
 						<a
 							href="/{item.mediaType === 'tv' ? 'tv' : 'movie'}/{item.mediaId}"
-							class="media-card"
+							class="media-card glow-on-hover"
 						>
 							{#if item.posterPath}
 								<img
@@ -102,7 +102,7 @@
 					{#each watchlistPreview as item}
 						<a
 							href="/{item.mediaType === 'tv' ? 'tv' : 'movie'}/{item.mediaId}"
-							class="media-card"
+							class="media-card glow-on-hover"
 						>
 							{#if item.posterPath}
 								<img
@@ -163,8 +163,7 @@
 		align-items: center;
 		gap: 1.5rem;
 		padding: 2rem;
-		background: var(--bg-card, #1a1a2e);
-		border-radius: 16px;
+		border-radius: var(--radius-lg);
 		margin-bottom: 2rem;
 		flex-wrap: wrap;
 	}
@@ -173,12 +172,12 @@
 		width: 80px;
 		height: 80px;
 		border-radius: 50%;
-		background: linear-gradient(135deg, #6366f1, #ec4899);
+		background: var(--gradient-brand);
 		display: flex;
 		align-items: center;
 		justify-content: center;
 		font-size: 2rem;
-		font-weight: 700;
+		font-weight: var(--font-weight-bold);
 		color: white;
 		flex-shrink: 0;
 	}
@@ -186,35 +185,23 @@
 	.profile-info h1 {
 		margin: 0;
 		font-size: 1.8rem;
-		color: var(--text-primary, #fff);
+		color: var(--text-primary);
 	}
 
 	.profile-info .email {
-		color: var(--text-secondary, #94a3b8);
+		color: var(--text-secondary);
 		margin: 0.25rem 0 0;
 		font-size: 0.95rem;
 	}
 
 	.profile-info .member-since {
-		color: var(--text-tertiary, #64748b);
+		color: var(--text-tertiary);
 		margin: 0.25rem 0 0;
 		font-size: 0.85rem;
 	}
 
 	.edit-btn {
 		margin-left: auto;
-		padding: 0.6rem 1.2rem;
-		background: var(--bg-input, #1e293b);
-		border: 1px solid var(--border, #334155);
-		border-radius: 8px;
-		color: var(--text-primary, #fff);
-		cursor: pointer;
-		font-size: 0.95rem;
-		transition: background 0.2s;
-	}
-
-	.edit-btn:hover {
-		background: var(--bg-hover, #273449);
 	}
 
 	.stats-row {
@@ -225,8 +212,7 @@
 	}
 
 	.stat-card {
-		background: var(--bg-card, #1a1a2e);
-		border-radius: 12px;
+		border-radius: var(--radius-lg);
 		padding: 1.5rem;
 		text-align: center;
 		display: flex;
@@ -236,19 +222,19 @@
 
 	.stat-number {
 		font-size: 2rem;
-		font-weight: 700;
-		color: var(--accent, #6366f1);
+		font-weight: var(--font-weight-bold);
+		color: var(--accent-stream);
 	}
 
 	.stat-label {
 		font-size: 0.9rem;
-		color: var(--text-secondary, #94a3b8);
+		color: var(--text-secondary);
 	}
 
 	.tabs {
 		display: flex;
 		gap: 0.5rem;
-		border-bottom: 2px solid var(--border, #334155);
+		border-bottom: 2px solid var(--border-stream);
 		margin-bottom: 2rem;
 		padding-bottom: 0;
 	}
@@ -257,27 +243,27 @@
 		padding: 0.7rem 1.2rem;
 		background: none;
 		border: none;
-		color: var(--text-secondary, #94a3b8);
+		color: var(--text-secondary);
 		cursor: pointer;
 		font-size: 0.95rem;
 		border-bottom: 2px solid transparent;
 		margin-bottom: -2px;
-		transition: all 0.2s;
+		transition: all var(--transition-fast);
 	}
 
 	.tab-btn:hover {
-		color: var(--text-primary, #fff);
+		color: var(--text-primary);
 	}
 
 	.tab-btn.active {
-		color: var(--accent, #6366f1);
-		border-bottom-color: var(--accent, #6366f1);
+		color: var(--accent-stream);
+		border-bottom-color: var(--accent-stream);
 	}
 
 	.section h2 {
 		font-size: 1.3rem;
 		margin: 0 0 1rem;
-		color: var(--text-primary, #fff);
+		color: var(--text-primary);
 	}
 
 	.media-grid {
@@ -289,10 +275,10 @@
 	.media-card {
 		text-decoration: none;
 		color: inherit;
-		border-radius: 10px;
+		border-radius: var(--radius-md);
 		overflow: hidden;
-		background: var(--bg-card, #1a1a2e);
-		transition: transform 0.2s;
+		background: var(--bg-card);
+		transition: transform var(--transition-base);
 	}
 
 	.media-card:hover {
@@ -313,30 +299,30 @@
 		align-items: center;
 		justify-content: center;
 		font-size: 0.9rem;
-		background: var(--bg-input, #1e293b);
-		color: var(--text-tertiary, #64748b);
+		background: var(--bg-input);
+		color: var(--text-tertiary);
 	}
 
 	.media-title {
 		display: block;
 		padding: 0.5rem;
 		font-size: 0.85rem;
-		font-weight: 600;
+		font-weight: var(--font-weight-semibold);
 		white-space: nowrap;
 		overflow: hidden;
 		text-overflow: ellipsis;
-		color: var(--text-primary, #fff);
+		color: var(--text-primary);
 	}
 
 	.media-date {
 		display: block;
 		padding: 0 0.5rem 0.5rem;
 		font-size: 0.75rem;
-		color: var(--text-tertiary, #64748b);
+		color: var(--text-tertiary);
 	}
 
 	.empty-state {
-		color: var(--text-secondary, #94a3b8);
+		color: var(--text-secondary);
 		font-style: italic;
 		padding: 2rem 0;
 	}
@@ -346,11 +332,24 @@
 		margin: 1rem auto 0;
 		padding: 0.5rem 1.5rem;
 		background: none;
-		border: 1px solid var(--border, #334155);
-		border-radius: 8px;
-		color: var(--accent, #6366f1);
+		border: 1px solid var(--border-stream);
+		border-radius: var(--radius-full);
+		color: var(--accent-stream);
 		cursor: pointer;
 		font-size: 0.9rem;
+		transition: all var(--transition-fast);
+	}
+
+	.view-all:hover {
+		background: var(--accent-soft);
+	}
+
+	.glow-on-hover {
+		transition: transform var(--transition-base), box-shadow var(--transition-base);
+	}
+
+	.glow-on-hover:hover {
+		box-shadow: 0 0 20px var(--accent-glow);
 	}
 
 	@media (max-width: 600px) {
