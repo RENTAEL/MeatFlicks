@@ -6,6 +6,7 @@
 	import { watchlist as wl } from '$lib/state/stores/watchlistStore.svelte';
 	import { authStore } from '$lib/state/stores/authStore.svelte';
 	import { fade, fly } from 'svelte/transition';
+	import AggregatedRating from '$lib/components/AggregatedRating.svelte';
 
 	let show: any = $state(null);
 	let credits: any[] = $state([]);
@@ -176,6 +177,7 @@
 				<h1 class="detail-title">{show.name}</h1>
 				<div class="detail-meta">
 					<span class="meta-rating">★ {show.vote_average?.toFixed(1)}</span>
+					<AggregatedRating rating={show.vote_average} imdbId="" />
 					<span class="meta-year">{(show.first_air_date || '').split('-')[0]}</span>
 					<span class="meta-seasons">{show.number_of_seasons} season{show.number_of_seasons > 1 ? 's' : ''}</span>
 					{#if show.status}

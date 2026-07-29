@@ -37,7 +37,8 @@ export async function load({ params, fetch }) {
 				director,
 				cast,
 				budget: movie.budget,
-				revenue: movie.revenue
+				revenue: movie.revenue,
+				imdb_id: movie.imdb_id
 			},
 			similarMovies: (similar.results || []).slice(0, 12).map((m: any) => ({
 				id: m.id,

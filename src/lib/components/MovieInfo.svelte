@@ -1,4 +1,6 @@
 <script lang="ts">
+	import AggregatedRating from '$lib/components/AggregatedRating.svelte';
+
 	let expanded = $state(false);
 
 	let {
@@ -18,6 +20,7 @@
 			revenue?: number;
 			poster_path: string;
 			backdrop_path: string;
+			imdb_id?: string;
 		};
 	} = $props();
 </script>
@@ -49,6 +52,7 @@
 					<span class="text-yellow-400">★</span>
 					{movie.vote_average.toFixed(1)}
 				</span>
+				<AggregatedRating rating={movie.vote_average} imdbId={movie.imdb_id || ''} />
 				<span>•</span>
 				<span>{Math.floor(movie.runtime / 60)}h {movie.runtime % 60}m</span>
 				<span>•</span>

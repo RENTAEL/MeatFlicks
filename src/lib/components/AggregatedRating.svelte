@@ -1,7 +1,7 @@
 <script lang="ts">
   import { isEnabled } from '$lib/config/features';
 
-  let { imdbRating = 0, imdbId = '' }: { imdbRating: string | number; imdbId: string } = $props();
+  let { rating = 0, imdbId = '' }: { rating: string | number; imdbId: string } = $props();
 
   let rtRating = $state<string | null>(null);
   let metaRating = $state<string | null>(null);
@@ -14,13 +14,11 @@
 
   async function fetchAggregatedRatings(id: string) {
     try {
-      const key = 'FAKE_KEY';
-      const res = await fetch(`https://www.omdbapi.com/?i=${id}&apikey=${key}`);
+      const res = await fetch(`/api/ratings?imdbId=${id}`);
       if (!res.ok) return;
       const data = await res.json();
-      const ratings: any[] = data.Ratings || [];
-      const rt = ratings.find((r: any) => r.Source === 'Rotten Tomatoes');
-      const mc = ratings.find((r: any) => r.Source === 'Metacritic');
+      const rt = data.ratings?.find((r: any) => r.Source === 'Rotten Tomatoes');
+      const mc = data.ratings?.find((r: any) => r.Source === 'Metacritic');
       rtRating = rt?.Value || null;
       metaRating = mc?.Value || null;
     } catch {
@@ -31,22 +29,16 @@
 
 {#if isEnabled('RATING_AGGREGATOR')}
   <div class="aggregated-ratings">
-    <span class="rating imdb" title="IMDb">
-      ⭐ {imdbRating}
-    </span>
+    <span class="rating imdb" title="IMDb">&#11088; {rating}</span>
     {#if rtRating}
-      <span class="rating rt" title="Rotten Tomatoes">
-        🍅 {rtRating}
-      </span>
+      <span class="rating rt" title="Rotten Tomatoes">&#127813; {rtRating}</span>
     {/if}
     {#if metaRating}
-      <span class="rating meta" title="Metacritic">
-        📊 {metaRating}
-      </span>
+      <span class="rating meta" title="Metacritic">&#128202; {metaRating}</span>
     {/if}
   </div>
 {:else}
-  <span class="rating">⭐ {imdbRating}</span>
+  <span class="rating">&#11088; {rating}</span>
 {/if}
 
 <style>

@@ -54,6 +54,21 @@
 				}),
 			});
 		} catch {}
+
+		try {
+			await fetch('/api/track', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({
+					imdbId: '',
+					title: show?.name || '',
+					type: 'episode',
+					progress: 0,
+					season: seasonNum,
+					episode: episodeNum,
+				}),
+			});
+		} catch {}
 	}
 
 	function goEpisode(ep: any) {

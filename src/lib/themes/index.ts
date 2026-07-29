@@ -152,5 +152,7 @@ export function applyTheme(theme: ThemeColors): void {
   root.style.setProperty('--success', theme.success);
   root.style.setProperty('--danger', theme.danger);
   root.style.setProperty('--warning', theme.warning);
+  root.style.setProperty('--primary', theme.accent);
+  root.style.setProperty('--primary-foreground', '#ffffff');
   root.setAttribute('data-theme', theme.name);
 }
