@@ -2,9 +2,10 @@
 	import '../../app.css';
 	import '$lib/css/mobile.css';
 
-	import TopNav from '$lib/components/navigation/TopNav.svelte';
-	import MobileNav from '$lib/components/navigation/MobileNav.svelte';
-	import Footer from '$lib/components/navigation/Footer.svelte';
+import TopNav from '$lib/components/navigation/TopNav.svelte';
+import BottomNav from '$lib/components/mobile/BottomNav.svelte';
+import MobileHeader from '$lib/components/mobile/MobileHeader.svelte';
+import Footer from '$lib/components/navigation/Footer.svelte';
 	import GlobalErrorDisplay from '$lib/components/global/GlobalErrorDisplay.svelte';
 	import { NotificationPortal } from '$lib/components/global';
 	import SearchOverlay from '$lib/components/SearchOverlay.svelte';
@@ -93,13 +94,14 @@
 							></div>
 						{/each}
 					</div>
-					<div class="relative z-10 flex-1" style="padding-bottom: max(4rem, calc(env(safe-area-inset-bottom, 20px) + 0.5rem));">
+					<div class="relative z-10 flex-1" style="padding-bottom: var(--content-pb, max(4rem, calc(env(safe-area-inset-bottom, 20px) + 0.5rem)));">
 						<div class="page-transition">
 							<slot />
 						</div>
 					</div>
-					<MobileNav />
-					<Footer class="relative z-10 hidden md:block" />
+<BottomNav />
+<MobileHeader />
+<Footer class="relative z-10 hidden md:block" />
 				</div>
 			<GlobalErrorDisplay />
 			<NotificationPortal />
