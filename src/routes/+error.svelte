@@ -6,24 +6,24 @@
 	$: is500 = $page.status === 500;
 
 	const gavin404s = [
-		"This page is missing. Gavin probably deleted it by accident. Sorry.",
-		"404 — Gavin forgot to ship this page. Classic.",
-		"Nothing here. Gavin swears it was working on his machine. 🤷",
-		"Page not found. Gavin's bad. He'll fix it... eventually.",
-		"404. Gavin pushed to prod without testing this route. Rookie move.",
+		"This page is missing. the developer probably deleted it by accident. Sorry.",
+		"404 — the developer forgot to ship this page. Classic.",
+		"Nothing here. the developer swears it was working on his machine. 🤷",
+		"Page not found. the developer's bad. He'll fix it... eventually.",
+		"404. the developer pushed to prod without testing this route. Rookie move.",
 	];
 
 	const gavin500s = [
-		"Something broke. Gavin is probably staring at the logs right now.",
-		"500 — Gavin's code went on an unplanned coffee break. ☕",
-		"Server error. Gavin says 'it works locally' — famous last words.",
+		"Something broke. the developer is probably staring at the logs right now.",
+		"500 — the developer's code went on an unplanned coffee break. ☕",
+		"Server error. the developer says 'it works locally' — famous last words.",
 	];
 
 	$: message = is404
 		? gavin404s[Math.floor(Math.random() * gavin404s.length)]
 		: is500
 		? gavin500s[Math.floor(Math.random() * gavin500s.length)]
-		: "Something went wrong. Gavin's working on it... probably.";
+		: "Something went wrong. the developer's working on it... probably.";
 </script>
 
 <svelte:head>
@@ -58,7 +58,7 @@
 		</div>
 
 		<p class="error-footer">
-			— Gavin,{' '}
+			— the developer,{' '}
 			{#if is404}
 				Master of Broken Links
 			{:else}

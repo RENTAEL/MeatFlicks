@@ -13,7 +13,7 @@
 			<span class="creator-emoji">🛠️</span>
 			<span>
 				Crafted with questionable sleep habits by
-				<span class="creator-name">Gavin</span>
+				<span class="creator-name">the developer</span>
 			</span>
 		</div>
 

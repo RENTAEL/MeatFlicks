@@ -20,7 +20,7 @@
 	import { authStore } from '$lib/state/stores/authStore.svelte.ts';
 	import UblockPopup from '$lib/components/UblockPopup.svelte';
 	import UserFab from '$lib/components/UserFab.svelte';
-	import GavinBadge from '$lib/components/GavinBadge.svelte';
+	import DeveloperBadge from '$lib/components/DeveloperBadge.svelte';
 
 	onMount(() => {
 		void (async () => {
@@ -105,7 +105,7 @@
 			<NotificationPortal />
 			<OfflineIndicator />
 			<UserFab />
-			<GavinBadge />
+			<DeveloperBadge />
 		</ErrorContext>
 	</WatchlistContext>
 </ThemeContext>

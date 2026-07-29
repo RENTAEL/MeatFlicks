@@ -34,7 +34,7 @@
 <header class="header" class:scrolled>
 	<div class="header-inner container">
 		<!-- Logo -->
-		<a href="/" class="logo" title="Streamium — blame Gavin if it's slow">
+		<a href="/" class="logo" title="Streamium — blame the developer if it's slow">
 			<span class="logo-icon">▶</span>
 			<span class="logo-text">Streamium</span>
 		</a>

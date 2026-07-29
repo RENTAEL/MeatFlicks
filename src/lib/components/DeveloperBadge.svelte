@@ -5,11 +5,11 @@
 	let messageIndex = $state(0);
 
 	const messages = [
-		"Hand-crafted by Gavin. No AI was harmed in the making of this site. 🤖👀",
-		"Gavin built this. The bugs are also his. You're welcome. 🐛",
-		"Made by Gavin. He definitely didn't forget a semicolon somewhere. Probably.",
-		"This site runs on caffeine and Gavin's questionable life choices. ☕",
-		"Gavin wrote this. If it breaks, blame him, not the tech stack. 😎",
+		"Hand-crafted by the developer. No AI was harmed in the making of this site. 🤖👀",
+		"the developer built this. The bugs are also his. You're welcome. 🐛",
+		"Made by the developer. He definitely didn't forget a semicolon somewhere. Probably.",
+		"This site runs on caffeine and the developer's questionable life choices. ☕",
+		"the developer wrote this. If it breaks, blame him, not the tech stack. 😎",
 	];
 
 	function cycleMessage() {
@@ -29,7 +29,7 @@
 	<button
 		class="gavin-badge-btn"
 		onclick={handleClick}
-		aria-label="Made by Gavin — click for details"
+		aria-label="Made by the developer — click for details"
 		title="Psst..."
 	>
 		<span class="badge-face face-default">😎</span>
