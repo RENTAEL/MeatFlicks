@@ -3,11 +3,15 @@
   import { goto } from '$app/navigation';
   import { fly } from 'svelte/transition';
 
-  $: shows = $page.data?.shows ?? [];
-  $: currentQuery = $page.data?.query ?? '';
+  let shows = $derived($page.data?.shows ?? []);
+  let currentQuery = $derived($page.data?.query ?? '');
 
-  let searchInput = currentQuery;
-  let debounceTimer: ReturnType<typeof setTimeout>;
+  let searchInput = $state('');
+  let debounceTimer: ReturnType<typeof setTimeout> | undefined;
+
+  $effect(() => {
+    searchInput = currentQuery;
+  });
 
   function onInput() {
     clearTimeout(debounceTimer);
@@ -35,10 +39,6 @@
       }
     }
   }
-
-  $: if (currentQuery !== searchInput && currentQuery === '') {
-    searchInput = '';
-  }
 </script>
 
 <div class="tv-page" in:fly={{ y: 12, duration: 250 }}>
@@ -53,15 +53,15 @@
         type="search"
         class="search-input"
         bind:value={searchInput}
-        on:input={onInput}
-        on:keydown={onKeydown}
+        oninput={onInput}
+        onkeydown={onKeydown}
         placeholder="Search TV series..."
         autocomplete="off"
         aria-label="Search TV series"
       />
 
       {#if searchInput}
-        <button class="search-clear" on:click={clearSearch} aria-label="Clear search">
+        <button class="search-clear" onclick={clearSearch} aria-label="Clear search">
           ✕
         </button>
       {/if}
@@ -70,7 +70,7 @@
     {#if currentQuery}
       <p class="search-info">
         Results for <strong>"{currentQuery}"</strong>
-        <button class="search-clear-link" on:click={clearSearch}>Clear</button>
+        <button class="search-clear-link" onclick={clearSearch}>Clear</button>
       </p>
     {/if}
   </div>
@@ -107,7 +107,7 @@
       {#if currentQuery}
         <p class="empty-title">No results for "{currentQuery}"</p>
         <p class="empty-sub">Try a different search or browse all TV series.</p>
-        <button class="btn btn-secondary" on:click={clearSearch}>Browse All</button>
+        <button class="btn btn-secondary" onclick={clearSearch}>Browse All</button>
       {:else}
         <p class="empty-title">No TV series available</p>
         <p class="empty-sub">Check back later for new content.</p>
