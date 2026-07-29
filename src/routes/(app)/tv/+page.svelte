@@ -137,6 +137,7 @@
     max-width: 1400px;
     margin: 0 auto;
     padding: 1.5rem 1rem;
+    padding-top: calc(var(--header-height, 64px) + 1.5rem);
   }
 
   .search-section {
