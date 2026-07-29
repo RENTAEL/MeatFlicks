@@ -89,34 +89,30 @@ export const actions: Actions = {
 			return fail(400, { errors, values: { username, email } });
 		}
 
-		const updates: string[] = [];
-		const params: (string | number)[] = [];
+		const setValues: Record<string, string> = {};
 
 		if (username && username !== locals.user.username) {
-			updates.push('username = ?');
-			params.push(username.toLowerCase());
+			setValues.username = username.toLowerCase();
 		}
 
 		if (email) {
-			updates.push('email = ?');
-			params.push(email);
+			setValues.email = email;
 		}
 
 		if (newPassword) {
-			const passwordHash = await hash(newPassword, {
+			setValues.passwordHash = await hash(newPassword, {
 				memoryCost: 19456,
 				timeCost: 2,
 				outputLen: 32,
 				parallelism: 1
 			});
-			updates.push('password_hash = ?');
-			params.push(passwordHash);
 		}
 
-		if (updates.length > 0) {
-			params.push(locals.user.id);
-			const sql = `UPDATE users SET ${updates.join(', ')} WHERE id = ?`;
-			await db.run(sql, params);
+		const keys = Object.keys(setValues);
+		if (keys.length > 0) {
+			await db.update(users)
+				.set(setValues)
+				.where(eq(users.id, locals.user.id));
 		}
 
 		return { success: true };
