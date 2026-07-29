@@ -10,6 +10,8 @@ import { useLazyComponentOnVisible } from '$lib/utils/lazyLoad.svelte';
 import { Button } from '$lib/components/ui/button';
 import { ErrorState } from '$lib/components/ui';
 import { Loader2, RefreshCw } from '@lucide/svelte';
+import DiscoveryEngine from '$lib/components/DiscoveryEngine.svelte';
+import ContentCalendar from '$lib/components/ContentCalendar.svelte';
 
 	let continueWatchingRef = $state({ value: null as HTMLElement | null });
 	let trendingMediaRef = $state({ value: null as HTMLElement | null });
@@ -246,6 +248,9 @@ import { Loader2, RefreshCw } from '@lucide/svelte';
 									/>
 								{/if}
 							{/each}
+
+							<DiscoveryEngine />
+							<ContentCalendar />
 						</div>
 					{/if}
 				{:catch}
