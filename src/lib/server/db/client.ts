@@ -149,6 +149,132 @@ const runInitSql = async (client: Client) => {
 			"expires_at" INTEGER NOT NULL
 		)`);
 
+		await client.execute(`CREATE TABLE IF NOT EXISTS watchlist (
+			"id" INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+			"userId" TEXT NOT NULL REFERENCES users("id") ON DELETE CASCADE,
+			"mediaId" TEXT NOT NULL,
+			"tmdbId" INTEGER,
+			"mediaType" TEXT NOT NULL DEFAULT 'movie',
+			"title" TEXT,
+			"posterPath" TEXT,
+			"year" TEXT,
+			"addedAt" INTEGER NOT NULL,
+			"folderId" INTEGER
+		)`);
+		try { await client.execute('CREATE INDEX IF NOT EXISTS idx_watchlist_userId ON watchlist("userId")'); } catch {}
+
+		await client.execute(`CREATE TABLE IF NOT EXISTS watch_history (
+			"id" INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+			"userId" TEXT NOT NULL REFERENCES users("id") ON DELETE CASCADE,
+			"mediaId" TEXT NOT NULL,
+			"tmdbId" INTEGER,
+			"mediaType" TEXT NOT NULL DEFAULT 'movie',
+			"season" INTEGER,
+			"episode" INTEGER,
+			"title" TEXT,
+			"posterPath" TEXT,
+			"progress" REAL DEFAULT 0,
+			"duration" INTEGER DEFAULT 0,
+			"watchedAt" INTEGER NOT NULL,
+			"completed" INTEGER NOT NULL DEFAULT 0
+		)`);
+		try { await client.execute('CREATE INDEX IF NOT EXISTS idx_watch_history_userId ON watch_history("userId")'); } catch {}
+		try { await client.execute('CREATE INDEX IF NOT EXISTS idx_watch_history_mediaId ON watch_history("mediaId")'); } catch {}
+
+		await client.execute(`CREATE TABLE IF NOT EXISTS playback_progress (
+			"id" INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+			"userId" TEXT NOT NULL REFERENCES users("id") ON DELETE CASCADE,
+			"tmdbId" TEXT NOT NULL,
+			"mediaType" TEXT NOT NULL,
+			"progress" REAL DEFAULT 0,
+			"duration" INTEGER DEFAULT 0,
+			"season" INTEGER,
+			"episode" INTEGER,
+			"updatedAt" INTEGER NOT NULL
+		)`);
+		try { await client.execute('CREATE UNIQUE INDEX IF NOT EXISTS idx_playback_progress_unique ON playback_progress("userId", "tmdbId", "mediaType")'); } catch {}
+
+		await client.execute(`CREATE TABLE IF NOT EXISTS search_history (
+			"id" INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+			"userId" TEXT NOT NULL REFERENCES users("id") ON DELETE CASCADE,
+			"query" TEXT NOT NULL,
+			"searchedAt" INTEGER NOT NULL
+		)`);
+
+		await client.execute(`CREATE TABLE IF NOT EXISTS watchlist_folders (
+			"id" INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+			"userId" TEXT NOT NULL REFERENCES users("id") ON DELETE CASCADE,
+			"name" TEXT NOT NULL,
+			"createdAt" INTEGER NOT NULL
+		)`);
+
+		await client.execute(`CREATE TABLE IF NOT EXISTS watchlist_tags (
+			"id" INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+			"userId" TEXT NOT NULL REFERENCES users("id") ON DELETE CASCADE,
+			"name" TEXT NOT NULL,
+			"createdAt" INTEGER NOT NULL
+		)`);
+
+		await client.execute(`CREATE TABLE IF NOT EXISTS watchlist_item_tags (
+			"watchlistId" INTEGER NOT NULL REFERENCES watchlist("id") ON DELETE CASCADE,
+			"tagId" INTEGER NOT NULL REFERENCES watchlist_tags("id") ON DELETE CASCADE,
+			PRIMARY KEY ("watchlistId", "tagId")
+		)`);
+
+		await client.execute(`CREATE TABLE IF NOT EXISTS seasons (
+			"id" INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+			"tmdbId" INTEGER NOT NULL,
+			"showTmdbId" INTEGER NOT NULL,
+			"seasonNumber" INTEGER NOT NULL,
+			"name" TEXT,
+			"overview" TEXT,
+			"posterPath" TEXT,
+			"airDate" TEXT,
+			"episodeCount" INTEGER DEFAULT 0
+		)`);
+
+		await client.execute(`CREATE TABLE IF NOT EXISTS episodes (
+			"id" INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+			"tmdbId" INTEGER NOT NULL,
+			"showTmdbId" INTEGER NOT NULL,
+			"seasonNumber" INTEGER NOT NULL,
+			"episodeNumber" INTEGER NOT NULL,
+			"name" TEXT,
+			"overview" TEXT,
+			"stillPath" TEXT,
+			"airDate" TEXT,
+			"runtime" INTEGER
+		)`);
+
+		await client.execute(`CREATE TABLE IF NOT EXISTS episode_watch_status (
+			"id" INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+			"userId" TEXT NOT NULL REFERENCES users("id") ON DELETE CASCADE,
+			"tmdbId" INTEGER NOT NULL,
+			"seasonNumber" INTEGER NOT NULL,
+			"episodeNumber" INTEGER NOT NULL,
+			"completed" INTEGER NOT NULL DEFAULT 0,
+			"updatedAt" INTEGER NOT NULL
+		)`);
+
+		await client.execute(`CREATE TABLE IF NOT EXISTS season_watch_status (
+			"id" INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+			"userId" TEXT NOT NULL REFERENCES users("id") ON DELETE CASCADE,
+			"tmdbId" INTEGER NOT NULL,
+			"seasonNumber" INTEGER NOT NULL,
+			"episodesWatched" INTEGER DEFAULT 0,
+			"totalEpisodes" INTEGER DEFAULT 0,
+			"updatedAt" INTEGER NOT NULL
+		)`);
+
+		await client.execute(`CREATE TABLE IF NOT EXISTS tv_show_watch_status (
+			"id" INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+			"userId" TEXT NOT NULL REFERENCES users("id") ON DELETE CASCADE,
+			"tmdbId" INTEGER NOT NULL,
+			"seasonsWatched" INTEGER DEFAULT 0,
+			"totalSeasons" INTEGER DEFAULT 0,
+			"updatedAt" INTEGER NOT NULL
+		)`);
+
 		if (!isTurso()) {
 			await client.execute('PRAGMA optimize');
 		}
