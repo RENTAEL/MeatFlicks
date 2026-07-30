@@ -202,10 +202,19 @@ class HistoryStore {
 		if (!page.data.user) return;
 
 		try {
+			const body: Record<string, unknown> = {};
+			const tmdbIdVal = entry.tmdbId ?? (media as Record<string, unknown>).tmdb_id;
+			if (tmdbIdVal) {
+				body.tmdb_id = tmdbIdVal;
+				body.media_type = entry.mediaType || entry.media_type || 'movie';
+			} else {
+				body.mediaId = entry.id;
+			}
+
 			const response = await fetch('/api/history', {
 				method: 'POST',
 				headers: buildJsonHeadersWithCsrf(),
-				body: JSON.stringify({ mediaId: entry.id }),
+				body: JSON.stringify(body),
 				credentials: 'include'
 			});
 

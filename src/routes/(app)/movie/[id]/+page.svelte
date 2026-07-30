@@ -2,9 +2,28 @@
 	import Player from '$lib/components/Player.svelte';
 	import MovieInfo from '$lib/components/MovieInfo.svelte';
 	import MediaCard from '$lib/components/MediaCard.svelte';
+	import { watchHistory } from '$lib/state/stores/historyStore';
 	import type { PageData } from './$types';
 
 	let { data }: { data: PageData } = $props();
+
+	$effect(() => {
+		if (data.movie) {
+			watchHistory.recordWatch({
+				id: String(data.movie.id),
+				title: data.movie.title,
+				posterPath: data.movie.poster_path,
+				backdropPath: data.movie.backdrop_path,
+				overview: data.movie.overview,
+				releaseDate: data.movie.release_date,
+				rating: data.movie.vote_average,
+				genres: (data.movie.genres ?? []).map((g: { name: string }) => g.name),
+				imdbId: data.movie.imdb_id,
+				media_type: 'movie',
+				tmdb_id: data.movie.id,
+			});
+		}
+	});
 </script>
 
 <div class="mx-auto max-w-screen-2xl px-4 py-6 sm:px-6 lg:px-8">

@@ -1,6 +1,5 @@
 <script lang="ts">
 	import '../../app.css';
-	import '$lib/css/mobile.css';
 
 import TopNav from '$lib/components/navigation/TopNav.svelte';
 import BottomNav from '$lib/components/mobile/BottomNav.svelte';

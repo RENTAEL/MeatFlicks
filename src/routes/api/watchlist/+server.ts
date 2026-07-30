@@ -4,6 +4,7 @@ import { watchlistRepository } from '$lib/server/repositories/watchlist.reposito
 import { z } from 'zod';
 import { errorHandler, ValidationError } from '$lib/server';
 import { validateRequestBody } from '$lib/server/validation';
+import { resolveMediaId } from '$lib/server/db/media-resolver';
 
 export const GET: RequestHandler = async ({ locals }) => {
 	try {
@@ -30,9 +31,28 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 		}
 
 		const body = await request.json();
-		const validatedBody = validateRequestBody(z.object({ mediaId: z.string() }), body);
+		const schema = z.object({
+			mediaId: z.string().optional(),
+			tmdbId: z.number().optional(),
+			mediaType: z.string().optional()
+		});
+		const validatedBody = validateRequestBody(schema, body);
 
-		await watchlistRepository.addToWatchlist(user.id, validatedBody.mediaId);
+		let mediaId = validatedBody.mediaId;
+
+		if (!mediaId && validatedBody.tmdbId) {
+			const resolved = await resolveMediaId(validatedBody.tmdbId, validatedBody.mediaType ?? 'movie');
+			if (!resolved) {
+				return json({ error: 'Failed to resolve media' }, { status: 500 });
+			}
+			mediaId = resolved;
+		}
+
+		if (!mediaId) {
+			throw new ValidationError('Either mediaId or tmdbId is required');
+		}
+
+		await watchlistRepository.addToWatchlist(user.id, mediaId);
 
 		return json({ success: true });
 	} catch (error) {
@@ -53,6 +73,8 @@ export const DELETE: RequestHandler = async ({ request, locals }) => {
 		const validatedBody = validateRequestBody(
 			z.object({
 				mediaId: z.string().optional(),
+				tmdbId: z.number().optional(),
+				mediaType: z.string().optional(),
 				clearAll: z.boolean().optional()
 			}),
 			body
@@ -63,11 +85,21 @@ export const DELETE: RequestHandler = async ({ request, locals }) => {
 			return json({ success: true });
 		}
 
-		if (!validatedBody.mediaId) {
+		let mediaId = validatedBody.mediaId;
+
+		if (!mediaId && validatedBody.tmdbId) {
+			const resolved = await resolveMediaId(validatedBody.tmdbId, validatedBody.mediaType ?? 'movie');
+			if (!resolved) {
+				return json({ error: 'Failed to resolve media' }, { status: 500 });
+			}
+			mediaId = resolved;
+		}
+
+		if (!mediaId) {
 			throw new ValidationError('Media ID is required');
 		}
 
-		await watchlistRepository.removeFromWatchlist(user.id, validatedBody.mediaId);
+		await watchlistRepository.removeFromWatchlist(user.id, mediaId);
 
 		return json({ success: true });
 	} catch (error) {

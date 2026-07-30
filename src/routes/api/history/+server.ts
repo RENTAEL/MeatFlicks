@@ -5,6 +5,7 @@ import { playbackProgressRepository } from '$lib/server/repositories/playback-pr
 import { z } from 'zod';
 import { errorHandler, UnauthorizedError, ValidationError } from '$lib/server';
 import { validateRequestBody, validateQueryParams } from '$lib/server/validation';
+import { resolveMediaId } from '$lib/server/db/media-resolver';
 
 export const GET: RequestHandler = async ({ locals, url }) => {
 	try {
@@ -58,6 +59,12 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 				body.season,
 				body.episode
 			);
+
+			const resolvedId = await resolveMediaId(Number(body.tmdb_id), body.media_type as string);
+			if (resolvedId) {
+				await libraryRepository.addToWatchHistory(user.id, resolvedId);
+			}
+
 			return json({ success: true });
 		}
 

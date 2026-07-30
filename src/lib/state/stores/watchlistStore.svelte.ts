@@ -72,13 +72,21 @@ const buildCanonicalPath = (
 const sanitizeMedia = (candidate: unknown): Media | null => {
 	if (!candidate || typeof candidate !== 'object') return null;
 	const payload = candidate as Partial<Media> & Record<string, unknown>;
-	const id = typeof payload.id === 'string' ? payload.id : String(payload.id ?? '');
+	const rawId = payload.id;
+	const id = typeof rawId === 'string' ? rawId : String(rawId ?? '');
 	const title = typeof payload.title === 'string' ? payload.title : String(payload.title ?? '');
 
 	if (!id) return null;
 
 	const ratingValue = Number(payload.rating ?? 0);
 	const addedAt = normalizeDateString(payload.addedAt) ?? new Date().toISOString();
+	const tmdbId = typeof payload.tmdbId === 'number'
+		? payload.tmdbId
+		: typeof payload.tmdb_id === 'number'
+			? payload.tmdb_id
+			: typeof rawId === 'number'
+				? rawId
+				: undefined;
 
 	return {
 		id,
@@ -94,7 +102,7 @@ const sanitizeMedia = (candidate: unknown): Media | null => {
 		mediaType: typeof payload.mediaType === 'string' ? payload.mediaType : undefined,
 		is4K: payload.is4K === true,
 		isHD: typeof payload.isHD === 'boolean' ? payload.isHD : undefined,
-		tmdbId: typeof payload.tmdbId === 'number' ? payload.tmdbId : undefined,
+		tmdbId,
 		imdbId: typeof payload.imdbId === 'string' ? payload.imdbId : null,
 		canonicalPath: buildCanonicalPath(payload, id),
 		durationMinutes: typeof payload.durationMinutes === 'number' ? payload.durationMinutes : null,
@@ -194,7 +202,7 @@ class WatchlistStore {
 	}
 
 	isInWatchlist(mediaId: string): boolean {
-		return this.#watchlist.some((m) => m.id === mediaId);
+		return this.#watchlist.some((m) => m.id === mediaId || String(m.tmdbId ?? '') === mediaId);
 	}
 
 	async addToWatchlist(mediaItem: WatchlistCandidate) {
@@ -230,10 +238,18 @@ class WatchlistStore {
 		}
 
 		try {
+			const body: Record<string, unknown> = {};
+			if (sanitized.tmdbId) {
+				body.tmdbId = sanitized.tmdbId;
+				body.mediaType = sanitized.mediaType || sanitized.media_type;
+			} else {
+				body.mediaId = sanitized.id;
+			}
+
 			const response = await fetch('/api/watchlist', {
 				method: 'POST',
 				headers: buildJsonHeadersWithCsrf(),
-				body: JSON.stringify({ mediaId: sanitized.id }),
+				body: JSON.stringify(body),
 				credentials: 'include'
 			});
 
@@ -255,7 +271,8 @@ class WatchlistStore {
 
 	async removeFromWatchlist(mediaId: string) {
 		const previousWatchlist = [...this.#watchlist];
-		const title = this.#watchlist.find((m) => m.id === mediaId)?.title ?? 'Item';
+		const item = this.#watchlist.find((m) => m.id === mediaId);
+		const title = item?.title ?? 'Item';
 
 		this.#watchlist = this.#watchlist.filter((m) => m.id !== mediaId);
 		persist(this.#watchlist);
@@ -266,10 +283,18 @@ class WatchlistStore {
 		}
 
 		try {
+			const body: Record<string, unknown> = {};
+			if (item?.tmdbId) {
+				body.tmdbId = item.tmdbId;
+				body.mediaType = item.mediaType || item.media_type;
+			} else {
+				body.mediaId = mediaId;
+			}
+
 			const response = await fetch('/api/watchlist', {
 				method: 'DELETE',
 				headers: buildJsonHeadersWithCsrf(),
-				body: JSON.stringify({ mediaId }),
+				body: JSON.stringify(body),
 				credentials: 'include'
 			});
 
