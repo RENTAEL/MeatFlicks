@@ -39,8 +39,25 @@
 		results = [];
 	}
 
+	function submitSearch() {
+		const term = query.trim();
+		if (term.length < 2) return;
+		searchOpen.set(false);
+		query = '';
+		results = [];
+		goto(`/search?q=${encodeURIComponent(term)}`);
+	}
+
 	function handleKeydown(e: KeyboardEvent) {
 		if (e.key === 'Escape') close();
+	}
+
+	function handleInputKeydown(e: KeyboardEvent) {
+		if (e.key === 'Enter') submitSearch();
+	}
+
+	function itemRating(item: any): number {
+		return item.rating != null ? item.rating * 2 : item.vote_average || 0;
 	}
 </script>
 
@@ -64,6 +81,7 @@
 				class="search-input"
 				bind:value={query}
 				oninput={onInput}
+				onkeydown={handleInputKeydown}
 				autocomplete="off"
 				spellcheck="false"
 			/>
@@ -84,8 +102,8 @@
 				{#each results as item (item.id)}
 					<button onclick={() => selectItem(item)} class="search-result-item">
 						<div class="search-result-poster">
-							{#if item.poster_path}
-								<img src="https://image.tmdb.org/t/p/w92{item.poster_path}" alt={item.title || item.name} loading="lazy" class="search-result-img" />
+							{#if item.posterPath || item.poster_path}
+								<img src={item.posterPath || `https://image.tmdb.org/t/p/w92${item.poster_path}`} alt={item.title || item.name} loading="lazy" class="search-result-img" />
 							{:else}
 								<div class="search-result-placeholder"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="size-5"><rect x="2" y="2" width="20" height="20" rx="2.18"/><line x1="7" y1="2" x2="7" y2="22"/><line x1="17" y1="2" x2="17" y2="22"/></svg></div>
 							{/if}
@@ -94,11 +112,11 @@
 							<p class="search-result-title">{item.title || item.name}</p>
 							<div class="search-result-meta">
 								<span class="search-result-type">{item.media_type === 'tv' ? 'TV Show' : 'Movie'}</span>
-								{#if item.release_date || item.first_air_date}
-									<span class="search-result-year">{(item.release_date || item.first_air_date).split('-')[0]}</span>
+								{#if item.releaseDate || item.release_date || item.first_air_date}
+									<span class="search-result-year">{(item.releaseDate || item.release_date || item.first_air_date).split('-')[0]}</span>
 								{/if}
-								{#if item.vote_average > 0}
-									<span class="search-result-rating">★ {item.vote_average.toFixed(1)}</span>
+								{#if itemRating(item) > 0}
+									<span class="search-result-rating">★ {itemRating(item).toFixed(1)}</span>
 								{/if}
 							</div>
 						</div>

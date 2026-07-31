@@ -1,7 +1,5 @@
 <script lang="ts">
 	import { browser } from '$app/environment';
-	import { env } from '$lib/config/env';
-	const PUBLIC_TMDB_API_KEY = env.PUBLIC_TMDB_API_KEY;
 	import { fly, fade } from 'svelte/transition';
 	import MediaCard from '$lib/components/MediaCard.svelte';
 
@@ -73,25 +71,19 @@
 		window.history.replaceState({}, '', url.toString());
 
 		try {
-			const res = await fetch(
-				`https://api.themoviedb.org/3/search/multi?query=${encodeURIComponent(term)}&include_adult=false&api_key=${PUBLIC_TMDB_API_KEY}`
-			);
+			const res = await fetch(`/api/search?q=${encodeURIComponent(term)}&limit=48`);
 			if (!res.ok) throw new Error(`Search failed (${res.status})`);
 			const data = await res.json();
 
-			results = (data.results || [])
-				.filter((item: any) => item.media_type === 'movie' || item.media_type === 'tv')
-				.map((item: any) => ({
-					id: item.id,
-					title: item.title || item.name,
-					poster: item.poster_path
-						? `https://image.tmdb.org/t/p/w342${item.poster_path}`
-						: null,
-					rating: item.vote_average || 0,
-					year: (item.release_date || item.first_air_date)?.split('-')[0] || '—',
-					mediaType: item.media_type,
-					href: `/${item.media_type}/${item.id}`,
-				}));
+			results = (data.items || []).map((item: any) => ({
+				id: item.tmdbId,
+				title: item.title,
+				poster: item.posterPath || null,
+				rating: (item.rating ?? 0) * 2,
+				year: item.releaseDate?.split('-')[0] || '—',
+				mediaType: item.media_type,
+				href: `/${item.media_type}/${item.tmdbId}`,
+			}));
 
 			saveRecentSearch(term);
 		} catch (e: any) {
