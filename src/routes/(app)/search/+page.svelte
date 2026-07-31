@@ -1,15 +1,23 @@
 <script lang="ts">
 	import { browser } from '$app/environment';
+	import { untrack } from 'svelte';
 	import { fly, fade } from 'svelte/transition';
 	import MediaCard from '$lib/components/MediaCard.svelte';
+	import type { PageData } from './$types';
 
-	let query = $state('');
-	let results = $state<any[]>([]);
+	let { data }: { data: PageData } = $props();
+
+	const ssrQuery = $derived(data.ssrQuery || '');
+	const ssrItems = $derived(data.ssrItems || []);
+
+	let query = $state(ssrQuery);
+	let results = $state<any[]>(ssrItems);
 	let isLoading = $state(false);
-	let hasSearched = $state(false);
+	let hasSearched = $state(ssrQuery.length >= 2);
 	let error = $state('');
 	let searchTimeout: ReturnType<typeof setTimeout>;
 	let recentSearches = $state<string[]>([]);
+	let consumedSeed = false;
 
 	const genres = [
 		{ name: 'Action', id: 28 },
@@ -28,11 +36,24 @@
 			try { recentSearches = JSON.parse(stored); } catch {}
 		}
 		const urlQuery = new URL(window.location.href).searchParams.get('q');
-		if (urlQuery) {
+		if (urlQuery && !hasSearched) {
 			query = urlQuery;
 			performSearch(urlQuery);
 		}
 	}
+
+	$effect(() => {
+		const ssrQ = data.ssrQuery as string;
+		untrack(() => {
+			if (browser && ssrQ && ssrQ !== query) {
+				query = ssrQ;
+				results = (data.ssrItems as any[]) || [];
+				hasSearched = true;
+				error = '';
+				consumedSeed = false;
+			}
+		});
+	});
 
 	function saveRecentSearch(term: string) {
 		recentSearches = [term, ...recentSearches.filter(s => s !== term)].slice(0, 8);
@@ -46,6 +67,10 @@
 
 	$effect(() => {
 		const q = query;
+		if (!consumedSeed) {
+			consumedSeed = true;
+			if (q === ssrQuery) return;
+		}
 		clearTimeout(searchTimeout);
 		if (q.trim().length >= 2) {
 			searchTimeout = setTimeout(() => performSearch(q.trim()), 400);
