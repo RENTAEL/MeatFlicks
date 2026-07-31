@@ -54,7 +54,8 @@ export async function load({ params, url, fetch }) {
 				networks: show.networks,
 				created_by: show.created_by,
 				poster_path: show.poster_path,
-				backdrop_path: show.backdrop_path
+				backdrop_path: show.backdrop_path,
+				imdb_id: show.external_ids?.imdb_id || null
 			},
 			seasons,
 			episodes,

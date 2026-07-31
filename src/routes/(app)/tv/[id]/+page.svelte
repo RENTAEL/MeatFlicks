@@ -8,6 +8,7 @@
 	import { fade, fly } from 'svelte/transition';
 	import AggregatedRating from '$lib/components/AggregatedRating.svelte';
 
+	let { data } = $props();
 	let show: any = $state(null);
 	let credits: any[] = $state([]);
 	let similar: any[] = $state([]);
@@ -35,6 +36,7 @@
 			similar = (await similarRes.json()).results?.slice(0, 12) || [];
 
 			seasons = (show.seasons || []).filter((s: any) => s.season_number > 0);
+			if (seasons.length === 0) seasons = show.seasons || [];
 
 			const urlSeason = Number(page.params.season);
 			const urlEpisode = Number(page.params.episode);
@@ -255,48 +257,64 @@
 					<span class="episode-count">{episodes.length} episode{episodes.length !== 1 ? 's' : ''}</span>
 				</h3>
 
-				<div class="episode-list">
-					{#each episodes as ep (ep.id)}
-						<div class="episode-card">
-							<div class="episode-still">
-								{#if ep.still_path}
-									<img src="https://image.tmdb.org/t/p/w300{ep.still_path}" alt={ep.name} class="episode-still-img" loading="lazy" />
-								{:else}
-									<div class="episode-still-placeholder">
-										<span class="ep-num">{ep.episode_number}</span>
-									</div>
-								{/if}
-
-								<button class="episode-play-overlay" onclick={() => playEpisode(ep)}>
-									<svg viewBox="0 0 24 24" fill="white"><path d="M8 5v14l11-7z"/></svg>
-								</button>
-
-								{#if watchProgress.season === ep.season_number && watchProgress.episode === ep.episode_number && watchProgress.progress > 0}
-									<div class="progress-bar-container">
-										<div class="progress-bar-fill" style="width: {Math.round(watchProgress.progress * 100)}%"></div>
-									</div>
-								{/if}
-							</div>
-
-							<div class="episode-info">
-								<div class="episode-header">
-									<span class="episode-number">E{ep.episode_number}</span>
-									<span class="episode-title-text">{ep.name}</span>
-									{#if ep.runtime}
-										<span class="episode-runtime">{ep.runtime}m</span>
-									{/if}
+			<div class="episode-list">
+				{#each episodes as ep (ep.id)}
+					{@const isUnaired = !!ep.air_date && new Date(ep.air_date).getTime() > Date.now()}
+					{@const isNowPlaying = selectedEpisode?.season === ep.season_number && selectedEpisode?.episode === ep.episode_number}
+					<div class="episode-card" class:episode-active={isNowPlaying} class:episode-unaired={isUnaired}>
+						<div class="episode-still">
+							{#if ep.still_path}
+								<img src="https://image.tmdb.org/t/p/w300{ep.still_path}" alt={ep.name} class="episode-still-img" loading="lazy" />
+							{:else if show.backdrop_path}
+								<img src="https://image.tmdb.org/t/p/w500{show.backdrop_path}" alt={ep.name} class="episode-still-img" loading="lazy" />
+							{:else}
+								<div class="episode-still-placeholder">
+									<span class="ep-num">{ep.episode_number}</span>
 								</div>
-								{#if ep.overview}
-									<p class="episode-overview">
-										{ep.overview.slice(0, 150)}{ep.overview.length > 150 ? '...' : ''}
-									</p>
+							{/if}
+
+							<button
+								class="episode-play-overlay"
+								disabled={isUnaired}
+								onclick={() => playEpisode(ep)}
+							>
+								<svg viewBox="0 0 24 24" fill="white"><path d="M8 5v14l11-7z"/></svg>
+							</button>
+
+							{#if watchProgress.season === ep.season_number && watchProgress.episode === ep.episode_number && watchProgress.progress > 0}
+								<div class="progress-bar-container">
+									<div class="progress-bar-fill" style="width: {Math.round(watchProgress.progress * 100)}%"></div>
+								</div>
+							{/if}
+						</div>
+
+						<div class="episode-info">
+							<div class="episode-header">
+								<span class="episode-number">E{ep.episode_number}</span>
+								<span class="episode-title-text">{ep.name}</span>
+								{#if ep.runtime}
+									<span class="episode-runtime">{ep.runtime}m</span>
 								{/if}
-								{#if ep.air_date}
-									<span class="episode-air-date">Aired {new Date(ep.air_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
+								{#if ep.vote_average && ep.vote_average > 0}
+									<span class="episode-rating">★ {Number(ep.vote_average).toFixed(1)}</span>
+								{/if}
+								{#if isNowPlaying}
+									<span class="now-playing-badge">Now Playing</span>
 								{/if}
 							</div>
+							{#if ep.overview}
+								<p class="episode-overview">
+									{ep.overview.slice(0, 150)}{ep.overview.length > 150 ? '...' : ''}
+								</p>
+							{/if}
+							{#if ep.air_date}
+								<span class="episode-air-date">
+									{isUnaired ? 'Airs' : 'Aired'} {new Date(ep.air_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+								</span>
+							{/if}
 						</div>
-					{/each}
+					</div>
+				{/each}
 
 					{#if episodes.length === 0}
 						<p class="no-episodes">No episode data available for this season.</p>
@@ -342,6 +360,7 @@
 					type="tv"
 					season={selectedEpisode.season}
 					episode={selectedEpisode.episode}
+					imdbId={data.show?.imdb_id || null}
 					title={`${show.name} — S${selectedEpisode.season}:E${selectedEpisode.episode}`}
 				/>
 			</div>
@@ -403,9 +422,11 @@
 	.season-tab:active { background: #27272a; }
 	.season-tab-active { background: #818cf8; border-color: #818cf8; color: #fff; }
 
-	.episode-list { display: flex; flex-direction: column; gap: 12px; }
+	.episode-list { display: flex; flex-direction: column; gap: 12px; max-height: min(560px, 60vh); overflow-y: auto; padding-right: 4px; scrollbar-width: thin; }
 	.episode-card { display: flex; gap: 12px; background: #0d0d0f; border: 1px solid rgba(255,255,255,0.04); border-radius: 12px; overflow: hidden; transition: border-color 0.15s; }
 	.episode-card:hover { border-color: rgba(255,255,255,0.1); }
+	.episode-card.episode-active { border-color: rgba(129,140,248,0.55); }
+	.episode-card.episode-unaired { opacity: 0.55; }
 	@media (max-width: 480px) { .episode-card { flex-direction: column; } }
 	.episode-still { position: relative; width: 160px; aspect-ratio: 16/9; flex-shrink: 0; background: #18181b; overflow: hidden; }
 	@media (max-width: 480px) { .episode-still { width: 100%; } }
@@ -423,6 +444,9 @@
 	.episode-number { font-size: 12px; font-weight: 700; color: #818cf8; }
 	.episode-title-text { font-size: 14px; font-weight: 600; }
 	.episode-runtime { font-size: 12px; color: #71717a; }
+	.episode-rating { font-size: 12px; color: #f59e0b; font-weight: 600; }
+	.now-playing-badge { font-size: 10px; font-weight: 700; letter-spacing: 0.4px; text-transform: uppercase; color: #fff; background: #818cf8; padding: 2px 8px; border-radius: 8px; }
+	.episode-play-overlay:disabled { display: none; }
 	.episode-overview { font-size: 12px; color: #a1a1aa; line-height: 1.5; margin-top: 6px; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
 	.episode-air-date { font-size: 11px; color: #52525b; margin-top: 6px; display: block; }
 	.no-episodes { text-align: center; color: #52525b; padding: 32px 0; }

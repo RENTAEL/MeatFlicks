@@ -21,6 +21,7 @@ export const GET: RequestHandler = async ({ url, fetch }) => {
   const type = (url.searchParams.get('type') || 'movie') as 'movie' | 'tv';
   const season = parseInt(url.searchParams.get('season') || '1');
   const episode = parseInt(url.searchParams.get('episode') || '1');
+  const imdbId = url.searchParams.get('imdbId') || undefined;
 
   if (!tmdbId || isNaN(tmdbId)) {
     return json({ error: 'Missing tmdbId' }, { status: 400 });
@@ -29,8 +30,8 @@ export const GET: RequestHandler = async ({ url, fetch }) => {
   const results: ScanResult[] = await Promise.all(
     PROVIDERS.map(async (provider) => {
       const embedUrl = type === 'movie'
-        ? provider.getMovieUrl(tmdbId)
-        : provider.getTVUrl(tmdbId, season, episode);
+        ? provider.getMovieUrl(tmdbId, imdbId)
+        : provider.getTVUrl(tmdbId, season, episode, imdbId);
 
       try {
         const controller = new AbortController();
@@ -51,8 +52,8 @@ export const GET: RequestHandler = async ({ url, fetch }) => {
           return {
             id: provider.id,
             name: provider.name,
-            movieUrl: type === 'movie' ? embedUrl : provider.getMovieUrl(tmdbId),
-            tvUrl: type === 'tv' ? embedUrl : (provider.getTVUrl(tmdbId, 1, 1) || null),
+            movieUrl: type === 'movie' ? embedUrl : provider.getMovieUrl(tmdbId, imdbId),
+            tvUrl: type === 'tv' ? embedUrl : (provider.getTVUrl(tmdbId, 1, 1, imdbId) || null),
             status: res.ok ? ('working' as const) : ('blocked' as const),
             requiresNoRestrictions: RESTRICTION_FREE_PROVIDERS.has(provider.id),
           };

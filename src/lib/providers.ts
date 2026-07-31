@@ -1,8 +1,8 @@
 export interface Provider {
   id: string;
   name: string;
-  getMovieUrl: (tmdbId: number) => string;
-  getTVUrl: (tmdbId: number, season: number, episode: number) => string;
+  getMovieUrl: (tmdbId: number, imdbId?: string) => string;
+  getTVUrl: (tmdbId: number, season: number, episode: number, imdbId?: string) => string;
 }
 
 export const PROVIDERS: Provider[] = [
@@ -27,20 +27,20 @@ export const PROVIDERS: Provider[] = [
   {
     id: '2embed-skin',
     name: '2Embed.skin',
-    getMovieUrl: (id) => `https://www.2embed.skin/embed/${id}`,
-    getTVUrl: (id, s, e) => `https://www.2embed.skin/embedtv/${id}&s=${s}&e=${e}`,
+    getMovieUrl: (id, imdbId) => `https://www.2embed.skin/embed/${imdbId || id}`,
+    getTVUrl: (id, s, e, imdbId) => `https://www.2embed.skin/embedtv/${imdbId || id}&s=${s}&e=${e}`,
   },
   {
     id: '2embed',
     name: '2Embed.cc',
-    getMovieUrl: (id) => `https://www.2embed.cc/embed/${id}`,
-    getTVUrl: (id, s, e) => `https://www.2embed.cc/embedtv/${id}&s=${s}&e=${e}`,
+    getMovieUrl: (id, imdbId) => `https://www.2embed.cc/embed/${imdbId || id}`,
+    getTVUrl: (id, s, e, imdbId) => `https://www.2embed.cc/embedtv/${imdbId || id}&s=${s}&e=${e}`,
   },
   {
     id: '2embed-org',
     name: '2Embed.org',
-    getMovieUrl: (id) => `https://2embed.org/embed/${id}`,
-    getTVUrl: (id, s, e) => `https://2embed.org/embedtv/${id}&s=${s}&e=${e}`,
+    getMovieUrl: (id, imdbId) => `https://2embed.org/embed/${imdbId || id}`,
+    getTVUrl: (id, s, e, imdbId) => `https://2embed.org/embedtv/${imdbId || id}&s=${s}&e=${e}`,
   },
   {
     id: 'autoembed',
@@ -147,8 +147,8 @@ export const PROVIDERS: Provider[] = [
   {
     id: 'filmxy',
     name: 'FilmXY',
-    getMovieUrl: (id) => `https://filmxy.live/embed/${id}`,
-    getTVUrl: (id, s, e) => `https://filmxy.live/embed/${id}/${s}/${e}`,
+    getMovieUrl: (id, imdbId) => `https://filmxy.live/embed/${imdbId || id}`,
+    getTVUrl: (id, s, e, imdbId) => `https://filmxy.live/embed/${imdbId || id}/${s}/${e}`,
   },
   {
     id: 'vidstream',

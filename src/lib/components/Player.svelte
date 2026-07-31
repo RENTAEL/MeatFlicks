@@ -7,6 +7,7 @@
 		season = 1,
 		episode = 1,
 		title = '',
+		imdbId = null as string | null,
 		onerror,
 		preResolvedSource = null as string | null
 	}: {
@@ -15,6 +16,7 @@
 		season?: number;
 		episode?: number;
 		title?: string;
+		imdbId?: string | null;
 		onerror?: (detail: { message: string }) => void;
 		preResolvedSource?: string | null;
 	} = $props();
@@ -70,6 +72,7 @@
 				season: season.toString(),
 				episode: episode.toString()
 			});
+			if (imdbId) params.set('imdbId', imdbId);
 			const res = await fetch(`/api/providers/scan?${params}`);
 			if (!res.ok) throw new Error('Scan failed');
 			const data = await res.json();
@@ -141,8 +144,7 @@
 
 	onMount(() => { if (tmdbId) scan(); });
 	$effect(() => { if (tmdbId) scan(); });
-	onDestroy(() => { stopAutoSwitch(); });
-</script>
+	onDestroy(() => { stopAutoSwitch(); });</script>
 
 <div class="player-root">
 	<div class="iframe-container">

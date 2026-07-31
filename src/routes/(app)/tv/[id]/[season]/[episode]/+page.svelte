@@ -5,6 +5,7 @@
 
 	let show: any = $state(null);
 	let episodes: any[] = $state([]);
+	let imdbId = $state<string | null>(null);
 	let isLoading = $state(true);
 
 	let tmdbId = $derived(Number(page.params.id));
@@ -20,13 +21,18 @@
 	async function load() {
 		isLoading = true;
 		try {
-			const [showRes, seasonRes] = await Promise.all([
+			const [showRes, seasonRes, tvMetaRes] = await Promise.all([
 				fetch(`/api/tmdb/tv/${tmdbId}`),
 				fetch(`/api/tmdb/tv/${tmdbId}/season/${seasonNum}`),
+				fetch(`/api/tv/${tmdbId}`).catch(() => null),
 			]);
 			show = await showRes.json();
 			const seasonData = await seasonRes.json();
 			episodes = seasonData.episodes || [];
+			if (tvMetaRes?.ok) {
+				const tvMeta = await tvMetaRes.json();
+				imdbId = tvMeta.imdbId || null;
+			}
 
 			if (episodes.length > 0 && currentEpIndex === -1) {
 				goto(`/tv/${tmdbId}`, { replaceState: true });
@@ -117,6 +123,7 @@
 			type="tv"
 			season={seasonNum}
 			episode={episodeNum}
+			imdbId={imdbId}
 			title={`${show.name} — S${seasonNum}:E${episodeNum}`}
 		/>
 
