@@ -344,9 +344,9 @@
 						</div>
 
 						<div class="episode-info">
+							<span class="episode-title-text">{ep.name}</span>
 							<div class="episode-header">
 								<span class="episode-number">E{ep.episode_number}</span>
-								<span class="episode-title-text">{ep.name}</span>
 								{#if ep.runtime}
 									<span class="episode-runtime">{ep.runtime}m</span>
 								{/if}
@@ -488,16 +488,14 @@
 	.season-tab:active { background: #27272a; }
 	.season-tab-active { background: #818cf8; border-color: #818cf8; color: #fff; }
 
-	.episode-list { display: flex; flex-direction: column; gap: 12px; padding-right: 4px; }
+	.episode-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px; padding-right: 4px; }
 	.episode-list.episode-list-scroll { max-height: min(560px, 60vh); overflow-y: auto; scrollbar-width: thin; }
-	.episode-card { display: flex; gap: 12px; background: #0d0d0f; border: 1px solid rgba(255,255,255,0.04); border-radius: 12px; overflow: hidden; transition: border-color 0.15s; }
+	.episode-card { display: flex; flex-direction: column; flex-shrink: 0; background: #0d0d0f; border: 1px solid rgba(255,255,255,0.04); border-radius: 12px; overflow: hidden; transition: border-color 0.15s; }
 	.episode-card:hover { border-color: rgba(255,255,255,0.1); }
 	.episode-card.episode-active { border-color: rgba(129,140,248,0.55); }
 	.episode-card.episode-unaired { opacity: 0.55; }
-	@media (max-width: 480px) { .episode-card { flex-direction: column; } }
-	.episode-still { position: relative; width: 160px; aspect-ratio: 16/9; flex-shrink: 0; background: #18181b; overflow: hidden; }
-	@media (max-width: 480px) { .episode-still { width: 100%; } }
-	.episode-still-img { width: 100%; height: 100%; object-fit: cover; }
+	.episode-still { position: relative; width: 100%; aspect-ratio: 16/9; flex-shrink: 0; background: #18181b; overflow: hidden; }
+	.episode-still-img { width: 100%; height: 100%; object-fit: cover; display: block; }
 	.episode-still-placeholder { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; background: #18181b; }
 	.ep-num { font-size: 32px; font-weight: 800; color: #27272a; }
 	.episode-play-overlay { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,0.4); opacity: 0; transition: opacity 0.2s; border: none; cursor: pointer; }
@@ -505,17 +503,16 @@
 	.episode-play-overlay svg { width: 36px; height: 36px; filter: drop-shadow(0 2px 8px rgba(0,0,0,0.5)); }
 	.progress-bar-container { position: absolute; bottom: 0; left: 0; right: 0; height: 3px; background: rgba(255,255,255,0.15); }
 	.progress-bar-fill { height: 100%; background: #818cf8; transition: width 0.3s; }
-	.episode-info { flex: 1; padding: 12px 12px 12px 0; min-width: 0; }
-	@media (max-width: 480px) { .episode-info { padding: 0 12px 12px; } }
+	.episode-info { flex: 1; min-width: 0; padding: 12px; display: flex; flex-direction: column; gap: 6px; }
+	.episode-title-text { font-size: 14px; font-weight: 600; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 	.episode-header { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 	.episode-number { font-size: 12px; font-weight: 700; color: #818cf8; }
-	.episode-title-text { font-size: 14px; font-weight: 600; }
 	.episode-runtime { font-size: 12px; color: #71717a; }
 	.episode-rating { font-size: 12px; color: #f59e0b; font-weight: 600; }
 	.now-playing-badge { font-size: 10px; font-weight: 700; letter-spacing: 0.4px; text-transform: uppercase; color: #fff; background: #818cf8; padding: 2px 8px; border-radius: 8px; }
 	.episode-play-overlay:disabled { display: none; }
-	.episode-overview { font-size: 12px; color: #a1a1aa; line-height: 1.5; margin-top: 6px; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
-	.episode-air-date { font-size: 11px; color: #52525b; margin-top: 6px; display: block; }
+	.episode-overview { font-size: 12px; color: #a1a1aa; line-height: 1.5; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+	.episode-air-date { font-size: 11px; color: #52525b; display: block; }
 	.no-episodes { text-align: center; color: #52525b; padding: 32px 0; }
 
 	.cast-scroll { display: flex; gap: 12px; overflow-x: auto; scrollbar-width: none; padding-bottom: 4px; }
