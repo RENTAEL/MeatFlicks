@@ -1,6 +1,7 @@
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { env } from '$lib/config/env';
+import { isEligibleMedia } from '$lib/utils/mediaFilter';
 
 const TMDB_BASE = 'https://api.themoviedb.org/3';
 
@@ -40,7 +41,7 @@ export const GET: RequestHandler = async ({ url, fetch }) => {
     const data = await res.json();
 
     return json({
-      results: data.results ?? [],
+      results: (data.results ?? []).filter(isEligibleMedia),
       page: data.page ?? 1,
       total_pages: data.total_pages ?? 1,
       total_results: data.total_results ?? 0,

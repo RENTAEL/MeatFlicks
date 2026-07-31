@@ -1,6 +1,7 @@
 import { buildCacheKey, withCache } from '$lib/server/cache';
 import { tmdbRateLimiter } from '$lib/server/rate-limiter';
 import { toNumber } from '$lib/server/utils';
+import { isEligibleMedia, todayParam } from '$lib/utils/mediaFilter';
 import { api } from './tmdb.client';
 import { LIST_TTL, TMDB_PAGE_SIZE } from './tmdb.constants';
 
@@ -45,6 +46,8 @@ const fetchTmdbListIds = async (
 		if (!Array.isArray(results)) continue;
 
 		for (const entry of results) {
+			if (!isEligibleMedia(entry)) continue;
+
 			const id = toNumber(entry.id);
 			if (id) ids.push(id);
 			if (ids.length >= limit) break;
@@ -109,7 +112,7 @@ export async function discoverMovieIds(options: DiscoverMovieOptions = {}): Prom
 		sortBy = 'popularity.desc',
 		language = 'en-US',
 		releaseDateGte,
-		releaseDateLte
+		releaseDateLte = todayParam()
 	} = options;
 
 	const params = {
@@ -141,7 +144,7 @@ export async function discoverTvIds(options: DiscoverMovieOptions = {}): Promise
 		sortBy = 'popularity.desc',
 		language = 'en-US',
 		releaseDateGte,
-		releaseDateLte
+		releaseDateLte = todayParam()
 	} = options;
 
 	const params = {

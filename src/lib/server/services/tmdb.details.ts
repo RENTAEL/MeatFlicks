@@ -2,6 +2,7 @@ import { env } from '$lib/config/env';
 import { buildCacheKey, setCachedValue, withCache } from '$lib/server/cache';
 import { tmdbRateLimiter } from '$lib/server/rate-limiter';
 import type { LibraryMovie } from '$lib/types/library';
+import { isEligibleMedia } from '$lib/utils/mediaFilter';
 import { ApiError } from '$lib/server/utils';
 import {
 	TmdbMovieSchema,
@@ -339,7 +340,7 @@ export async function fetchTmdbRecommendations(
 		}
 
 		return Array.from(unique.values())
-			.filter((item) => item.id !== tmdbId)
+			.filter((item) => item.id !== tmdbId && isEligibleMedia(item))
 			.slice(0, limit)
 			.map((item) => {
 				const title = item.title || item.name || 'Untitled';

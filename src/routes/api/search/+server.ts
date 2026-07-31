@@ -5,6 +5,7 @@ import { env } from '$lib/config/env';
 import { z } from 'zod';
 import { validateQueryParams } from '$lib/server/validation';
 import { errorHandler } from '$lib/server';
+import { isEligibleMedia } from '$lib/utils/mediaFilter';
 
 const searchParamsSchema = z.object({
 	q: z.string().optional(),
@@ -41,7 +42,10 @@ export const GET: RequestHandler = async ({ url }) => {
 				}
 
 				const formattedResults: LibraryMedia[] = data.results
-					.filter((item: any) => ['movie', 'tv'].includes(item.media_type))
+					.filter(
+						(item: any) =>
+							['movie', 'tv'].includes(item.media_type) && isEligibleMedia(item)
+					)
 					.map((item: any) => {
 						const posterPath = item.poster_path || item.profile_path;
 						return {
@@ -104,7 +108,12 @@ export const GET: RequestHandler = async ({ url }) => {
 			}
 
 			const formattedResults: LibraryMedia[] = data.results
-				.filter((item: any) => ['movie', 'tv'].includes(item.media_type) && item.popularity > 1)
+				.filter(
+					(item: any) =>
+						['movie', 'tv'].includes(item.media_type) &&
+						item.popularity > 1 &&
+						isEligibleMedia(item)
+				)
 				.slice(0, limit)
 				.map((item: any) => {
 					const posterPath = item.poster_path || item.profile_path;

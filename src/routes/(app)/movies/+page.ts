@@ -1,6 +1,7 @@
 import { env } from '$lib/config/env';
 const PUBLIC_TMDB_API_KEY = env.PUBLIC_TMDB_API_KEY;
 import { formatMovie } from '$lib/utils/tmdb';
+import { isEligibleMedia } from '$lib/utils/mediaFilter';
 
 const TMDB_BASE = 'https://api.themoviedb.org/3';
 
@@ -48,7 +49,9 @@ export async function load({ url, fetch }) {
 		}
 
 		return {
-			movies: (data.results || []).map(formatMovie),
+			movies: (data.results || [])
+				.filter((m: any) => category === 'upcoming' || isEligibleMedia(m))
+				.map(formatMovie),
 			page: data.page,
 			totalPages: data.total_pages,
 			category

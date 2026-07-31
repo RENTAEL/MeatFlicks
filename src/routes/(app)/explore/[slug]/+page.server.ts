@@ -6,6 +6,7 @@ import type { MovieFilters, SortOptions } from '$lib/types/filters';
 import type { PaginationParams } from '$lib/types/pagination';
 import { DEFAULT_PAGE_SIZE } from '$lib/types/pagination';
 import type { LibraryMedia } from '$lib/types/library';
+import { isEligibleMedia, todayParam } from '$lib/utils/mediaFilter';
 
 const CATEGORY_PRESETS: Record<string, { title: string; genres: string[] }> = {
 	movies: {
@@ -33,7 +34,7 @@ async function fetchTmdbTrending(mediaType: 'movie' | 'tv', limit = 20): Promise
 			query: { language: 'en-US', page: '1' }
 		}) as { results: Array<{ id: number; title?: string; name?: string; overview?: string; poster_path?: string; backdrop_path?: string; release_date?: string; first_air_date?: string; vote_average?: number; genre_ids?: number[]; media_type?: string }> };
 
-		return (data.results || []).slice(0, limit).map((item) => {
+		return (data.results || []).filter(isEligibleMedia).slice(0, limit).map((item) => {
 			const prefix = mediaType === 'tv' ? '/tv/' : '/movie/';
 			return {
 				id: String(item.id),
@@ -77,15 +78,23 @@ export const load: PageServerLoad = async ({ params, url }) => {
 			const [trendingData, popularData] = await Promise.all([
 				api(`/trending/${mediaType}/week`, { query: { language: 'en-US', page: '1' } }),
 				api(`/discover/${mediaType}`, {
-					query: { language: 'en-US', sort_by: 'popularity.desc', page: '1', vote_count: '50' }
+					query: {
+						language: 'en-US',
+						sort_by: 'popularity.desc',
+						page: '1',
+						'vote_count.gte': '50',
+						...(mediaType === 'tv'
+							? { 'first_air_date.lte': todayParam() }
+							: { 'primary_release_date.lte': todayParam() })
+					}
 				})
 			]);
 
-			trending = (trendingData.results || []).slice(0, 10);
+			trending = (trendingData.results || []).filter(isEligibleMedia).slice(0, 10);
 
 			const trendingIds = new Set(trending.map((m: any) => m.id));
 			tmdbPopularMovies = ((popularData.results || []) as Array<any>)
-				.filter((m: any) => !trendingIds.has(m.id))
+				.filter((m: any) => !trendingIds.has(m.id) && isEligibleMedia(m))
 				.slice(0, 12)
 				.map((item: any) => ({
 					id: String(item.id),

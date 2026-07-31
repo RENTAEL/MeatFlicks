@@ -1,4 +1,5 @@
 import type { PageServerLoad } from './$types';
+import { isEligibleMedia, todayParam } from '$lib/utils/mediaFilter';
 
 export const load: PageServerLoad = async ({ url }) => {
   const genreId = url.searchParams.get('genreId') || '';
@@ -24,10 +25,11 @@ export const load: PageServerLoad = async ({ url }) => {
           sort_by: 'popularity.desc',
           page,
           with_genres: genreId,
-          vote_count: '50'
+          'vote_count.gte': '50',
+          'primary_release_date.lte': todayParam()
         }
       }) as { results: Array<any>; total_pages: number };
-      movies = (discoverData.results || []).map((item: any) => ({
+      movies = (discoverData.results || []).filter(isEligibleMedia).map((item: any) => ({
         id: String(item.id),
         tmdbId: item.id,
         title: item.title || item.name || 'Untitled',

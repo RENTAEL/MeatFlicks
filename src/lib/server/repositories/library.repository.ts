@@ -28,6 +28,8 @@ const normalizeOffset = (value: number | undefined): number => {
 	return Math.floor(value);
 };
 
+const releasedMedia = sql`(${media.releaseDate} IS NULL OR julianday(${media.releaseDate}) <= julianday('now'))`;
+
 export type CollectionWithMovies = CollectionRecord & { movies: MediaSummary[] };
 
 export const libraryRepository = {
@@ -43,7 +45,13 @@ export const libraryRepository = {
 				const rows = await db
 					.select()
 					.from(media)
-					.where(and(isNotNull(media.rating), eq(media.mediaType, mediaType)))
+					.where(
+						and(
+							isNotNull(media.rating),
+							eq(media.mediaType, mediaType),
+							releasedMedia
+						)
+					)
 					.orderBy(desc(media.rating), desc(media.releaseDate), asc(media.title))
 					.limit(take);
 				return await mapRowsToSummaries(rows as MediaRow[]);
@@ -141,7 +149,7 @@ export const libraryRepository = {
 					.select({ media })
 					.from(media)
 					.innerJoin(collections, eq(media.collectionId, collections.id))
-					.where(eq(collections.slug, collectionSlug))
+					.where(and(eq(collections.slug, collectionSlug), releasedMedia))
 					.orderBy(desc(media.rating), desc(media.releaseDate), asc(media.title))
 					.limit(take)
 					.offset(skip);
@@ -206,7 +214,13 @@ export const libraryRepository = {
 					.select({ media })
 					.from(media)
 					.innerJoin(mediaGenres, eq(mediaGenres.mediaId, media.id))
-					.where(and(eq(mediaGenres.genreId, genreId), eq(media.mediaType, mediaType)))
+					.where(
+						and(
+							eq(mediaGenres.genreId, genreId),
+							eq(media.mediaType, mediaType),
+							releasedMedia
+						)
+					)
 					.orderBy(desc(media.rating), desc(media.releaseDate), asc(media.title))
 					.limit(take)
 					.offset(skip);

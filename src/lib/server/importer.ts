@@ -12,6 +12,7 @@ import { ofetch } from 'ofetch';
 import { env } from '$lib/config/env';
 import type { InferSelectModel } from 'drizzle-orm';
 import { bulkUpsertMovies, type UpsertMoviePayload } from '$lib/server/db/mutations';
+import { isEligibleMedia } from '$lib/utils/mediaFilter';
 
 const TMDB_BASE_URL = 'https://api.themoviedb.org/3';
 
@@ -61,6 +62,8 @@ const fetchTmdbListIds = async (
 		if (!Array.isArray(results)) continue;
 
 		for (const entry of results) {
+			if (!isEligibleMedia(entry)) continue;
+
 			const id = entry.id;
 			if (id) ids.push(id);
 			if (ids.length >= limit) break;

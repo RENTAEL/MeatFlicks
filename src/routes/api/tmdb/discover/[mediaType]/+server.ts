@@ -1,6 +1,7 @@
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { env } from '$lib/config/env';
+import { isEligibleMedia, todayParam } from '$lib/utils/mediaFilter';
 
 const VALID_TYPES = new Set(['movie', 'tv']);
 
@@ -15,7 +16,7 @@ export const GET: RequestHandler = async ({ params, url }) => {
   const voteCountGte = url.searchParams.get('vote_count.gte') || '50';
   const withGenres = url.searchParams.get('with_genres') || '';
 
-  let tmdbUrl = `https://api.themoviedb.org/3/discover/${mediaType}?api_key=${env.TMDB_API_KEY}&language=en-US&sort_by=${sortBy}&include_adult=false&include_video=false&page=${page}&vote_count.gte=${voteCountGte}`;
+  let tmdbUrl = `https://api.themoviedb.org/3/discover/${mediaType}?api_key=${env.TMDB_API_KEY}&language=en-US&sort_by=${sortBy}&include_adult=false&include_video=false&page=${page}&vote_count.gte=${voteCountGte}&${mediaType === 'tv' ? 'first_air_date' : 'primary_release_date'}.lte=${todayParam()}`;
   if (withGenres) tmdbUrl += `&with_genres=${withGenres}`;
 
   try {
@@ -27,7 +28,7 @@ export const GET: RequestHandler = async ({ params, url }) => {
     }
 
     return json({
-      results: data.results ?? [],
+      results: (data.results ?? []).filter(isEligibleMedia),
       total_pages: data.total_pages ?? 1,
       page: data.page ?? 1
     });

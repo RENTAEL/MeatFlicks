@@ -54,7 +54,10 @@
 			if (!res.ok) throw new Error('Failed');
 			const json = await res.json();
 			const { formatMovie } = await import('$lib/utils/tmdb');
-			const newMovies = (json.results || []).map(formatMovie);
+			const { isEligibleMedia } = await import('$lib/utils/mediaFilter');
+			const newMovies = (json.results || [])
+				.filter((m: any) => currentCategory === 'upcoming' || isEligibleMedia(m))
+				.map(formatMovie);
 			allMovies = [...allMovies, ...newMovies];
 			currentPage = nextPage;
 			hasMore = nextPage < (json.total_pages || 0);
