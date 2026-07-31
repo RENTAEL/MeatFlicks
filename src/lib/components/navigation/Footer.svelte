@@ -21,6 +21,9 @@
 			<a href="/movies">Movies</a>
 			<a href="/tv">TV Series</a>
 			<a href="/afrikaans">Afrikaans</a>
+			<a href="/disclaimer#about">About</a>
+			<a href="/disclaimer#contact">Contact</a>
+			<a href="/disclaimer#dmca">DMCA</a>
 		</div>
 
 		<div class="footer-bottom">
