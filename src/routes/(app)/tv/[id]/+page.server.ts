@@ -88,16 +88,11 @@ export const load: PageServerLoad = async ({ params, fetch, cookies }) => {
 		};
 	}
 
-	const canonicalPath = tvShow.imdbId
-		? `/tv/${tvShow.imdbId}`
-		: `/tv/${tvShow.tmdbId || tvShow.id}`;
+	const canonicalTmdbId = tvShow.tmdbId || tvShow.id;
+	const canonicalPath = `/tv/${canonicalTmdbId}`;
 
-	if (tvShow.imdbId && queryMode !== 'imdb') {
-		throw redirect(301, `/tv/${tvShow.imdbId}`);
-	}
-
-	if (!tvShow.imdbId && tvShow.tmdbId && queryMode !== 'tmdb') {
-		throw redirect(301, `/tv/${tvShow.tmdbId}`);
+	if (queryMode === 'imdb' && canonicalTmdbId) {
+		throw redirect(301, `/tv/${canonicalTmdbId}`);
 	}
 
 	try {

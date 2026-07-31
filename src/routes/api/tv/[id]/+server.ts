@@ -38,6 +38,9 @@ export const GET: RequestHandler = async ({ params, url }) => {
 			localShow = results[0];
 			if (localShow) {
 				tmdbId = localShow.tmdbId;
+				if (!tmdbId && localShow.imdbId) {
+					tmdbId = await lookupTmdbIdByImdbId(localShow.imdbId);
+				}
 			} else {
 				const parsed = Number.parseInt(identifier, 10);
 				if (Number.isFinite(parsed)) tmdbId = parsed;
