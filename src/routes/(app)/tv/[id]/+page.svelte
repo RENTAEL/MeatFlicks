@@ -42,6 +42,10 @@
 		return { destroy: () => node.removeEventListener('wheel', handler) };
 	}
 
+	function scrollTabs(delta: number) {
+		seasonTabsEl?.scrollBy({ left: delta, behavior: 'smooth' });
+	}
+
 	let tmdbId = $derived(Number(page.params.id));
 	let isSaved = $derived(wl.isInWatchlist(tmdbId.toString()));
 
@@ -160,7 +164,14 @@
 	}
 
 	$effect(() => { if (tmdbId) loadShow(); });
-	$effect(() => { if (seasonTabsEl) updateTabScroll(); });
+	$effect(() => {
+		const el = seasonTabsEl;
+		if (!el) return;
+		updateTabScroll();
+		const ro = new ResizeObserver(updateTabScroll);
+		ro.observe(el);
+		return () => ro.disconnect();
+	});
 </script>
 
 {#if isLoading}
@@ -268,6 +279,12 @@
 					{#if canScrollRight}
 						<div class="tabs-fade tabs-fade-right"></div>
 					{/if}
+					<button class="tabs-arrow tabs-arrow-left" class:show={canScrollLeft} aria-label="Previous seasons" onclick={() => scrollTabs(-280)}>
+						<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+					</button>
+					<button class="tabs-arrow tabs-arrow-right" class:show={canScrollRight} aria-label="More seasons" onclick={() => scrollTabs(280)}>
+						<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+					</button>
 					<div
 						class="season-tabs"
 						bind:this={seasonTabsEl}
@@ -295,7 +312,7 @@
 					<span class="episode-count">{episodes.length} episode{episodes.length !== 1 ? 's' : ''}</span>
 				</h3>
 
-			<div class="episode-list">
+			<div class="episode-list" class:episode-list-scroll={episodes.length > 15}>
 				{#each episodes as ep (ep.id)}
 					{@const isUnaired = !!ep.air_date && new Date(ep.air_date).getTime() > Date.now()}
 					{@const isNowPlaying = selectedEpisode?.season === ep.season_number && selectedEpisode?.episode === ep.episode_number}
@@ -458,13 +475,21 @@
 	.tabs-fade { position: absolute; top: 0; bottom: 4px; width: 36px; pointer-events: none; z-index: 1; }
 	.tabs-fade-left { left: 0; background: linear-gradient(to right, rgba(9,9,11,0.95), transparent); }
 	.tabs-fade-right { right: 0; background: linear-gradient(to left, rgba(9,9,11,0.95), transparent); }
+	.tabs-arrow { position: absolute; top: 2px; bottom: 6px; width: 28px; display: none; align-items: center; justify-content: center; background: rgba(24,24,27,0.9); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; color: #fff; cursor: pointer; z-index: 2; }
+	.tabs-arrow.show { display: flex; }
+	.tabs-arrow svg { width: 16px; height: 16px; }
+	.tabs-arrow:active { background: #3f3f46; }
+	.tabs-arrow-left { left: 0; }
+	.tabs-arrow-right { right: 0; }
+	@media (max-width: 767px) { .tabs-arrow { display: none !important; } }
 	.season-tabs { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px; scrollbar-width: none; -webkit-overflow-scrolling: touch; scroll-snap-type: x proximity; scroll-padding: 8px; overscroll-behavior-x: contain; }
 	.season-tabs::-webkit-scrollbar { display: none; }
 	.season-tab { padding: 10px 16px; background: #18181b; border: 1px solid #27272a; border-radius: 10px; color: #a1a1aa; font-size: 13px; font-weight: 600; cursor: pointer; white-space: nowrap; transition: all 0.15s; flex-shrink: 0; scroll-snap-align: start; font-family: inherit; }
 	.season-tab:active { background: #27272a; }
 	.season-tab-active { background: #818cf8; border-color: #818cf8; color: #fff; }
 
-	.episode-list { display: flex; flex-direction: column; gap: 12px; max-height: min(560px, 60vh); overflow-y: auto; padding-right: 4px; scrollbar-width: thin; }
+	.episode-list { display: flex; flex-direction: column; gap: 12px; padding-right: 4px; }
+	.episode-list.episode-list-scroll { max-height: min(560px, 60vh); overflow-y: auto; scrollbar-width: thin; }
 	.episode-card { display: flex; gap: 12px; background: #0d0d0f; border: 1px solid rgba(255,255,255,0.04); border-radius: 12px; overflow: hidden; transition: border-color 0.15s; }
 	.episode-card:hover { border-color: rgba(255,255,255,0.1); }
 	.episode-card.episode-active { border-color: rgba(129,140,248,0.55); }
