@@ -382,10 +382,10 @@
 			</div>
 		{/if}
 
-		{#if selectedEpisode}
-			<div class="detail-section" id="player-section">
-				<div class="player-header">
-					<h3 class="section-title">
+	{#if selectedEpisode}
+		<div class="detail-section" id="player-section">
+			<div class="player-header">
+				<h3 class="section-title">
 						Now Playing: {show.name} — S{selectedEpisode.season}:E{selectedEpisode.episode}
 					</h3>
 					<button class="close-player-btn" onclick={() => { selectedEpisode = null; goto(`/tv/${tmdbId}`, { replaceState: true, noScroll: true }); }}>
@@ -503,6 +503,7 @@
 	.cast-role { font-size: 11px; color: #71717a; margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 	.player-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+	#player-section { scroll-margin-top: calc(var(--header-height) + env(safe-area-inset-top, 0px) + 12px); }
 	.close-player-btn { display: flex; align-items: center; gap: 4px; padding: 6px 12px; background: #18181b; border: 1px solid #27272a; border-radius: 8px; color: #a1a1aa; font-size: 12px; font-weight: 600; cursor: pointer; font-family: inherit; }
 	.close-player-btn svg { width: 14px; height: 14px; }
 	.close-player-btn:active { background: #27272a; }

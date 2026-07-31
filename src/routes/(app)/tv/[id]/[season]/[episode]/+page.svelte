@@ -156,7 +156,7 @@
 {/if}
 
 <style>
-	.ep-page { padding-bottom: 40px; }
+	.ep-page { padding-top: calc(var(--header-height) + env(safe-area-inset-top, 0px) + 1.5rem); padding-bottom: 40px; }
 	.back-btn { display: flex; align-items: center; gap: 4px; padding: 10px 16px; background: none; border: none; color: #a1a1aa; font-size: 14px; cursor: pointer; font-family: inherit; }
 	.back-btn svg { width: 18px; height: 18px; }
 
