@@ -136,16 +136,16 @@ export const watchlistFolders = sqliteTable(
 	'watchlist_folders',
 	{
 		id: integer('id').primaryKey({ autoIncrement: true }),
-		userId: text('user_id')
+		userId: text('userId')
 			.notNull()
 			.references(() => users.id, { onDelete: 'cascade' }),
 		name: text('name').notNull(),
 		description: text('description'),
 		color: text('color'),
-		createdAt: integer('created_at')
+		createdAt: integer('createdAt')
 			.notNull()
 			.$defaultFn(() => Date.now()),
-		updatedAt: integer('updated_at')
+		updatedAt: integer('updatedAt')
 			.notNull()
 			.$defaultFn(() => Date.now())
 	},
@@ -159,12 +159,12 @@ export const watchlistTags = sqliteTable(
 	'watchlist_tags',
 	{
 		id: integer('id').primaryKey({ autoIncrement: true }),
-		userId: text('user_id')
+		userId: text('userId')
 			.notNull()
 			.references(() => users.id, { onDelete: 'cascade' }),
 		name: text('name').notNull(),
 		color: text('color'),
-		createdAt: integer('created_at')
+		createdAt: integer('createdAt')
 			.notNull()
 			.$defaultFn(() => Date.now())
 	},
@@ -201,16 +201,16 @@ export const watchlistItemTags = sqliteTable(
 export const watchlist = sqliteTable(
 	'watchlist',
 	{
-		userId: text('user_id')
+		userId: text('userId')
 			.notNull()
 			.references(() => users.id, { onDelete: 'cascade' }),
-		mediaId: text('media_id')
+		mediaId: text('mediaId')
 			.notNull()
 			.references(() => media.id, { onDelete: 'cascade' }),
-		addedAt: integer('added_at')
+		addedAt: integer('addedAt')
 			.notNull()
 			.$defaultFn(() => Date.now()),
-		folderId: integer('folder_id').references(() => watchlistFolders.id, { onDelete: 'set null' })
+		folderId: integer('folderId').references(() => watchlistFolders.id, { onDelete: 'set null' })
 	},
 	(table) => [
 		primaryKey({ columns: [table.userId, table.mediaId] }),
@@ -253,7 +253,6 @@ export const searchHistory = sqliteTable(
 			.notNull()
 			.references(() => users.id, { onDelete: 'cascade' }),
 		query: text('query').notNull(),
-		filters: text('filters'),
 		searchedAt: integer('searchedAt')
 			.notNull()
 			.$defaultFn(() => Date.now())

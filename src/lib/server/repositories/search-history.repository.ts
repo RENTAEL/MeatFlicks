@@ -1,25 +1,20 @@
 import { db } from '$lib/server/db';
 import { searchHistory } from '$lib/server/db/schema';
 import { eq, desc, lt } from 'drizzle-orm';
-import type { MovieFilters } from '$lib/types/filters';
 
 export interface SearchHistoryEntry {
 	id: number;
 	userId: string;
 	query: string;
-	filters: MovieFilters | null;
 	searchedAt: number;
 }
 
 export const searchHistoryRepository = {
-	async addSearch(userId: string, query: string, filters?: MovieFilters): Promise<void> {
+	async addSearch(userId: string, query: string): Promise<void> {
 		try {
-			const filtersJson = filters ? JSON.stringify(filters) : null;
-
 			await db.insert(searchHistory).values({
 				userId,
 				query: query.trim(),
-				filters: filtersJson,
 				searchedAt: Date.now()
 			});
 		} catch (error) {
@@ -40,7 +35,6 @@ export const searchHistoryRepository = {
 				id: row.id,
 				userId: row.userId,
 				query: row.query,
-				filters: row.filters ? JSON.parse(row.filters) : null,
 				searchedAt: row.searchedAt
 			}));
 		} catch (error) {

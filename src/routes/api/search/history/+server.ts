@@ -1,7 +1,6 @@
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { searchHistoryRepository } from '$lib/server/repositories/search-history.repository';
-import type { MovieFilters } from '$lib/types/filters';
 import { z } from 'zod';
 import { validateRequestBody } from '$lib/server/validation';
 import { errorHandler } from '$lib/server';
@@ -32,17 +31,12 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 		const body = await request.json();
 		const validatedBody = validateRequestBody(
 			z.object({
-				query: z.string().min(1, 'Search query is required').max(200, 'Search query too long'),
-				filters: z.any().optional()
+				query: z.string().min(1, 'Search query is required').max(200, 'Search query too long')
 			}),
 			body
 		);
 
-		await searchHistoryRepository.addSearch(
-			user.id,
-			validatedBody.query.trim(),
-			validatedBody.filters as MovieFilters | undefined
-		);
+		await searchHistoryRepository.addSearch(user.id, validatedBody.query.trim());
 
 		return json({ success: true });
 	} catch (error) {
