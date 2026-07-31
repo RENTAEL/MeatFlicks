@@ -36,6 +36,16 @@
 			</label>
 
 			<label>
+				<span>Email (optional)</span>
+				<input
+					type="email"
+					name="email"
+					placeholder="you@example.com"
+					autocomplete="email"
+				/>
+			</label>
+
+			<label>
 				<span>Password</span>
 				<input
 					type="password"

@@ -29,7 +29,7 @@
 				<input
 					type="text"
 					name="username"
-					placeholder="Enter your username"
+					placeholder="Enter your username or email"
 					required
 					autocomplete="username"
 				/>

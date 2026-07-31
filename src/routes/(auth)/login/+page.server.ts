@@ -5,7 +5,7 @@ import { users } from '$lib/server/db/schema';
 import { getCsrfToken } from '$lib/server/csrf';
 import { encryptSession, createSessionCookieName, getSessionCookieOptions } from '$lib/server/session-crypto';
 import type { Actions, PageServerLoad } from './$types';
-import { eq } from 'drizzle-orm';
+import { eq, or } from 'drizzle-orm';
 
 export const load: PageServerLoad = async ({ locals, cookies }) => {
 	if (locals.user) {
@@ -29,7 +29,11 @@ export const actions: Actions = {
 		}
 
 		const normalizedUsername = username.toLowerCase();
-		const existingUser = await db.select().from(users).where(eq(users.username, normalizedUsername)).get();
+		const existingUser = await db
+			.select()
+			.from(users)
+			.where(or(eq(users.username, normalizedUsername), eq(users.email, normalizedUsername)))
+			.get();
 		if (!existingUser) {
 			return fail(400, {
 				message: 'Incorrect username or password'

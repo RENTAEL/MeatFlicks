@@ -6,7 +6,7 @@ import { users } from '$lib/server/db/schema';
 import { getCsrfToken } from '$lib/server/csrf';
 import { encryptSession, createSessionCookieName, getSessionCookieOptions } from '$lib/server/session-crypto';
 import type { Actions, PageServerLoad } from './$types';
-import { eq } from 'drizzle-orm';
+import { eq, or } from 'drizzle-orm';
 
 export const load: PageServerLoad = async ({ locals, cookies }) => {
 	if (locals.user) {
@@ -21,6 +21,7 @@ export const actions: Actions = {
 	default: async ({ request, cookies }) => {
 		const formData = await request.formData();
 		const username = formData.get('username');
+		const email = formData.get('email');
 		const password = formData.get('password');
 
 		if (
@@ -33,6 +34,18 @@ export const actions: Actions = {
 				message: 'Invalid username'
 			});
 		}
+		const normalizedEmail =
+			typeof email === 'string' && email.trim() !== ''
+				? email.trim().toLowerCase()
+				: null;
+		if (
+			normalizedEmail !== null &&
+			!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)
+		) {
+			return fail(400, {
+				message: 'Invalid email address'
+			});
+		}
 		if (typeof password !== 'string' || password.length < 6 || password.length > 255) {
 			return fail(400, {
 				message: 'Invalid password'
@@ -40,10 +53,19 @@ export const actions: Actions = {
 		}
 
 		const normalizedUsername = username.toLowerCase();
-		const existingUser = await db.select().from(users).where(eq(users.username, normalizedUsername)).get();
+		const existingUser = await db
+			.select()
+			.from(users)
+			.where(
+				or(
+					eq(users.username, normalizedUsername),
+					normalizedEmail !== null ? eq(users.email, normalizedEmail) : undefined
+				)
+			)
+			.get();
 		if (existingUser) {
 			return fail(400, {
-				message: 'Username already taken'
+				message: 'Username or email already taken'
 			});
 		}
 
@@ -59,6 +81,7 @@ export const actions: Actions = {
 			await db.insert(users).values({
 				id: userId,
 				username: normalizedUsername,
+				email: normalizedEmail,
 				passwordHash,
 				role: 'USER'
 			});
