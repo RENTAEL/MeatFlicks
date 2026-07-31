@@ -2,6 +2,7 @@
 	import { page } from '$app/state';
 	import { goto } from '$app/navigation';
 	import Player from '$lib/components/Player.svelte';
+	import { resolveNextEpisode } from '$lib/episodeNav';
 	import ContentRow from '$lib/components/ContentRow.svelte';
 	import { watchlist as wl } from '$lib/state/stores/watchlistStore.svelte';
 	import { authStore } from '$lib/state/stores/authStore.svelte';
@@ -17,8 +18,13 @@
 	let isLoading = $state(true);
 	let activeSeason = $state(1);
 	let showFullOverview = $state(false);
-	let selectedEpisode: { season: number; episode: number } | null = $state(null);
+	let selectedEpisode = $state<{ season: number; episode: number } | null>(null);
 	let seasons: any[] = $state([]);
+	let next = $derived(
+		selectedEpisode
+			? resolveNextEpisode(seasons, episodes, selectedEpisode.season, selectedEpisode.episode)
+			: null
+	);
 	let seasonTabsEl: HTMLDivElement | null = $state(null);
 	let canScrollLeft = $state(false);
 	let canScrollRight = $state(false);
@@ -417,6 +423,8 @@
 					episode={selectedEpisode.episode}
 					imdbId={data.show?.imdb_id || null}
 					title={`${show.name} — S${selectedEpisode.season}:E${selectedEpisode.episode}`}
+					next={next}
+					onnext={() => { if (next) playEpisode(next); }}
 				/>
 			</div>
 		{/if}

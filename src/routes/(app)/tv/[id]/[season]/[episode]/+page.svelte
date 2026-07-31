@@ -2,6 +2,7 @@
 	import { page } from '$app/state';
 	import { goto } from '$app/navigation';
 	import Player from '$lib/components/Player.svelte';
+	import { resolveNextEpisode } from '$lib/episodeNav';
 
 	let show: any = $state(null);
 	let episodes: any[] = $state([]);
@@ -17,6 +18,7 @@
 	));
 	let hasPrev = $derived(currentEpIndex > 0);
 	let hasNext = $derived(currentEpIndex >= 0 && currentEpIndex < episodes.length - 1);
+	let next = $derived(resolveNextEpisode(show?.seasons || [], episodes, seasonNum, episodeNum));
 
 	async function load() {
 		isLoading = true;
@@ -125,6 +127,8 @@
 			episode={episodeNum}
 			imdbId={imdbId}
 			title={`${show.name} — S${seasonNum}:E${episodeNum}`}
+			next={next}
+			onnext={() => { if (next) goEpisode(next); }}
 		/>
 
 		<div class="ep-section">

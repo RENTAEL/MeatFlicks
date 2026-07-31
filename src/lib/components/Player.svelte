@@ -8,6 +8,8 @@
 		episode = 1,
 		title = '',
 		imdbId = null as string | null,
+		next = null as { season_number: number; episode_number: number; name: string; air_date: string | null } | null,
+		onnext = undefined as (() => void) | undefined,
 		onerror,
 		preResolvedSource = null as string | null
 	}: {
@@ -17,6 +19,8 @@
 		episode?: number;
 		title?: string;
 		imdbId?: string | null;
+		next?: { season_number: number; episode_number: number; name: string; air_date: string | null } | null;
+		onnext?: () => void;
 		onerror?: (detail: { message: string }) => void;
 		preResolvedSource?: string | null;
 	} = $props();
@@ -44,6 +48,13 @@
 	let autoSwitchTimer: ReturnType<typeof setTimeout> | null = $state(null);
 	let isAutoSwitching = $state(false);
 	let loadedProviders = $state<Set<string>>(new Set());
+
+	let nextUnavailable = $derived(!!next && !!next.air_date && new Date(next.air_date).getTime() > Date.now());
+
+	function formatAirDate(iso: string | null) {
+		if (!iso) return '';
+		return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+	}
 
 	async function scan() {
 		if (preResolvedSource) {
@@ -199,6 +210,18 @@
 		<div class="provider-bar-right">
 			{#if workingProviders.length > 0}
 				<span class="count">{workingProviders.length} server{workingProviders.length !== 1 ? 's' : ''}</span>
+				{#if next}
+					<button
+						class="next-btn"
+						class:next-btn-disabled={nextUnavailable}
+						disabled={nextUnavailable}
+						title={nextUnavailable ? `${next.name} airs ${formatAirDate(next.air_date)}` : `Play ${next.name}`}
+						onclick={() => onnext?.()}
+					>
+						<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="next-icon"><path d="M5 3l14 9-14 9V3z"/></svg>
+						Next <span class="next-spec">S{next.season_number}:E{next.episode_number}</span>
+					</button>
+				{/if}
 				<button onclick={() => showServerList = !showServerList} class="switch-btn" aria-label="Switch server">
 					<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="switch-icon">
 						<polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/>
@@ -297,6 +320,12 @@
 	.badge { font-size: 10px; font-weight: 600; padding: 2px 6px; border-radius: 4px; text-transform: uppercase; letter-spacing: 0.5px; }
 	.badge-working { background: #064e3b; color: #6ee7b7; }
 	.count { font-size: 11px; color: #71717a; }
+	.next-btn { display: flex; align-items: center; gap: 6px; padding: 6px 12px; background: #27272a; color: #d4d4d8; border: 1px solid #3f3f46; border-radius: 6px; font-size: 12px; cursor: pointer; }
+	.next-btn:hover:not(:disabled) { background: #3f3f46; }
+	.next-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+	.next-btn:active:not(:disabled) { background: #18181b; }
+	.next-icon { width: 14px; height: 14px; }
+	.next-spec { color: #818cf8; font-weight: 700; }
 	.switch-btn { display: flex; align-items: center; gap: 6px; padding: 6px 12px; background: #27272a; color: #d4d4d8; border: 1px solid #3f3f46; border-radius: 6px; font-size: 12px; cursor: pointer; }
 	.switch-btn:hover { background: #3f3f46; }
 	.switch-icon { width: 14px; height: 14px; }
