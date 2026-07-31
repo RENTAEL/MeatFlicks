@@ -68,6 +68,10 @@
 	}
 </script>
 
+<svelte:head>
+	<title>Movies — Streamium</title>
+</svelte:head>
+
 <div class="mx-auto max-w-screen-2xl px-4 py-6 sm:px-6 lg:px-8">
 	<div class="mb-2 flex items-center justify-between">
 		<h1 class="text-2xl font-bold text-white">Movies</h1>

@@ -41,6 +41,10 @@
   }
 </script>
 
+<svelte:head>
+  <title>TV Series — Streamium</title>
+</svelte:head>
+
 <div class="tv-page" in:fly={{ y: 12, duration: 250 }}>
   <div class="search-section">
     <div class="search-wrapper">
