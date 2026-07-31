@@ -54,23 +54,17 @@ Add unit tests for new logic.
 
 Run tests before committing:
 
-  ```bash
+  ```bash
+  bun test
+  ```
 
-  bun test
+  ```bash
+  bun check
+  ```
 
-  ```
-
-  ```bash
-
-  bun check
-
-  ```
-
-  ```bash
-
-  bun lint
-
-  ```
+  ```bash
+  bun lint
+  ```
 
 # Do’s & Don’ts
 
@@ -121,3 +115,25 @@ TailwindCSS v4 docs: [https://tailwindcss.com/docs/v4](https://tailwindcss.com/d
 shadcn-svelte docs: [https://shadcn-svelte.com](https://shadcn-svelte.com)
 
 lucide icons: [https://lucide.dev](https://lucide.dev)
+
+---
+
+# Session-end checklist (MANDATORY, every session)
+
+1. After the last task of a session, commit any remaining changes.
+2. ALWAYS push at the end of every session: `git push fork main` (fork = RENTAEL/MeatFlicks).
+   - Never end a session with unpushed local commits. This local folder is the only copy of the full history; losing it loses everything.
+   - Verify after pushing: `git rev-parse fork/main` == `git rev-parse HEAD`.
+3. Never put credentials or tokens in remote URLs. Before any push, confirm `git remote -v` contains no tokens.
+4. "Live proof" rule: proof labeled "live" may only be output from `curl https://streamium-cosmic.vercel.app/...` run AFTER a completed deployment (status Ready in `vercel ls --prod`). Localhost/preview output must be labeled LOCAL. Claiming local output as live ends the collaboration.
+
+# Deployment
+
+- Deploys are CLI uploads (`npx vercel --prod --yes`) from this folder — Vercel has NO git integration; the deployed "branch" is this folder's state.
+- After deploying, verify: `npx vercel ls --prod` shows the new deployment Ready, then curl the production URL.
+
+# Repos
+
+- `origin` = XeinTDM/MeatFlicks (no push permission — RENTAEL cannot push here).
+- `fork` = RENTAEL/MeatFlicks (push target).
+- Local `main` is 127+ commits ahead of `origin/main`; keep `fork/main` in sync.
