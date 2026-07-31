@@ -171,7 +171,7 @@
 	.ep-section { padding: 20px 16px 0; }
 	.ep-section-title { font-size: 17px; font-weight: 700; margin-bottom: 12px; }
 
-	.ep-list { display: flex; flex-direction: column; gap: 6px; }
+	.ep-list { display: flex; flex-direction: column; gap: 6px; max-height: min(480px, 55vh); overflow-y: auto; padding-right: 4px; scrollbar-width: thin; }
 	.ep-list-item { display: flex; align-items: center; gap: 10px; padding: 8px 10px; background: none; border: 1px solid transparent; border-radius: 10px; color: #a1a1aa; cursor: pointer; text-align: left; width: 100%; font-family: inherit; transition: background 0.1s; }
 	.ep-list-item:active { background: #18181b; }
 	.ep-list-item-active { background: rgba(129,140,248,0.08); border-color: rgba(129,140,248,0.2); color: #fff; }

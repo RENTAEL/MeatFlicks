@@ -19,6 +19,28 @@
 	let showFullOverview = $state(false);
 	let selectedEpisode: { season: number; episode: number } | null = $state(null);
 	let seasons: any[] = $state([]);
+	let seasonTabsEl: HTMLDivElement | null = $state(null);
+	let canScrollLeft = $state(false);
+	let canScrollRight = $state(false);
+
+	function updateTabScroll() {
+		if (!seasonTabsEl) return;
+		canScrollLeft = seasonTabsEl.scrollLeft > 4;
+		canScrollRight =
+			seasonTabsEl.scrollLeft < seasonTabsEl.scrollWidth - seasonTabsEl.clientWidth - 4;
+	}
+
+	function tabsWheel(node: HTMLElement) {
+		const handler = (e: WheelEvent) => {
+			if (e.deltaY === 0) return;
+			if (node.scrollWidth > node.clientWidth) {
+				node.scrollLeft += e.deltaY;
+				e.preventDefault();
+			}
+		};
+		node.addEventListener('wheel', handler, { passive: false });
+		return { destroy: () => node.removeEventListener('wheel', handler) };
+	}
 
 	let tmdbId = $derived(Number(page.params.id));
 	let isSaved = $derived(wl.isInWatchlist(tmdbId.toString()));
@@ -138,6 +160,7 @@
 	}
 
 	$effect(() => { if (tmdbId) loadShow(); });
+	$effect(() => { if (seasonTabsEl) updateTabScroll(); });
 </script>
 
 {#if isLoading}
@@ -235,22 +258,37 @@
 			</div>
 		{/if}
 
-		{#if seasons.length > 0}
+		{#if seasons.length > 1}
 			<div class="detail-section">
 				<h3 class="section-title">Seasons</h3>
-				<div class="season-tabs">
-					{#each seasons as season}
-						<button
-							class="season-tab"
-							class:season-tab-active={activeSeason === season.season_number}
-							onclick={() => loadEpisodes(season.season_number)}
-						>
-							{season.name}
-						</button>
-					{/each}
+				<div class="season-tabs-wrap">
+					{#if canScrollLeft}
+						<div class="tabs-fade tabs-fade-left"></div>
+					{/if}
+					{#if canScrollRight}
+						<div class="tabs-fade tabs-fade-right"></div>
+					{/if}
+					<div
+						class="season-tabs"
+						bind:this={seasonTabsEl}
+						onscroll={updateTabScroll}
+						use:tabsWheel
+					>
+						{#each seasons as season}
+							<button
+								class="season-tab"
+								class:season-tab-active={activeSeason === season.season_number}
+								onclick={() => loadEpisodes(season.season_number)}
+							>
+								{season.name}
+							</button>
+						{/each}
+					</div>
 				</div>
 			</div>
+		{/if}
 
+		{#if seasons.length > 0}
 			<div class="detail-section">
 				<h3 class="section-title">
 					Episodes
@@ -416,9 +454,13 @@
 	.progress-play-btn svg { width: 14px; height: 14px; }
 	.progress-play-btn:active { background: #6366f1; transform: scale(0.97); }
 
-	.season-tabs { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
+	.season-tabs-wrap { position: relative; }
+	.tabs-fade { position: absolute; top: 0; bottom: 4px; width: 36px; pointer-events: none; z-index: 1; }
+	.tabs-fade-left { left: 0; background: linear-gradient(to right, rgba(9,9,11,0.95), transparent); }
+	.tabs-fade-right { right: 0; background: linear-gradient(to left, rgba(9,9,11,0.95), transparent); }
+	.season-tabs { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px; scrollbar-width: none; -webkit-overflow-scrolling: touch; scroll-snap-type: x proximity; scroll-padding: 8px; overscroll-behavior-x: contain; }
 	.season-tabs::-webkit-scrollbar { display: none; }
-	.season-tab { padding: 10px 16px; background: #18181b; border: 1px solid #27272a; border-radius: 10px; color: #a1a1aa; font-size: 13px; font-weight: 600; cursor: pointer; white-space: nowrap; transition: all 0.15s; flex-shrink: 0; font-family: inherit; }
+	.season-tab { padding: 10px 16px; background: #18181b; border: 1px solid #27272a; border-radius: 10px; color: #a1a1aa; font-size: 13px; font-weight: 600; cursor: pointer; white-space: nowrap; transition: all 0.15s; flex-shrink: 0; scroll-snap-align: start; font-family: inherit; }
 	.season-tab:active { background: #27272a; }
 	.season-tab-active { background: #818cf8; border-color: #818cf8; color: #fff; }
 
