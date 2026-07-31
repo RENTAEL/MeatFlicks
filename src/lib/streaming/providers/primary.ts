@@ -4,7 +4,8 @@ import {
 	DEFAULT_STREAM_PATHS,
 	ensureAbsoluteUrl,
 	extractFirstUrl,
-	fetchWithTimeout
+	fetchWithTimeout,
+	fetchWithRetry
 } from '../provider-helpers';
 import type { StreamingProvider } from '../types';
 
@@ -112,7 +113,7 @@ async function requestVidsrc(context: Parameters<StreamingProvider['fetchSource'
 	try {
 		for (const endpoint of endpoints) {
 			try {
-				const response = await fetchWithTimeout(`${endpoint}?${params.toString()}`, {
+				const response = await fetchWithRetry(`${endpoint}?${params.toString()}`, {
 					headers,
 					timeoutMs: 15000,
 					redirect: 'follow'

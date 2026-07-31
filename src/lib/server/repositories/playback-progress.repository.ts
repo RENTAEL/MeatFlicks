@@ -5,42 +5,42 @@ import { eq, and, desc, isNull } from 'drizzle-orm';
 export interface PlaybackProgressRecord {
 	id: number;
 	userId: string;
-	mediaId: string;
+	tmdbId: string;
 	mediaType: 'movie' | 'tv';
 	progress: number;
 	duration: number;
-	seasonNumber: number | null;
-	episodeNumber: number | null;
+	season: number | null;
+	episode: number | null;
 	updatedAt: number;
 }
 
 export const playbackProgressRepository = {
 	async saveProgress(
 		userId: string,
-		mediaId: string,
+		tmdbId: string,
 		mediaType: 'movie' | 'tv',
 		progress: number,
 		duration: number,
-		seasonNumber?: number,
-		episodeNumber?: number
+		season?: number,
+		episode?: number
 	): Promise<void> {
 		try {
 			const conditions = [
 				eq(playbackProgress.userId, userId),
-				eq(playbackProgress.mediaId, mediaId),
+				eq(playbackProgress.tmdbId, tmdbId),
 				eq(playbackProgress.mediaType, mediaType)
 			];
 
-			if (seasonNumber !== undefined) {
-				conditions.push(eq(playbackProgress.seasonNumber, seasonNumber));
+			if (season !== undefined) {
+				conditions.push(eq(playbackProgress.season, season));
 			} else {
-				conditions.push(isNull(playbackProgress.seasonNumber));
+				conditions.push(isNull(playbackProgress.season));
 			}
 
-			if (episodeNumber !== undefined) {
-				conditions.push(eq(playbackProgress.episodeNumber, episodeNumber));
+			if (episode !== undefined) {
+				conditions.push(eq(playbackProgress.episode, episode));
 			} else {
-				conditions.push(isNull(playbackProgress.episodeNumber));
+				conditions.push(isNull(playbackProgress.episode));
 			}
 
 			const existing = await db
@@ -61,12 +61,12 @@ export const playbackProgressRepository = {
 			} else {
 				await db.insert(playbackProgress).values({
 					userId,
-					mediaId,
+					tmdbId,
 					mediaType,
 					progress,
 					duration,
-					seasonNumber: seasonNumber ?? null,
-					episodeNumber: episodeNumber ?? null,
+					season: season ?? null,
+					episode: episode ?? null,
 					updatedAt: Date.now()
 				});
 			}
@@ -78,28 +78,28 @@ export const playbackProgressRepository = {
 
 	async getProgress(
 		userId: string,
-		mediaId: string,
+		tmdbId: string,
 		mediaType: 'movie' | 'tv',
-		seasonNumber?: number,
-		episodeNumber?: number
+		season?: number,
+		episode?: number
 	): Promise<PlaybackProgressRecord | null> {
 		try {
 			const conditions = [
 				eq(playbackProgress.userId, userId),
-				eq(playbackProgress.mediaId, mediaId),
+				eq(playbackProgress.tmdbId, tmdbId),
 				eq(playbackProgress.mediaType, mediaType)
 			];
 
-			if (seasonNumber !== undefined) {
-				conditions.push(eq(playbackProgress.seasonNumber, seasonNumber));
+			if (season !== undefined) {
+				conditions.push(eq(playbackProgress.season, season));
 			} else {
-				conditions.push(isNull(playbackProgress.seasonNumber));
+				conditions.push(isNull(playbackProgress.season));
 			}
 
-			if (episodeNumber !== undefined) {
-				conditions.push(eq(playbackProgress.episodeNumber, episodeNumber));
+			if (episode !== undefined) {
+				conditions.push(eq(playbackProgress.episode, episode));
 			} else {
-				conditions.push(isNull(playbackProgress.episodeNumber));
+				conditions.push(isNull(playbackProgress.episode));
 			}
 
 			const results = await db
@@ -147,28 +147,28 @@ export const playbackProgressRepository = {
 
 	async deleteProgress(
 		userId: string,
-		mediaId: string,
+		tmdbId: string,
 		mediaType: 'movie' | 'tv',
-		seasonNumber?: number,
-		episodeNumber?: number
+		season?: number,
+		episode?: number
 	): Promise<void> {
 		try {
 			const conditions = [
 				eq(playbackProgress.userId, userId),
-				eq(playbackProgress.mediaId, mediaId),
+				eq(playbackProgress.tmdbId, tmdbId),
 				eq(playbackProgress.mediaType, mediaType)
 			];
 
-			if (seasonNumber !== undefined) {
-				conditions.push(eq(playbackProgress.seasonNumber, seasonNumber));
+			if (season !== undefined) {
+				conditions.push(eq(playbackProgress.season, season));
 			} else {
-				conditions.push(isNull(playbackProgress.seasonNumber));
+				conditions.push(isNull(playbackProgress.season));
 			}
 
-			if (episodeNumber !== undefined) {
-				conditions.push(eq(playbackProgress.episodeNumber, episodeNumber));
+			if (episode !== undefined) {
+				conditions.push(eq(playbackProgress.episode, episode));
 			} else {
-				conditions.push(isNull(playbackProgress.episodeNumber));
+				conditions.push(isNull(playbackProgress.episode));
 			}
 
 			await db.delete(playbackProgress).where(and(...conditions));

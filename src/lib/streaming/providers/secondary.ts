@@ -4,7 +4,8 @@ import {
 	DEFAULT_STREAM_PATHS,
 	ensureAbsoluteUrl,
 	extractFirstUrl,
-	fetchWithTimeout
+	fetchWithTimeout,
+	fetchWithRetry
 } from '../provider-helpers';
 import type { StreamingProvider } from '../types';
 
@@ -53,7 +54,7 @@ async function requestTwoEmbed(context: Parameters<StreamingProvider['fetchSourc
 		try {
 			const embedUrl = buildTwoEmbedUrl(context, domain);
 
-			const response = await fetchWithTimeout(embedUrl, {
+			const response = await fetchWithRetry(embedUrl, {
 				headers: {
 					accept: 'text/html, */*',
 					'User-Agent':
@@ -97,7 +98,7 @@ async function requestTwoEmbed(context: Parameters<StreamingProvider['fetchSourc
 		}
 
 		const endpoint = `${twoEmbed.baseUrl}/api/${context.mediaType}`;
-		const response = await fetchWithTimeout(`${endpoint}?${params.toString()}`, {
+		const response = await fetchWithRetry(`${endpoint}?${params.toString()}`, {
 			headers: {
 				accept: 'application/json, text/json, */*',
 				'User-Agent':

@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { untrack } from 'svelte';
 	import Player from '$lib/components/Player.svelte';
 	import MovieInfo from '$lib/components/MovieInfo.svelte';
 	import MediaCard from '$lib/components/MediaCard.svelte';
@@ -9,18 +10,20 @@
 
 	$effect(() => {
 		if (data.movie) {
-			watchHistory.recordWatch({
-				id: String(data.movie.id),
-				title: data.movie.title,
-				posterPath: data.movie.poster_path,
-				backdropPath: data.movie.backdrop_path,
-				overview: data.movie.overview,
-				releaseDate: data.movie.release_date,
-				rating: data.movie.vote_average,
-				genres: (data.movie.genres ?? []).map((g: { name: string }) => g.name),
-				imdbId: data.movie.imdb_id,
-				media_type: 'movie',
-				tmdb_id: data.movie.id,
+			untrack(() => {
+				watchHistory.recordWatch({
+					id: String(data.movie.id),
+					title: data.movie.title,
+					posterPath: data.movie.poster_path,
+					backdropPath: data.movie.backdrop_path,
+					overview: data.movie.overview,
+					releaseDate: data.movie.release_date,
+					rating: data.movie.vote_average,
+					genres: (data.movie.genres ?? []).map((g: { name: string }) => g.name),
+					imdbId: data.movie.imdb_id,
+					media_type: 'movie',
+					tmdb_id: data.movie.id,
+				});
 			});
 		}
 	});

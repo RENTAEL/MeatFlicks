@@ -176,7 +176,7 @@ export const playbackProgressValidationChecks = [
 	),
 	check(
 		'playback_season_episode_check',
-		sql`(${playbackProgress.mediaType} != 'episode') OR (${playbackProgress.seasonNumber} IS NOT NULL AND ${playbackProgress.episodeNumber} IS NOT NULL)`
+		sql`(${playbackProgress.mediaType} != 'episode') OR (${playbackProgress.season} IS NOT NULL AND ${playbackProgress.episode} IS NOT NULL)`
 	),
 	check('playback_updated_at_check', sql`${playbackProgress.updatedAt} > 0`)
 ];

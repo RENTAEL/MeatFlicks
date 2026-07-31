@@ -782,14 +782,14 @@ export async function getPersonalizedRecommendations(
 		try {
 			const genrePrefResults = await db.all<RecommendationGenreRow>(sql`
 				WITH CombinedHistory AS (
-					SELECT media_id FROM watch_history WHERE userId = ${userId}
+					SELECT "mediaId" FROM watch_history WHERE "userId" = ${userId}
 					UNION ALL
-					SELECT media_id FROM watchlist WHERE userId = ${userId}
+					SELECT "mediaId" FROM watchlist WHERE "userId" = ${userId}
 				)
-				SELECT mg.genreId, COUNT(*) as count
+				SELECT mg."genreId", COUNT(*) as count
 				FROM CombinedHistory ch
-				JOIN media_genres mg ON ch.media_id = mg.mediaId
-				GROUP BY mg.genreId
+				JOIN media_genres mg ON ch."mediaId" = mg."mediaId"
+				GROUP BY mg."genreId"
 				ORDER BY count DESC
 				LIMIT 3
 			`);

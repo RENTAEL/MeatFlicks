@@ -1,4 +1,5 @@
 import { streamingConfig } from '$lib/config/streaming';
+import { fetchWithRetry } from '../provider-helpers';
 import type { StreamingProvider } from '../types';
 
 const { vidBinge, moviesApi, autoEmbed, streamsrc } = streamingConfig;
@@ -47,13 +48,13 @@ async function tryFetchSource(context: Parameters<StreamingProvider['fetchSource
 	for (const { id, fn } of buildFns) {
 		try {
 			const embedUrl = fn(context);
-			const response = await fetch(embedUrl, {
+			const response = await fetchWithRetry(embedUrl, {
 				headers: {
 					'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
 					Accept: 'text/html,application/xhtml+xml'
 				},
 				redirect: 'follow',
-				signal: AbortSignal.timeout(10000)
+				timeoutMs: 10000
 			});
 
 			if (response.ok) {

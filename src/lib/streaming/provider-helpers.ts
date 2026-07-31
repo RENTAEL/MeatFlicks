@@ -101,3 +101,21 @@ export async function fetchWithTimeout(
 		clearTimeout(timeout);
 	}
 }
+
+const RETRY_DELAYS = [1000, 2000, 4000];
+
+export async function fetchWithRetry(
+	input: URL | string,
+	init: RequestInit & { timeoutMs?: number } = {}
+): Promise<Response> {
+	let lastError: Error | undefined;
+	for (const delayMs of RETRY_DELAYS) {
+		const response = await fetchWithTimeout(input, init);
+		if (response.ok || response.status !== 503) {
+			return response;
+		}
+		lastError = new Error(`503 Service Unavailable`);
+		await new Promise((resolve) => setTimeout(resolve, delayMs));
+	}
+	throw lastError ?? new Error('fetchWithRetry failed');
+}

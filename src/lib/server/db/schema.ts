@@ -224,13 +224,20 @@ export const watchHistory = sqliteTable(
 	'watch_history',
 	{
 		id: integer('id').primaryKey({ autoIncrement: true }),
-		userId: text('user_id')
+		userId: text('userId')
 			.notNull()
 			.references(() => users.id, { onDelete: 'cascade' }),
-		mediaId: text('media_id')
-			.notNull()
-			.references(() => media.id, { onDelete: 'cascade' }),
-		watchedAt: integer('watched_at').notNull()
+		mediaId: text('mediaId').notNull(),
+		tmdbId: integer('tmdbId'),
+		mediaType: text('mediaType').notNull().default('movie'),
+		season: integer('season'),
+		episode: integer('episode'),
+		title: text('title'),
+		posterPath: text('posterPath'),
+		progress: real('progress').default(0),
+		duration: integer('duration').default(0),
+		watchedAt: integer('watchedAt').notNull(),
+		completed: integer('completed').notNull().default(0)
 	},
 	(table) => [
 		index('idx_history_user').on(table.userId),
@@ -242,12 +249,12 @@ export const searchHistory = sqliteTable(
 	'search_history',
 	{
 		id: integer('id').primaryKey({ autoIncrement: true }),
-		userId: text('user_id')
+		userId: text('userId')
 			.notNull()
 			.references(() => users.id, { onDelete: 'cascade' }),
 		query: text('query').notNull(),
 		filters: text('filters'),
-		searchedAt: integer('searched_at')
+		searchedAt: integer('searchedAt')
 			.notNull()
 			.$defaultFn(() => Date.now())
 	},
@@ -261,24 +268,22 @@ export const playbackProgress = sqliteTable(
 	'playback_progress',
 	{
 		id: integer('id').primaryKey({ autoIncrement: true }),
-		userId: text('user_id')
+		userId: text('userId')
 			.notNull()
 			.references(() => users.id, { onDelete: 'cascade' }),
-		mediaId: text('media_id')
-			.notNull()
-			.references(() => media.id, { onDelete: 'cascade' }),
-		mediaType: text('media_type').notNull(),
-		progress: integer('progress').notNull(),
-		duration: integer('duration').notNull(),
-		seasonNumber: integer('season_number'),
-		episodeNumber: integer('episode_number'),
-		updatedAt: integer('updated_at')
+		tmdbId: text('tmdbId').notNull(),
+		mediaType: text('mediaType').notNull(),
+		progress: real('progress').default(0),
+		duration: integer('duration').default(0),
+		season: integer('season'),
+		episode: integer('episode'),
+		updatedAt: integer('updatedAt')
 			.notNull()
 			.$defaultFn(() => Date.now())
 	},
 	(table) => [
 		index('idx_playback_progress_user').on(table.userId),
-		index('idx_playback_progress_media').on(table.mediaId),
+		index('idx_playback_progress_media').on(table.tmdbId),
 		index('idx_playback_progress_updated').on(table.updatedAt)
 	]
 );

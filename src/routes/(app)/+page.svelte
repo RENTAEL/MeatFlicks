@@ -14,6 +14,7 @@ import DiscoveryEngine from '$lib/components/DiscoveryEngine.svelte';
 import ContentCalendar from '$lib/components/ContentCalendar.svelte';
 
 	let continueWatchingRef = $state({ value: null as HTMLElement | null });
+	let recommendedRef = $state({ value: null as HTMLElement | null });
 	let trendingMediaRef = $state({ value: null as HTMLElement | null });
 	let trendingTvRef = $state({ value: null as HTMLElement | null });
 	let recentlyAddedRef = $state({ value: null as HTMLElement | null });
@@ -22,6 +23,11 @@ import ContentCalendar from '$lib/components/ContentCalendar.svelte';
 	const continueWatchingLazy = useLazyComponentOnVisible(
 		continueWatchingRef,
 		() => import('$lib/components/home/ContinueWatchingRow.svelte')
+	);
+
+	const recommendedLazy = useLazyComponentOnVisible(
+		recommendedRef,
+		() => import('$lib/components/home/RecommendedRow.svelte')
 	);
 
 	const trendingLazy = useLazyComponentOnVisible(
@@ -39,6 +45,7 @@ import ContentCalendar from '$lib/components/ContentCalendar.svelte';
 		() => import('$lib/components/home/TopRatedRow.svelte')
 	);
 
+	const RecommendedRow = $derived(recommendedLazy.component);
 	const ContinueWatchingRow = $derived(continueWatchingLazy.component);
 	const TrendingMediaSlider = $derived(trendingLazy.component);
 	const RecentlyAddedRow = $derived(recentlyAddedLazy.component);
@@ -181,6 +188,17 @@ import ContentCalendar from '$lib/components/ContentCalendar.svelte';
 									></div>
 								{/if}
 								<PersonalizedRows />
+							</div>
+
+							<div class="mb-12">
+								{#if RecommendedRow}
+									<RecommendedRow />
+								{:else}
+									<div
+										bind:this={recommendedRef.value}
+										class="h-32 animate-pulse rounded-lg bg-muted/50"
+									></div>
+								{/if}
 							</div>
 
 							{#if trendingMovies.length > 0}

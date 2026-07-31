@@ -131,6 +131,7 @@ class HistoryStore {
 	#entries = $state<HistoryEntry[]>([]);
 	#loading = $state(false);
 	#error = $state<string | null>(null);
+	#historyFailed = false;
 
 	constructor() {
 		if (typeof window !== 'undefined') {
@@ -185,6 +186,8 @@ class HistoryStore {
 	}
 
 	async recordWatch(media: Partial<Media> & Record<string, unknown>) {
+		if (this.#historyFailed) return;
+
 		const id = typeof media.id === 'string' ? media.id : String(media.id ?? '');
 		if (!id) return;
 
@@ -205,7 +208,7 @@ class HistoryStore {
 			const body: Record<string, unknown> = {};
 			const tmdbIdVal = entry.tmdbId ?? (media as Record<string, unknown>).tmdb_id;
 			if (tmdbIdVal) {
-				body.tmdb_id = tmdbIdVal;
+				body.tmdb_id = Number(tmdbIdVal);
 				body.media_type = entry.mediaType || entry.media_type || 'movie';
 			} else {
 				body.mediaId = entry.id;
@@ -218,9 +221,13 @@ class HistoryStore {
 				credentials: 'include'
 			});
 
-			if (!response.ok) throw new Error('Failed to sync');
+			if (!response.ok) {
+				this.#historyFailed = true;
+				console.warn('[history] Endpoint returned', response.status, '— disabling watch history for this session');
+			}
 		} catch (error) {
-			console.error('[history][recordWatch] Sync failed', error);
+			this.#historyFailed = true;
+			console.warn('[history] Network error — disabling watch history for this session');
 		}
 	}
 

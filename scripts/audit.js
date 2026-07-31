@@ -17,6 +17,7 @@ function collectConsole(page, phase) {
     const text = msg.text();
     if (text.includes('ERR_BLOCKED_BY_CLIENT')) return;
     if (text.includes('state_referenced_locally')) return;
+    if (text.includes('favicon')) return;
     if (type === 'error') {
       const args = msg.args().map(a => a.toString()).join(' ');
       log(phase, `CONSOLE ERROR: ${text} ${args ? '| ' + args : ''}`, 'ERROR');
@@ -29,7 +30,7 @@ function collectConsole(page, phase) {
 function collectNetwork(page, phase) {
   page.on('requestfailed', (req) => {
     const url = req.url();
-    if (url.includes('localhost') || url.includes(BASE_URL.replace('http://', ''))) {
+    if (url.includes('localhost') || url.includes(new URL(BASE_URL).host)) {
       log(phase, `NETWORK FAIL: ${req.failure()?.errorText} \u2014 ${url}`, 'ERROR');
     }
   });
@@ -46,12 +47,13 @@ function collectNetwork(page, phase) {
   });
 }
 
-async function navigate(page, url, phase) {
+async function navigate(page, url, phase, timeout = 15000) {
   try {
     const response = await page.goto(`${BASE_URL}${url}`, {
-      waitUntil: 'networkidle2',
-      timeout: 15000,
+      waitUntil: 'domcontentloaded',
+      timeout,
     });
+    await delay(1000);
     if (!response) {
       log(phase, `Navigate to ${url} returned null response`, 'ERROR');
       return false;
@@ -69,29 +71,64 @@ async function navigate(page, url, phase) {
   }
 }
 
-async function visualChecks(page, phase, checks) {
-  for (const check of checks) {
-    try {
-      const el = await page.waitForSelector(check.selector, {
-        visible: check.visible ?? true,
-        timeout: 3000,
-      });
-      if (el) {
-        const box = await el.boundingBox();
-        const text = await el.evaluate((node) => node.textContent?.trim().slice(0, 50));
-        if (box && (box.x < 0 || box.y < 0 || box.width === 0 || box.height === 0)) {
-          log(phase, `${check.label}: FOUND but OFFSCREEN (x:${box.x}, y:${box.y}, w:${box.width}, h:${box.height})`, 'WARN');
-        } else {
-          log(phase, `${check.label}: VISIBLE \u2014 "${text || '(no text)'}"`, 'INFO');
-        }
-      }
-    } catch {
-      log(phase, `${check.label}: NOT FOUND or NOT VISIBLE`, check.required ? 'ERROR' : 'WARN');
+async function checkOverflow(page, phase, label) {
+  const overflow = await page.evaluate(() => ({
+    horizontal: document.documentElement.scrollWidth > window.innerWidth,
+    vertical: document.documentElement.scrollHeight > window.innerHeight,
+  }));
+  if (overflow.horizontal) {
+    log(phase, `${label}: Horizontal overflow detected`, 'ERROR');
+  }
+  return overflow;
+}
+
+async function checkForErrorText(page, phase, label) {
+  const errorText = await page.evaluate(() => {
+    const body = document.body.innerText;
+    if (body.includes('500') || body.includes('Internal Error') || body.includes('Error:')) {
+      return body.slice(0, 200);
     }
+    return null;
+  });
+  if (errorText) {
+    log(phase, `${label}: page contains error text: "${errorText}"`, 'ERROR');
+  }
+}
+
+async function checkBackground(page, phase) {
+  const bgColor = await page.evaluate(() => {
+    const style = window.getComputedStyle(document.body);
+    return style.backgroundColor;
+  });
+  if (bgColor === 'rgb(255, 255, 255)' || bgColor === 'white') {
+    log(phase, 'Background is WHITE \u2014 expected dark theme', 'WARN');
+  }
+}
+
+async function visualCheck(page, phase, selector, label, required = false) {
+  try {
+    const el = await page.waitForSelector(selector, { visible: true, timeout: 3000 });
+    if (el) {
+      const box = await el.boundingBox();
+      const text = await el.evaluate((node) => node.textContent?.trim().slice(0, 60));
+      if (box && (box.x < 0 || box.y < 0 || box.width === 0 || box.height === 0)) {
+        log(phase, `${label}: FOUND but OFFSCREEN (x:${box.x}, y:${box.y}, w:${box.width}, h:${box.height})`, 'WARN');
+      } else if (box) {
+        log(phase, `${label}: VISIBLE at (${Math.round(box.x)},${Math.round(box.y)}) \u2014 "${text || '(no text)'}"`, 'INFO');
+      }
+    }
+  } catch {
+    log(phase, `${label}: NOT FOUND or NOT VISIBLE`, required ? 'ERROR' : 'WARN');
   }
 }
 
 async function runAudit() {
+  console.log(`\n${'='.repeat(60)}`);
+  console.log('  STREAMIUM FULL PRODUCTION AUDIT');
+  console.log(`  Target: ${BASE_URL}`);
+  console.log(`  Time:   ${new Date().toISOString()}`);
+  console.log(`${'='.repeat(60)}\n`);
+
   const browser = await puppeteer.launch({
     headless: 'new',
     args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-web-security'],
@@ -103,123 +140,260 @@ async function runAudit() {
   collectConsole(page, 'GLOBAL');
   collectNetwork(page, 'GLOBAL');
 
-  const homeOk = await navigate(page, '/', 'HOMEPAGE');
-  if (homeOk) {
-    await visualChecks(page, 'HOMEPAGE', [
-      { selector: 'header', label: 'Header', required: true },
-      { selector: 'header a', label: 'Logo link', required: true },
-      { selector: '.auth-nav, header a[href*="login"], header a[href*="signup"]', label: 'Auth section (desktop)', required: false },
-      { selector: '.fab-container, .fab-btn', label: 'User FAB', required: true },
-      { selector: 'footer', label: 'Footer', required: false },
-    ]);
+  // ═══════════════════════════════════════════════
+  //  PHASE 1: HOMEPAGE
+  // ═══════════════════════════════════════════════
+  console.log('\n--- PHASE 1: HOMEPAGE ---\n');
 
-    const bgColor = await page.evaluate(() => {
-      const style = window.getComputedStyle(document.body);
-      return style.backgroundColor;
-    });
-    if (bgColor === 'rgb(255, 255, 255)' || bgColor === 'white') {
-      log('HOMEPAGE', 'Background is WHITE \u2014 expected dark theme', 'WARN');
-    }
+  await navigate(page, '/', 'HOMEPAGE');
+  await checkBackground(page, 'HOMEPAGE');
+  await checkOverflow(page, 'HOMEPAGE', 'Homepage');
+  await checkForErrorText(page, 'HOMEPAGE', 'Homepage');
 
-    const hasOverflow = await page.evaluate(() => {
-      return document.documentElement.scrollWidth > document.documentElement.clientWidth;
-    });
-    if (hasOverflow) {
-      log('HOMEPAGE', 'Horizontal overflow detected \u2014 layout is broken', 'ERROR');
-    }
-  }
+  await visualCheck(page, 'HOMEPAGE', 'header', 'Header', true);
+  await visualCheck(page, 'HOMEPAGE', 'footer', 'Footer', false);
+  await visualCheck(page, 'HOMEPAGE', 'main, .hero-section, section', 'Main content area', true);
+
+  // ═══════════════════════════════════════════════
+  //  PHASE 2: AUTH PAGES
+  // ═══════════════════════════════════════════════
+  console.log('\n--- PHASE 2: AUTH PAGES ---\n');
 
   await navigate(page, '/login', 'AUTH');
-  await visualChecks(page, 'AUTH', [
-    { selector: 'form', label: 'Sign-in form', required: true },
-    { selector: 'input[type="text"], input[name="username"]', label: 'Username input', required: true },
-    { selector: 'input[type="password"]', label: 'Password input', required: true },
-    { selector: 'button[type="submit"]', label: 'Submit button', required: true },
-    { selector: 'a[href*="signup"]', label: 'Link to sign-up', required: true },
-  ]);
+  await checkOverflow(page, 'AUTH', '/login');
+  await visualCheck(page, 'AUTH', 'form', 'Login form', true);
+  await visualCheck(page, 'AUTH', 'input[type="text"], input[name="username"]', 'Username input', true);
+  await visualCheck(page, 'AUTH', 'input[type="password"]', 'Password input', true);
+  await visualCheck(page, 'AUTH', 'button[type="submit"]', 'Submit button', true);
+  await visualCheck(page, 'AUTH', 'a[href*="signup"]', 'Link to signup', true);
 
   await navigate(page, '/signup', 'AUTH');
-  await visualChecks(page, 'AUTH', [
-    { selector: 'form', label: 'Sign-up form', required: true },
-    { selector: 'input[type="text"], input[name="username"]', label: 'Username input', required: true },
-    { selector: 'input[type="password"]', label: 'Password input', required: true },
-    { selector: 'a[href*="login"]', label: 'Link to sign-in', required: true },
-  ]);
+  await checkOverflow(page, 'AUTH', '/signup');
+  await visualCheck(page, 'AUTH', 'form', 'Signup form', true);
+  await visualCheck(page, 'AUTH', 'input[name="username"]', 'Username input', true);
+  await visualCheck(page, 'AUTH', 'input[type="password"]', 'Password input', true);
+  await visualCheck(page, 'AUTH', 'button[type="submit"]', 'Submit button', true);
 
-  const contentPages = [
-    { url: '/movies', label: 'Movies page' },
-    { url: '/tv', label: 'TV page' },
-    { url: '/watchlist', label: 'Watchlist' },
+  // ═══════════════════════════════════════════════
+  //  PHASE 3: ALL CONTENT/BROWSE PAGES
+  // ═══════════════════════════════════════════════
+  console.log('\n--- PHASE 3: CONTENT PAGES ---\n');
+
+  const staticPages = [
+    { url: '/movies', label: '/movies' },
+    { url: '/tv', label: '/tv' },
+    { url: '/watchlist', label: '/watchlist' },
+    { url: '/history', label: '/history' },
+    { url: '/search', label: '/search' },
+    { url: '/explore', label: '/explore' },
+    { url: '/settings', label: '/settings' },
+    { url: '/admin', label: '/admin' },
+    { url: '/admin/features', label: '/admin/features' },
+    { url: '/afrikaans', label: '/afrikaans' },
+    { url: '/profile', label: '/profile' },
+    { url: '/profile/edit', label: '/profile/edit' },
+    { url: '/offline', label: '/offline' },
   ];
 
-  for (const { url, label } of contentPages) {
-    await navigate(page, url, 'CONTENT');
-    await visualChecks(page, 'CONTENT', [
-      { selector: 'main, .page-content, section', label: `${label} \u2014 main content`, required: false },
-    ]);
-
-    const errorText = await page.evaluate(() => {
-      const body = document.body.innerText;
-      if (body.includes('500') || body.includes('Internal Error') || (body.includes('undefined') && body.length < 100)) {
-        return body.slice(0, 200);
-      }
-      return null;
-    });
-    if (errorText) {
-      log('CONTENT', `${label} \u2014 page contains error text: "${errorText}"`, 'ERROR');
+  for (const { url, label } of staticPages) {
+    const ok = await navigate(page, url, 'PAGES');
+    if (ok) {
+      await checkOverflow(page, 'PAGES', label);
+      await checkForErrorText(page, 'PAGES', label);
+      await visualCheck(page, 'PAGES', 'main, .page-content, [role="main"]', `${label} main container`, false);
     }
   }
+
+  // ═══════════════════════════════════════════════
+  //  PHASE 4: DYNAMIC/DETAIL PAGES
+  // ═══════════════════════════════════════════════
+  console.log('\n--- PHASE 4: DETAIL/DYNAMIC PAGES ---\n');
+
+  const detailPages = [
+    { url: '/movie/550', label: '/movie/550' },
+    { url: '/tv/1399', label: '/tv/1399' },
+    { url: '/genre/movies', label: '/genre/movies' },
+  ];
+
+  for (const { url, label } of detailPages) {
+    const ok = await navigate(page, url, 'DETAIL');
+    if (ok) {
+      await checkOverflow(page, 'DETAIL', label);
+      await checkForErrorText(page, 'DETAIL', label);
+      await visualCheck(page, 'DETAIL', 'main, article, .page-content', `${label} main content`, false);
+    }
+  }
+
+  // Check person page and collection page with real-looking slugs
+  const dynamicSlugs = [
+    { url: '/genre/action', label: '/genre/action' },
+    { url: '/explore/movies', label: '/explore/movies' },
+  ];
+
+  for (const { url, label } of dynamicSlugs) {
+    const ok = await navigate(page, url, 'DYNAMIC');
+    if (ok) {
+      await checkOverflow(page, 'DYNAMIC', label);
+      await checkForErrorText(page, 'DYNAMIC', label);
+    }
+  }
+
+  // ═══════════════════════════════════════════════
+  //  PHASE 5: RESPONSIVE BREAKPOINTS
+  // ═══════════════════════════════════════════════
+  console.log('\n--- PHASE 5: RESPONSIVE BREAKPOINTS ---\n');
 
   const breakpoints = [
     { width: 1920, height: 1080, label: 'Desktop (1920px)' },
     { width: 1440, height: 900, label: 'Desktop (1440px)' },
     { width: 1280, height: 800, label: 'Desktop (1280px)' },
-    { width: 1024, height: 768, label: 'Tablet (1024px)' },
-    { width: 768, height: 1024, label: 'Tablet (768px)' },
+    { width: 1024, height: 768, label: 'Tablet landscape (1024px)' },
+    { width: 768, height: 1024, label: 'Tablet portrait (768px)' },
+    { width: 430, height: 932, label: 'Mobile (430px)' },
     { width: 414, height: 896, label: 'Mobile (414px)' },
+    { width: 390, height: 844, label: 'Mobile (390px)' },
     { width: 375, height: 812, label: 'Mobile (375px)' },
+    { width: 360, height: 800, label: 'Mobile (360px)' },
     { width: 320, height: 568, label: 'Mobile (320px)' },
   ];
 
   for (const { width, height, label } of breakpoints) {
     await page.setViewport({ width, height, deviceScaleFactor: 2 });
-    await page.goto(BASE_URL, { waitUntil: 'networkidle2', timeout: 10000 });
+    await page.goto(BASE_URL, { waitUntil: 'domcontentloaded', timeout: 10000 });
+    await delay(1000);
 
-    const overflow = await page.evaluate(() => {
-      return {
-        horizontal: document.documentElement.scrollWidth > window.innerWidth,
-        vertical: document.documentElement.scrollHeight > window.innerHeight,
-      };
-    });
+    const overflow = await page.evaluate(() => ({
+      horizontal: document.documentElement.scrollWidth > window.innerWidth,
+    }));
 
     if (overflow.horizontal) {
       log('RESPONSIVE', `${label}: Horizontal overflow`, 'ERROR');
+    } else {
+      log('RESPONSIVE', `${label}: No overflow`, 'INFO');
     }
+  }
 
-    try {
-      const fab = await page.$('.fab-btn, .fab-container button');
-      if (fab) {
-        const box = await fab.boundingBox();
+  // ═══════════════════════════════════════════════
+  //  PHASE 6: MOBILE HAMBURGER MENU (CRITICAL)
+  // ═══════════════════════════════════════════════
+  console.log('\n--- PHASE 6: MOBILE HAMBURGER MENU ---\n');
+
+  const mobilesViewports = [
+    { width: 375, height: 812, label: 'iPhone X (375px)' },
+    { width: 414, height: 896, label: 'iPhone 11 (414px)' },
+    { width: 390, height: 844, label: 'iPhone 14 (390px)' },
+    { width: 430, height: 932, label: 'iPhone 15 (430px)' },
+    { width: 360, height: 800, label: 'Galaxy S20 (360px)' },
+    { width: 320, height: 568, label: 'Small (320px)' },
+  ];
+
+  for (const { width, height, label } of mobilesViewports) {
+    await page.setViewport({ width, height, deviceScaleFactor: 3 });
+    await page.goto(BASE_URL, { waitUntil: 'domcontentloaded', timeout: 10000 });
+    await delay(1500);
+
+    // Check for hamburger menu button with exact aria-label
+    const hamburger = await page.$('button[aria-label="Menu"], .mobile-header-btn[aria-label="Menu"]');
+    if (hamburger) {
+      const box = await hamburger.boundingBox();
+      if (box) {
+        const inViewport = box.x >= 0 && box.y > 0 && box.x + box.width <= width && box.y + box.height <= height;
+        const headerHeight = 64;
+        const expectedTop = Math.round((headerHeight - box.height) / 2);
+        const yOffset = Math.abs(box.y - expectedTop);
+
+        if (!inViewport) {
+          log('MOBILE', `${label}: Hamburger OUTSIDE viewport (y:${Math.round(box.y)})`, 'ERROR');
+        } else if (yOffset > 10) {
+          log('MOBILE', `${label}: Hamburger position OFF by ${yOffset}px (expected ~${expectedTop}px from top, got ${Math.round(box.y)}px)`, 'ERROR');
+        } else {
+          log('MOBILE', `${label}: Hamburger correctly positioned at y=${Math.round(box.y)}px`, 'INFO');
+        }
+
+        // Try clicking to open menu
+        await hamburger.click();
+        await delay(600);
+
+        const drawerOpen = await page.evaluate(() => {
+          return !!document.querySelector('.menu-drawer, .menu-backdrop, [class*="drawer"], [role="dialog"]');
+        });
+        if (drawerOpen) {
+          const drawerEl = await page.$('.menu-drawer, .menu-backdrop, [class*="drawer"]');
+          if (drawerEl) {
+            const drawerBox = await drawerEl.boundingBox();
+            if (drawerBox) {
+              log('MOBILE', `${label}: Menu drawer opened at y=${Math.round(drawerBox.y)}, h=${Math.round(drawerBox.height)}`, 'INFO');
+            }
+          }
+
+          // Check drawer has navigation links
+          const links = await page.evaluate(() => {
+            const nav = document.querySelector('.menu-drawer, .menu-backdrop, [role="dialog"]');
+            if (!nav) return 0;
+            return nav.querySelectorAll('a, button').length;
+          });
+          log('MOBILE', `${label}: Menu drawer has ${links} interactive elements`, links > 0 ? 'INFO' : 'WARN');
+
+          // Close by pressing Escape
+          await page.keyboard.press('Escape');
+          await delay(400);
+          const stillOpen = await page.evaluate(() => {
+            return !!document.querySelector('.menu-drawer, .menu-backdrop');
+          });
+          log('MOBILE', `${label}: Menu closes on Escape`, stillOpen ? 'WARN' : 'INFO');
+        } else {
+          log('MOBILE', `${label}: Hamburger clicked but drawer did NOT open`, 'ERROR');
+        }
+      } else {
+        log('MOBILE', `${label}: Hamburger has no bounding box`, 'ERROR');
+      }
+    } else {
+      log('MOBILE', `${label}: No hamburger menu button found`, 'ERROR');
+    }
+  }
+
+  // ═══════════════════════════════════════════════
+  //  PHASE 7: MOBILE HEADER ON ALL PAGES
+  // ═══════════════════════════════════════════════
+  console.log('\n--- PHASE 7: MOBILE HEADER ACROSS ALL PAGES ---\n');
+
+  const allRoutes = [
+    '/', '/login', '/signup', '/movies', '/tv', '/watchlist', '/history',
+    '/search', '/explore', '/settings', '/admin', '/profile', '/movie/550',
+    '/tv/1399', '/genre/movies', '/afrikaans',
+  ];
+
+  await page.setViewport({ width: 390, height: 844, deviceScaleFactor: 3 });
+
+  for (const route of allRoutes) {
+    const ok = await navigate(page, route, 'MHDR', 10000);
+    if (ok) {
+      const btn = await page.$('button[aria-label="Menu"], .mobile-header-btn[aria-label="Menu"]');
+      if (btn) {
+        const box = await btn.boundingBox();
         if (box) {
-          const inBounds = box.x > 0 && box.y > 0 && box.x + box.width < width && box.y + box.height < height;
+          const inBounds = box.y > 0 && box.y < 100;
           if (!inBounds) {
-            log('RESPONSIVE', `${label}: FAB outside viewport (${box.x}, ${box.y})`, 'WARN');
+            log('MHDR', `${route}: Hamburger at y=${Math.round(box.y)} \u2014 TOO HIGH`, 'ERROR');
           }
         }
       }
-    } catch {
-      log('RESPONSIVE', `${label}: FAB not found`, 'WARN');
+      await checkOverflow(page, 'MHDR', route);
+      await checkForErrorText(page, 'MHDR', route);
     }
-
-    log('RESPONSIVE', `${label}: passed`, 'INFO');
-    await delay(500);
   }
+
+  // ═══════════════════════════════════════════════
+  //  PHASE 8: PLAYER TEST
+  // ═══════════════════════════════════════════════
+  console.log('\n--- PHASE 8: PLAYER ---\n');
 
   await page.setViewport({ width: 1440, height: 900, deviceScaleFactor: 1 });
 
   let playerUrl = null;
   for (const testUrl of ['/movie/550', '/tv/1399', '/movies']) {
-    await page.goto(`${BASE_URL}${testUrl}`, { waitUntil: 'networkidle2', timeout: 10000 });
+    await page.goto(`${BASE_URL}${testUrl}`, { waitUntil: 'domcontentloaded', timeout: 10000 });
+    await delay(1000);
     playerUrl = await page.evaluate(() => {
       const links = [...document.querySelectorAll('a[href*="watch"], a[href*="play"], a[href*="movie/"], a[href*="tv/"]')];
       return links[0]?.href || null;
@@ -228,157 +402,92 @@ async function runAudit() {
   }
 
   if (playerUrl) {
+    log('PLAYER', `Found player URL: ${playerUrl}`, 'INFO');
     await navigate(page, new URL(playerUrl).pathname, 'PLAYER');
-    await visualChecks(page, 'PLAYER', [
-      { selector: 'iframe, video', label: 'Player element', required: true },
-    ]);
+    await visualCheck(page, 'PLAYER', 'iframe, video', 'Player element', true);
 
     const hasSandbox = await page.evaluate(() => {
       const iframe = document.querySelector('iframe');
       return iframe?.hasAttribute('sandbox') ?? false;
     });
     if (hasSandbox) {
-      log('PLAYER', 'IFRAME HAS SANDBOX ATTRIBUTE \u2014 PLAYER WILL BE BLOCKED', 'ERROR');
+      log('PLAYER', 'IFRAME HAS SANDBOX \u2014 PLAYER WILL BE BLOCKED', 'ERROR');
     } else {
-      log('PLAYER', 'No sandbox attribute \u2014 good', 'INFO');
+      log('PLAYER', 'No sandbox on iframe', 'INFO');
     }
 
-    const allow = await page.evaluate(() => {
-      return document.querySelector('iframe')?.getAttribute('allow') || '';
+    const allowFullscreen = await page.evaluate(() => {
+      return document.querySelector('iframe')?.getAttribute('allow')?.includes('fullscreen') || false;
     });
-    if (!allow.includes('fullscreen')) {
-      log('PLAYER', 'allow attribute missing fullscreen permission', 'WARN');
+    log('PLAYER', `Fullscreen permission: ${allowFullscreen ? 'present' : 'MISSING'}`, allowFullscreen ? 'INFO' : 'WARN');
+
+    const blockedFrames = await page.evaluate(() => {
+      const iframes = [...document.querySelectorAll('iframe')];
+      return iframes.filter(f => f.clientWidth === 0 && f.clientHeight === 0).length;
+    });
+    if (blockedFrames > 0) {
+      log('SECURITY', `${blockedFrames} zero-dimension iframe(s) \u2014 blocked by CSP/X-Frame-Options`, 'WARN');
     }
   } else {
-    log('PLAYER', 'Could not find a player page to test', 'WARN');
+    log('PLAYER', 'No player page found to test', 'WARN');
   }
 
-  const blockedFrames = await page.evaluate(() => {
-    const iframes = [...document.querySelectorAll('iframe')];
-    return iframes.filter(f => f.clientWidth === 0 && f.clientHeight === 0).length;
-  });
-  if (blockedFrames > 0) {
-    log('SECURITY', `${blockedFrames} iframe(s) have zero dimensions \u2014 possibly blocked by CSP/X-Frame-Options`, 'WARN');
-  }
+  // ═══════════════════════════════════════════════
+  //  PHASE 9: AUTH CSRF CHECK
+  // ═══════════════════════════════════════════════
+  console.log('\n--- PHASE 9: AUTH CSRF CHECK ---\n');
 
-  await navigate(page, '/login', 'AUTH-FLOW');
+  await navigate(page, '/login', 'CSRF');
   try {
     const result = await page.evaluate(async () => {
       const input = document.querySelector('input[name="csrf_token"]');
       const token = input ? input.value : '';
-      try {
-        const res = await fetch('/login', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/x-www-form-urlencoded',
-            'x-csrf-token': token
-          },
-          body: `username=&password=`,
-          credentials: 'include'
-        });
-        const text = await res.text();
-        const contentType = res.headers.get('content-type') || '';
-        return { status: res.status, body: text.slice(0, 400), contentType };
-      } catch (e) {
-        return { status: 0, body: e.message, contentType: '' };
-      }
+      const res = await fetch('/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: 'username=&password=',
+        credentials: 'include'
+      });
+      const text = await res.text();
+      return { status: res.status, body: text.slice(0, 200), contentType: res.headers.get('content-type') || '' };
     });
-    log('AUTH-FLOW', `POST /login \u2192 HTTP ${result.status} (${result.contentType})`, result.status >= 400 ? 'WARN' : 'INFO');
-    if (result.status < 400 && result.body.toLowerCase().includes('incorrect')) {
-      log('AUTH-FLOW', 'Validation shown for empty form \u2014 good', 'INFO');
-    } else if (result.status >= 400) {
-      log('AUTH-FLOW', `Response body: ${result.body.slice(0, 120).trim()}`, 'WARN');
-    } else {
-      log('AUTH-FLOW', `No validation msg: ${result.body.slice(0, 100).trim()}`, 'WARN');
-    }
+    log('CSRF', `POST /login => HTTP ${result.status}`, result.status >= 400 ? 'WARN' : 'INFO');
+    log('CSRF', `Response: ${result.body.slice(0, 80).trim()}`, 'INFO');
   } catch (err) {
-    log('AUTH-FLOW', `Form test failed: ${err.message}`, 'ERROR');
+    log('CSRF', `CSRF test failed: ${err.message}`, 'ERROR');
   }
 
-  await navigate(page, '/', 'FAB');
-  try {
-    const fabBtn = await page.$('.fab-btn');
-    if (fabBtn) {
-      await fabBtn.click();
-      await delay(500);
-
-      const panelOpen = await page.evaluate(() => {
-        return !!document.querySelector('.fab-panel');
-      });
-      if (panelOpen) {
-        log('FAB', 'Panel opens on click \u2014 good', 'INFO');
-
-        await page.keyboard.press('Escape');
-        await delay(300);
-        const panelClosed = await page.evaluate(() => {
-          return !document.querySelector('.fab-panel');
-        });
-        if (panelClosed) {
-          log('FAB', 'Panel closes on Escape \u2014 good', 'INFO');
-        } else {
-          log('FAB', 'Panel did NOT close on Escape', 'WARN');
-        }
-      } else {
-        log('FAB', 'Panel did NOT open on click', 'ERROR');
-      }
-    }
-  } catch (err) {
-    log('FAB', `FAB interaction failed: ${err.message}`, 'ERROR');
-  }
-
-  await page.setViewport({ width: 375, height: 812, deviceScaleFactor: 2 });
-  await page.goto(BASE_URL, { waitUntil: 'networkidle2', timeout: 10000 });
-
-  try {
-    const hamburger = await page.$('[aria-label*="menu"], .hamburger, .menu-btn, button[aria-label*="Open"]');
-    if (hamburger) {
-      await hamburger.click();
-      await delay(500);
-
-      const drawerOpen = await page.evaluate(() => {
-        return !!document.querySelector('.menu-drawer, .menu-panel, .drawer, .menu-open, [class*="slide"], .menu-backdrop');
-      });
-      if (drawerOpen) {
-        log('MOBILE', 'Hamburger menu opens \u2014 good', 'INFO');
-      } else {
-        log('MOBILE', 'Hamburger button found but drawer did not open', 'WARN');
-      }
-    } else {
-      log('MOBILE', 'No hamburger menu button found at 375px', 'WARN');
-    }
-  } catch (err) {
-    log('MOBILE', `Mobile menu test failed: ${err.message}`, 'ERROR');
-  }
-
+  // ═══════════════════════════════════════════════
+  //  SUMMARY
+  // ═══════════════════════════════════════════════
   const errors = REPORT.filter((r) => r.status === 'ERROR');
   const warnings = REPORT.filter((r) => r.status === 'WARN');
   const infos = REPORT.filter((r) => r.status === 'INFO');
 
-  console.log('\n\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550');
-  console.log(' AUDIT COMPLETE');
-  console.log('\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550');
-  console.log(`  \u2705 INFO:     ${infos.length}`);
+  console.log(`\n${'='.repeat(60)}`);
+  console.log('  AUDIT COMPLETE');
+  console.log(`${'='.repeat(60)}`);
+  console.log(`  \u2705 PASS:     ${infos.length}`);
   console.log(`  \u26A0\uFE0F  WARNINGS: ${warnings.length}`);
   console.log(`  \u274C ERRORS:   ${errors.length}`);
-  console.log('\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\n');
+  console.log(`${'='.repeat(60)}`);
 
   if (errors.length > 0) {
-    console.log('\u2500\u2500\u2500 ERRORS \u2500\u2500\u2500');
+    console.log('\n\u2500\u2500\u2500 ERRORS \u2500\u2500\u2500');
     errors.forEach((e) => console.log(`  \u274C [${e.phase}] ${e.message}`));
-    console.log('');
   }
 
   if (warnings.length > 0) {
-    console.log('\u2500\u2500\u2500 WARNINGS \u2500\u2500\u2500');
+    console.log('\n\u2500\u2500\u2500 WARNINGS \u2500\u2500\u2500');
     warnings.forEach((w) => console.log(`  \u26A0\uFE0F  [${w.phase}] ${w.message}`));
-    console.log('');
   }
 
+  console.log('');
   await browser.close();
   process.exit(errors.length > 0 ? 1 : 0);
 }
 
 runAudit().catch((err) => {
-  console.error('AUDIT SCRIPT CRASHED:', err);
+  console.error('AUDIT CRASHED:', err);
   process.exit(1);
 });

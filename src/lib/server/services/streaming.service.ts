@@ -33,7 +33,50 @@ export interface ResolveStreamingResponse {
 	resolutions: ProviderResolution[];
 }
 
-const FAILURE_TTL = 3600; // 1 hour cooldown for broken providers
+const FAILURE_TTL = 3600;
+const CIRCUIT_BREAKER_THRESHOLD = 3;
+const CIRCUIT_BREAKER_WINDOW_MS = 60_000;
+const CIRCUIT_BREAKER_COOLDOWN_MS = 120_000;
+
+interface CircuitState {
+	failures: number[];
+	openUntil: number;
+}
+
+const circuitState = new Map<string, CircuitState>();
+
+function isCircuitOpen(providerId: string): boolean {
+	const state = circuitState.get(providerId);
+	if (!state) return false;
+	if (Date.now() < state.openUntil) return true;
+	if (state.openUntil > 0) {
+		circuitState.delete(providerId);
+	}
+	return false;
+}
+
+function recordFailure(providerId: string) {
+	let state = circuitState.get(providerId);
+	if (!state) {
+		state = { failures: [], openUntil: 0 };
+		circuitState.set(providerId, state);
+	}
+	const now = Date.now();
+	state.failures = state.failures.filter((t) => now - t < CIRCUIT_BREAKER_WINDOW_MS);
+	state.failures.push(now);
+	if (state.failures.length >= CIRCUIT_BREAKER_THRESHOLD) {
+		state.openUntil = now + CIRCUIT_BREAKER_COOLDOWN_MS;
+		logger.warn({ providerId }, '[circuit-breaker] Provider tripped, cooling down');
+	}
+}
+
+function recordSuccess(providerId: string) {
+	const state = circuitState.get(providerId);
+	if (state) {
+		state.failures = [];
+		state.openUntil = 0;
+	}
+}
 
 export async function resolveStreaming(
 	input: ResolveStreamingInput
@@ -94,7 +137,33 @@ export async function resolveStreaming(
 				? input.preferredProviders
 				: sortedProviderIds;
 
-		const { source, resolutions } = await resolveStreamingWithDetails(context, effectivePreferred);
+		// Filter out circuit-broken providers
+		const filteredProviders = effectivePreferred.filter((id) => !isCircuitOpen(id));
+
+		if (filteredProviders.length === 0) {
+			logger.warn({ effectivePreferred }, '[circuit-breaker] All providers are circuit-broken');
+		}
+
+		const { source, resolutions } = await resolveStreamingWithDetails(
+			context,
+			filteredProviders.length > 0 ? filteredProviders : effectivePreferred
+		);
+
+		// Update circuit breaker and auto-report failures
+		for (const resolution of resolutions) {
+			if (resolution.success && resolution.source) {
+				recordSuccess(resolution.providerId);
+			} else {
+				recordFailure(resolution.providerId);
+				const failKey = buildCacheKey('provider-failure', resolution.providerId);
+				const currentFails = (await getCachedValue<number>(failKey)) || 0;
+				await setCachedValue(failKey, currentFails + 1, FAILURE_TTL);
+				logger.warn(
+					{ providerId: resolution.providerId, error: resolution.error },
+					'[streaming] Auto-reported provider failure'
+				);
+			}
+		}
 
 		return {
 			source,
