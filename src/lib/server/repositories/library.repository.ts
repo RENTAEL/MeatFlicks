@@ -112,7 +112,7 @@ export const libraryRepository = {
 					const moviesQuery = db
 						.select()
 						.from(media)
-						.where(eq(media.collectionId, collectionResults.id))
+						.where(and(eq(media.collectionId, collectionResults.id), releasedMedia))
 						.orderBy(desc(media.rating), desc(media.releaseDate), asc(media.title))
 						.offset(skip);
 
@@ -242,6 +242,7 @@ export const libraryRepository = {
 		mediaType: 'movie' | 'tv' = 'movie'
 	) {
 		conditions.push(eq(media.mediaType, mediaType));
+		conditions.push(releasedMedia);
 
 		if (filters.yearFrom) {
 			conditions.push(gte(media.releaseDate, `${filters.yearFrom}-01-01`));

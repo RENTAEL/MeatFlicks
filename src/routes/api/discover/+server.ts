@@ -1,6 +1,7 @@
 import { json } from '@sveltejs/kit';
 import { FEATURES } from '$lib/config/features';
 import { env } from '$lib/config/env';
+import { isEligibleMedia, todayParam } from '$lib/utils/mediaFilter';
 
 export async function GET({ url }) {
   if (!FEATURES.DISCOVERY_ENGINE) {
@@ -30,7 +31,7 @@ export async function GET({ url }) {
     }
 
     const endpoint = genreId
-      ? `https://api.themoviedb.org/3/discover/movie?api_key=${tmdbKey}&with_genres=${genreId}&sort_by=vote_average.desc&vote_count.gte=200`
+      ? `https://api.themoviedb.org/3/discover/movie?api_key=${tmdbKey}&with_genres=${genreId}&sort_by=vote_average.desc&vote_count.gte=200&primary_release_date.lte=${todayParam()}`
       : `https://api.themoviedb.org/3/movie/popular?api_key=${tmdbKey}`;
 
     const res = await fetch(endpoint);
@@ -38,7 +39,7 @@ export async function GET({ url }) {
 
     const data = await res.json();
     return json(
-      (data.results || []).slice(0, 12).map((m: any) => ({
+      (data.results || []).filter(isEligibleMedia).slice(0, 12).map((m: any) => ({
         id: m.id,
         title: m.title,
         poster: m.poster_path

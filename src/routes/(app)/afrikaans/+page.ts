@@ -1,6 +1,7 @@
 import { AFRIKAANS_FILMS } from '$lib/curated/afrikaans-films';
 import { env } from '$lib/config/env';
 import { formatMovie } from '$lib/utils/tmdb';
+import { isEligibleMedia } from '$lib/utils/mediaFilter';
 
 const TMDB_BASE = 'https://api.themoviedb.org/3';
 
@@ -53,7 +54,7 @@ export async function load({ url }) {
 
 		const curatedIds = new Set(AFRIKAANS_FILMS.map((f) => f.tmdbId));
 		const movies = (discoverData.results || [])
-			.filter((m: any) => !curatedIds.has(m.id))
+			.filter((m: any) => !curatedIds.has(m.id) && isEligibleMedia(m))
 			.map(formatMovie);
 
 		return {

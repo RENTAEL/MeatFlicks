@@ -288,6 +288,9 @@ function buildSearchFilters(options: SearchOptions): SearchFilterResult {
 		pushKey('mediaType', mediaType);
 	}
 
+	clauses.push(sql`(m.releaseDate IS NULL OR julianday(m.releaseDate) <= julianday('now'))`);
+	pushKey('released', '1');
+
 	pushKey('includeAdult', includeAdult);
 	if (!includeAdult) {
 		clauses.push(sql`m.is4K = 0`);

@@ -2,6 +2,7 @@ import { json } from '@sveltejs/kit';
 import { env } from '$lib/config/env';
 import { AFRIKAANS_FILMS } from '$lib/curated/afrikaans-films';
 import { formatMovie } from '$lib/utils/tmdb';
+import { isEligibleMedia } from '$lib/utils/mediaFilter';
 
 export async function GET({ url }) {
 	const page = Number(url.searchParams.get('page')) || 1;
@@ -16,7 +17,7 @@ export async function GET({ url }) {
 
 	const curatedIds = new Set(AFRIKAANS_FILMS.map((f) => f.tmdbId));
 	const results = (data.results || [])
-		.filter((m: any) => !curatedIds.has(m.id))
+		.filter((m: any) => !curatedIds.has(m.id) && isEligibleMedia(m))
 		.filter((m: any) => m.poster_path);
 
 	return json({
