@@ -1,6 +1,7 @@
 <script lang="ts">
   import { page } from '$app/stores';
   import { icons } from './icons';
+  import { searchOpen } from '$lib/stores/search';
   const navItems: { href: string; label: string; icon: keyof typeof icons; action?: 'search' }[] = [
     { href: '/', label: 'Home', icon: 'home' },
     { href: '/movies', label: 'Movies', icon: 'grid' },
@@ -18,7 +19,7 @@
   {#each navItems as item}
     {@const active = isActive(item.href)}
     {#if item.action === 'search'}
-      <button type="button" class="bottom-nav-item {active ? 'active' : ''}" onclick={() => {}} aria-label={item.label} aria-current={active ? 'page' : undefined}>
+      <button type="button" class="bottom-nav-item {active ? 'active' : ''}" onclick={() => searchOpen.set(true)} aria-label={item.label} aria-current={active ? 'page' : undefined}>
         <span class="bottom-nav-icon">{@html icons[item.icon]}</span>
         <span class="bottom-nav-label">{item.label}</span>
       </button>
