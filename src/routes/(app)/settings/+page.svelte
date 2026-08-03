@@ -8,8 +8,10 @@
 
   $: user = $page.data?.user;
 
+  let activeMode = 'desktop' as 'desktop' | 'vr';
   let xrSupported = 'no';
   onMount(() => {
+    activeMode = displayMode.mode;
     (async () => {
       try {
         xrSupported = (await isImmersiveVrSupported()) ? 'yes' : 'no';
@@ -18,6 +20,11 @@
       }
     })();
   });
+
+  function setMode(mode: 'desktop' | 'vr') {
+    displayMode.setMode(mode);
+    activeMode = mode;
+  }
 
   $: if (!user) {
     redirect(303, '/login');
@@ -64,22 +71,22 @@
       <button
         type="button"
         class="mode-btn"
-        class:mode-btn-active={displayMode.mode === 'desktop'}
-        onclick={() => displayMode.setMode('desktop')}
+        class:mode-btn-active={activeMode === 'desktop'}
+        onclick={() => setMode('desktop')}
       >
         Desktop Mode
       </button>
       <button
         type="button"
         class="mode-btn"
-        class:mode-btn-active={displayMode.mode === 'vr'}
-        onclick={() => displayMode.setMode('vr')}
+        class:mode-btn-active={activeMode === 'vr'}
+        onclick={() => setMode('vr')}
       >
         VR Mode
       </button>
     </div>
 
-    {#if displayMode.mode === 'vr'}
+    {#if activeMode === 'vr' && xrSupported !== 'yes'}
       <p class="vr-hint">?? VR theater is available in the Meta Quest browser. Open Streamium on your headset and add it to the home screen.</p>
     {/if}
   </div>
