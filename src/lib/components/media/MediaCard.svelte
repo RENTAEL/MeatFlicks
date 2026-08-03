@@ -36,6 +36,9 @@
 	let hoverTimer: ReturnType<typeof setTimeout> | null = null;
 	let isHovering = $state(false);
 	let shouldFetchProviders = $state(false);
+	let canHover = $state(
+		typeof window === 'undefined' ? false : window.matchMedia('(hover: hover)').matches
+	);
 
 	function handleBlurError(e: Event) {
 		(e.target as HTMLElement).style.display = 'none';
@@ -78,6 +81,7 @@
 	function startHover() {
 		isHovering = true;
 		shouldFetchProviders = true;
+		if (!canHover) return;
 		hoverTimer = setTimeout(() => {
 			if (isHovering) showPreview = true;
 		}, 600);

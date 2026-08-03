@@ -463,18 +463,18 @@
 	.badge { font-size: 10px; font-weight: 600; padding: 2px 6px; border-radius: 4px; text-transform: uppercase; letter-spacing: 0.5px; }
 	.badge-working { background: #064e3b; color: #6ee7b7; }
 	.count { font-size: 11px; color: #71717a; }
-	.next-btn { display: flex; align-items: center; gap: 6px; padding: 6px 12px; background: #27272a; color: #d4d4d8; border: 1px solid #3f3f46; border-radius: 6px; font-size: 12px; cursor: pointer; }
+	.next-btn { display: flex; align-items: center; gap: 6px; padding: 6px 12px; background: #27272a; color: #d4d4d8; border: 1px solid #3f3f46; border-radius: 6px; font-size: 12px; cursor: pointer; min-height: 44px; box-sizing: border-box; }
 	.next-btn:hover:not(:disabled) { background: #3f3f46; }
 	.next-btn:disabled { opacity: 0.45; cursor: not-allowed; }
 	.next-btn:active:not(:disabled) { background: #18181b; }
 	.next-icon { width: 14px; height: 14px; }
 	.next-spec { color: #818cf8; font-weight: 700; }
-	.auto-btn { display: inline-flex; align-items: center; gap: 6px; padding: 6px 10px; background: #18181b; color: #71717a; border: 1px solid #27272a; border-radius: 6px; font-size: 12px; cursor: pointer; }
+	.auto-btn { display: inline-flex; align-items: center; gap: 6px; padding: 6px 10px; background: #18181b; color: #71717a; border: 1px solid #27272a; border-radius: 6px; font-size: 12px; cursor: pointer; min-height: 44px; box-sizing: border-box; }
 	.auto-btn:hover { color: #a1a1aa; }
 	.auto-btn-on { color: #d4d4d8; background: #27272a; border-color: #3f3f46; }
 	.auto-pill { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.4px; color: #a1a1aa; }
 	.auto-btn-on .auto-pill { color: #6ee7b7; }
-	.switch-btn { display: flex; align-items: center; gap: 6px; padding: 6px 12px; background: #27272a; color: #d4d4d8; border: 1px solid #3f3f46; border-radius: 6px; font-size: 12px; cursor: pointer; }
+	.switch-btn { display: flex; align-items: center; gap: 6px; padding: 6px 12px; background: #27272a; color: #d4d4d8; border: 1px solid #3f3f46; border-radius: 6px; font-size: 12px; cursor: pointer; min-height: 44px; box-sizing: border-box; }
 	.switch-btn:hover { background: #3f3f46; }
 	.switch-icon { width: 14px; height: 14px; }
 
@@ -516,9 +516,9 @@
 	.upnext-spec { font-size: 12px; font-weight: 600; color: #818cf8; }
 	.upnext-name { font-size: 20px; font-weight: 700; color: #fff; overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
 	.upnext-actions { display: flex; gap: 8px; flex-shrink: 0; }
-	.upnext-play { padding: 10px 20px; background: #818cf8; color: #fff; border: none; border-radius: 10px; font-size: 14px; font-weight: 600; cursor: pointer; font-family: inherit; }
+	.upnext-play { padding: 10px 20px; background: #818cf8; color: #fff; border: none; border-radius: 10px; font-size: 14px; font-weight: 600; cursor: pointer; font-family: inherit; min-height: 44px; }
 	.upnext-play:hover { background: #6d7cf0; }
-	.upnext-cancel { padding: 10px 20px; background: rgba(255,255,255,0.08); color: #d4d4d8; border: 1px solid rgba(255,255,255,0.25); border-radius: 10px; font-size: 14px; cursor: pointer; font-family: inherit; }
+	.upnext-cancel { padding: 10px 20px; background: rgba(255,255,255,0.08); color: #d4d4d8; border: 1px solid rgba(255,255,255,0.25); border-radius: 10px; font-size: 14px; cursor: pointer; font-family: inherit; min-height: 44px; }
 	.upnext-cancel:hover { background: rgba(255,255,255,0.16); }
 	.upnext-ring { position: absolute; top: 14px; right: 14px; width: 52px; height: 52px; }
 	.upnext-ring svg { width: 100%; height: 100%; transform: scaleX(-1); }

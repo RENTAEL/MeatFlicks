@@ -4,7 +4,7 @@
   "description": "Stream your favorite movies and TV shows for free.",
   "start_url": "/",
   "display": "standalone",
-  "orientation": "portrait-primary",
+  "orientation": "any",
   "background_color": "#0a0a1a",
   "theme_color": "#0a0a1a",
   "categories": ["entertainment", "movies", "video"],

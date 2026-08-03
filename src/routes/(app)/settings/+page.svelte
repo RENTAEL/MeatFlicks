@@ -3,8 +3,10 @@
   import { redirect } from '@sveltejs/kit';
   import ThemePicker from '$lib/components/ThemePicker.svelte';
   import ThemeToggle from '$lib/themes/ThemeToggle.svelte';
+  import { displayMode, isWebXRAvailable } from '$lib/state/stores/displayModeStore.svelte';
 
   $: user = $page.data?.user;
+  $: vrHint = isWebXRAvailable() ? '' : 'VR theater is available in the Meta Quest browser. Open Streamium on your headset and add it to the home screen.';
 
   $: if (!user) {
     redirect(303, '/login');
@@ -31,6 +33,44 @@
   <div class="settings-header">
     <h1 class="settings-title">Settings</h1>
     <p class="settings-sub">Customize your Streamium experience.</p>
+  </div>
+
+  <!-- Display Mode -->
+  <div class="settings-section">
+    <div class="section-header">
+      <span class="section-icon">📺</span>
+      <div>
+        <h2 class="section-title">Display Mode</h2>
+        <p class="section-desc">
+          Desktop Mode is the default experience. VR Mode is a preference for
+          future virtual-theater viewing; on non-VR browsers the site simply
+          behaves as Desktop Mode.
+        </p>
+      </div>
+    </div>
+
+    <div class="mode-toggle" role="group" aria-label="Display mode">
+      <button
+        type="button"
+        class="mode-btn"
+        class:mode-btn-active={displayMode.mode === 'desktop'}
+        onclick={() => displayMode.setMode('desktop')}
+      >
+        Desktop Mode
+      </button>
+      <button
+        type="button"
+        class="mode-btn"
+        class:mode-btn-active={displayMode.mode === 'vr'}
+        onclick={() => displayMode.setMode('vr')}
+      >
+        VR Mode
+      </button>
+    </div>
+
+    {#if displayMode.mode === 'vr' && vrHint}
+      <p class="vr-hint">🕶️ {vrHint}</p>
+    {/if}
   </div>
 
   <!-- Theme Section -->
@@ -241,9 +281,53 @@
     height: 18px;
   }
 
+  .mode-toggle {
+    display: flex;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+    margin-bottom: 0.75rem;
+  }
+
+  .mode-btn {
+    min-height: 44px;
+    padding: 0.65rem 1.5rem;
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-stream);
+    border-radius: var(--radius-full);
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+    font-weight: var(--font-weight-semibold, 600);
+    font-family: inherit;
+    cursor: pointer;
+    transition: all var(--transition-base);
+  }
+
+  .mode-btn:active {
+    transform: scale(0.97);
+  }
+
+  .mode-btn-active {
+    background: var(--gradient-brand);
+    border-color: transparent;
+    color: #fff;
+    box-shadow: 0 4px 20px var(--accent-glow);
+  }
+
+  .vr-hint {
+    margin: 0;
+    font-size: 0.85rem;
+    color: var(--text-tertiary);
+    line-height: 1.5;
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-stream);
+    border-radius: var(--radius-md);
+    padding: 0.75rem 1rem;
+  }
+
   @media (max-width: 640px) {
     .settings-page { padding: 1.5rem 1rem; }
     .settings-title { font-size: 1.4rem; }
     .ublock-info { flex-direction: column; align-items: flex-start; }
+    .mode-btn { flex: 1 1 100%; }
   }
 </style>
