@@ -547,7 +547,7 @@
 			<div
 				class="player-controls {controlsVisible ? '' : 'player-controls-hidden'}"
 				onclick={(e) => e.stopPropagation()}
-				onkeydown={(e) => e.stopPropagation()}
+				onkeydown={() => {}}
 				onmousemove={showControlsTemporarily}
 				role="toolbar"
 				tabindex="-1"

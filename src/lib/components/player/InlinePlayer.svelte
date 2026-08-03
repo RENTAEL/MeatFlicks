@@ -458,7 +458,7 @@
 			class:opacity-0={isFakeFs && !controlsVisible}
 			class:opacity-100={!isFakeFs || controlsVisible}
 onclick={(e) => e.stopPropagation()}
-		onkeydown={(e) => e.stopPropagation()}
+		onkeydown={() => {}}
 		role="toolbar"
 		tabindex="-1"
 		aria-label="Player controls"

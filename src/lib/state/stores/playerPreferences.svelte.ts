@@ -26,8 +26,18 @@ class PlayerPreferences {
 		this.volume = Math.max(0, Math.min(100, Math.round(value)));
 		if (this.volume === 0) {
 			this.muted = true;
+			if (browser) {
+				try {
+					localStorage.setItem(MUTED_KEY, '1');
+				} catch {}
+			}
 		} else if (this.muted) {
 			this.muted = false;
+			if (browser) {
+				try {
+					localStorage.setItem(MUTED_KEY, '0');
+				} catch {}
+			}
 		}
 		if (browser) {
 			try {
