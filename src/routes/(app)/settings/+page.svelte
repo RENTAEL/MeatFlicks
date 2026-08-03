@@ -19,11 +19,6 @@
     })();
   });
 
-  $: vrHint =
-    displayMode.mode === 'vr' && xrSupported !== 'yes'
-      ? 'VR theater is available in the Meta Quest browser. Open Streamium on your headset and add it to the home screen.'
-      : '';
-
   $: if (!user) {
     redirect(303, '/login');
   }
@@ -84,8 +79,8 @@
       </button>
     </div>
 
-    {#if displayMode.mode === 'vr' && vrHint}
-      <p class="vr-hint">🕶️ {vrHint}</p>
+    {#if displayMode.mode === 'vr' && xrSupported !== 'yes'}
+      <p class="vr-hint">🕶️ VR theater is available in the Meta Quest browser. Open Streamium on your headset and add it to the home screen.</p>
     {/if}
   </div>
 
