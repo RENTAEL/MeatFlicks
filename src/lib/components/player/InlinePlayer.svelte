@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { X, Maximize, Minimize, AlertCircle, ExternalLink, Play, Pause, RotateCcw, RotateCw, Volume2, VolumeX, HelpCircle } from '@lucide/svelte';
+	import { X, Maximize, Minimize, AlertCircle, ExternalLink, Play, Pause, RotateCcw, RotateCw, Volume2, VolumeX } from '@lucide/svelte';
 	import { browser } from '$app/environment';
 	import { dev } from '$app/environment';
 	import { playerPreferences } from '$lib/state/stores/playerPreferences.svelte';
@@ -380,10 +380,6 @@
 			}
 			if (event.ctrlKey || event.metaKey || event.altKey) return;
 			switch (event.key.toLowerCase()) {
-				case '?':
-					event.preventDefault();
-					showShortcuts = !showShortcuts;
-					break;
 				case ' ':
 				case 'k':
 					event.preventDefault();
@@ -529,15 +525,6 @@ onclick={(e) => e.stopPropagation()}
 						title="Volume (↑ / ↓)"
 					/>
 				</div>
-				<button
-					type="button"
-					onclick={(e) => { e.stopPropagation(); showShortcuts = !showShortcuts; }}
-					class="flex items-center justify-center size-9 rounded-full text-white/70 hover:text-white hover:bg-white/10 transition-colors backdrop-blur-sm bg-black/30"
-					aria-label="Keyboard shortcuts"
-					title="Keyboard shortcuts (?)"
-				>
-					<HelpCircle class="size-4" />
-				</button>
 				<button
 					type="button"
 					onclick={(e) => { e.stopPropagation(); isFullscreen ? exitFullscreen() : enterFullscreen(); }}
