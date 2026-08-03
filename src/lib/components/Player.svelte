@@ -35,12 +35,21 @@
 		status: 'working' | 'blocked' | 'dead';
 	}
 
+	export const TRACKING_CAPS: Record<string, { tracksPosition: boolean }> = {
+		vidlink: { tracksPosition: false },
+		vidsrc: { tracksPosition: false },
+		'2embed': { tracksPosition: false },
+		superembed: { tracksPosition: false },
+		'youtube': { tracksPosition: false }
+	};
+
 	let isScanning = $state(true);
 	let scanError = $state('');
 	let allProviders: ScanResult[] = $state([]);
 	let workingProviders: ScanResult[] = $derived(allProviders.filter(p => p.status !== 'dead'));
 	let currentIndex = $state(0);
 	let currentProvider = $derived(workingProviders[currentIndex]);
+	let canResumePosition = $derived(TRACKING_CAPS[currentProvider?.id ?? '']?.tracksPosition ?? false);
 	let currentUrl = $derived(
 		type === 'tv' && currentProvider?.tvUrl
 			? currentProvider.tvUrl

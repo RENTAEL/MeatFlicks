@@ -27,17 +27,36 @@
 		updatedAt?: number;
 		progressPercent?: number;
 		progressLabel?: string;
+		resumeHref?: string;
 	};
 
-let continueWatchingMovies = $state<LibraryMovieWithProgress[]>([]);
+	let continueWatchingMovies = $state<LibraryMovieWithProgress[]>([]);
 	let isLoading = $state(true);
 
 	function getMediaKey(id: string | number, season?: number, episode?: number) {
 		return `${id}-${season ?? 0}-${episode ?? 0}`;
 	}
 
+	function buildResumeHref(movie: LibraryMovie, season?: number, episode?: number) {
+		if (movie.mediaType !== 'movie' && season) {
+			return `/tv/${movie.id}/${season}/${episode ?? 1}`;
+		}
+		return `/movie/${movie.id}`;
+	}
+
+	function buildProgressLabel(movie: LibraryMovie, season?: number, episode?: number) {
+		if (movie.mediaType !== 'movie' && season) return `S${season}E${episode}`;
+		return '';
+	}
+
 	onMount(async () => {
 		const localProgress = playbackStore.getContinueWatching() as LibraryMovieWithProgress[];
+		localProgress.forEach((movie) => {
+			if (movie.mediaType !== 'movie') {
+				movie.progressLabel = buildProgressLabel(movie, movie.seasonNumber ?? undefined, movie.episodeNumber ?? undefined);
+			}
+			movie.resumeHref = buildResumeHref(movie, movie.seasonNumber ?? undefined, movie.episodeNumber ?? undefined);
+		});
 		continueWatchingMovies = localProgress;
 
 		if (!page.data.user) {
@@ -78,10 +97,8 @@ let continueWatchingMovies = $state<LibraryMovieWithProgress[]>([]);
 				if (!movie) return [];
 
 				const pct = progress.duration > 0 ? Math.round((progress.progress / progress.duration) * 100) : 0;
-			const label = movie.mediaType !== 'movie' && progress.seasonNumber
-				? `S${progress.seasonNumber}E${progress.episodeNumber}`
-				: `${pct}%`;
-			return [
+				const label = buildProgressLabel(movie, progress.seasonNumber, progress.episodeNumber) || `${pct}%`;
+				return [
 					{
 						...movie,
 						progressSeconds: progress.progress,
@@ -91,6 +108,7 @@ let continueWatchingMovies = $state<LibraryMovieWithProgress[]>([]);
 						updatedAt: progress.updatedAt,
 						progressPercent: pct,
 						progressLabel: label,
+						resumeHref: buildResumeHref(movie, progress.seasonNumber, progress.episodeNumber)
 					} satisfies LibraryMovieWithProgress
 				];
 			});

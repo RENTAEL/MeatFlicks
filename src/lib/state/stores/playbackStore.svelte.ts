@@ -13,12 +13,15 @@ export type PlaybackProgress = {
 
 const STORAGE_KEY = 'streamium.playback_progress';
 const hasStorage = typeof localStorage !== 'undefined';
+const COMPLETED_THRESHOLD_PERCENT = 90;
+const STALE_MS = 30 * 24 * 60 * 60 * 1000;
 
 export function shouldShowInContinueWatching(p: PlaybackProgress): boolean {
 	if (!p.duration || p.duration <= 0) return false;
 
 	const percent = (p.progress / p.duration) * 100;
-	if (percent >= 95) return false;
+	if (percent >= COMPLETED_THRESHOLD_PERCENT) return false;
+	if (Date.now() - p.updatedAt > STALE_MS) return false;
 
 	const isShortContent = p.duration < 20 * 60;
 
@@ -61,7 +64,23 @@ export class PlaybackStore {
 			p.mediaType !== 'movie' ? `:s${p.seasonNumber}e${p.episodeNumber}` : ''
 		}`;
 		this.progress[key] = { ...p, updatedAt: Date.now() };
+		this.prune();
 		persist(this.progress);
+	};
+
+	prune = () => {
+		for (const [key, p] of Object.entries(this.progress)) {
+			const percent = p.duration > 0 ? (p.progress / p.duration) * 100 : 0;
+			if (percent >= COMPLETED_THRESHOLD_PERCENT || Date.now() - p.updatedAt > STALE_MS) {
+				delete this.progress[key];
+			}
+		}
+	};
+
+	getLastProgress = (mediaId: string, mediaType: 'movie' | 'tv') => {
+		return Object.values(this.progress)
+			.filter((p) => p.mediaId === mediaId && p.mediaType === mediaType)
+			.sort((a, b) => b.updatedAt - a.updatedAt)[0] || null;
 	};
 
 	getProgress = (
@@ -75,6 +94,8 @@ export class PlaybackStore {
 	};
 
 	getContinueWatching = () => {
+		this.prune();
+		persist(this.progress);
 		return Object.values(this.progress)
 			.filter((p) => {
 				return shouldShowInContinueWatching(p);

@@ -177,7 +177,7 @@
 					{/if}
 				</a>
 
-				{#if progressPercent != null && progressPercent > 0 && progressPercent < 95}
+				{#if progressPercent != null && progressPercent > 0 && progressPercent < 100}
 					<div class="absolute bottom-0 left-0 right-0 z-30">
 						<div class="h-1 w-full bg-black/40">
 							<div class="h-full bg-indigo-500 transition-all" style="width: {progressPercent}%"></div>

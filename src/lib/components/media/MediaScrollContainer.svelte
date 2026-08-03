@@ -50,6 +50,7 @@
 					<MediaCard
 						movie={item}
 						priority={i < 4}
+						href={(item as any).resumeHref ?? undefined}
 						progressPercent={(item as any).progressPercent ?? null}
 						progressLabel={(item as any).progressLabel ?? null}
 					/>
