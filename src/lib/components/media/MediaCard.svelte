@@ -120,9 +120,9 @@
 	style="touch-action: manipulation; -webkit-tap-highlight-color: transparent;"
 >
 	<div
-		class="card-inner relative overflow-hidden rounded-xl transition-all duration-500 ease-out {showPreview
-			? 'z-50 shadow-[0_0_30px_oklch(0.6_0.2_300/0.4),0_0_60px_oklch(0.5_0.18_280/0.2),0_20px_60px_oklch(0_0_0/0.5)]'
-			: 'h-40 w-28 sm:h-52 sm:w-36 md:h-72 md:w-48 shadow-lg shadow-purple-900/10'} bg-background/40 backdrop-blur-sm"
+		class="card-inner relative h-40 w-28 sm:h-52 sm:w-36 md:h-72 md:w-48 overflow-hidden rounded-xl bg-background/60 backdrop-blur-sm transition-all duration-500 ease-out {showPreview
+			? 'z-50 scale-[1.12] shadow-[0_0_30px_oklch(0.6_0.2_300/0.4),0_0_60px_oklch(0.5_0.18_280/0.2),0_20px_60px_oklch(0_0_0/0.5)]'
+			: 'z-10 shadow-lg shadow-purple-900/10'}"
 	>
 		{#if movie}
 			<div class="relative h-full w-full">
