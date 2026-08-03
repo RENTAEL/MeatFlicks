@@ -8,7 +8,7 @@
 
   $: user = $page.data?.user;
 
-  let xrSupported = 'unknown';
+  let xrSupported = 'no';
   onMount(() => {
     (async () => {
       try {
