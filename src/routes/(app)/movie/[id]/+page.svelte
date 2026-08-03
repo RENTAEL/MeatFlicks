@@ -2,7 +2,8 @@
 	import { untrack } from 'svelte';
 	import Player from '$lib/components/Player.svelte';
 	import MovieInfo from '$lib/components/MovieInfo.svelte';
-	import MediaCard from '$lib/components/MediaCard.svelte';
+	import MediaCard from '$lib/components/media/MediaCard.svelte';
+	import { toLibraryMovie } from '$lib/utils/tmdb';
 	import { watchHistory } from '$lib/state/stores/historyStore';
 	import type { PageData } from './$types';
 
@@ -60,8 +61,8 @@
 				<h2 class="mb-4 text-lg font-semibold text-white">Similar Movies</h2>
 				<div class="-mx-4 flex gap-4 overflow-x-auto px-4 pb-4 scrollbar-thin scrollbar-thumb-zinc-800 scrollbar-track-transparent">
 					{#each data.similarMovies as movie (movie.id)}
-						<div class="w-36 shrink-0 sm:w-40">
-							<MediaCard media={movie} />
+						<div class="shrink-0">
+							<MediaCard movie={toLibraryMovie(movie)} />
 						</div>
 					{/each}
 				</div>

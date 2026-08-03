@@ -18,11 +18,13 @@
 		priority = false,
 		progressPercent,
 		progressLabel,
+		href,
 	}: {
 		movie: LibraryMovie | WatchlistMovie | null;
 		priority?: boolean;
 		progressPercent?: number | null;
 		progressLabel?: string | null;
+		href?: string;
 	} = $props();
 
 	const isInWatchlist = $derived(movie ? watchlist.isInWatchlist(movie.id) : false);
@@ -65,6 +67,7 @@
 	);
 
 	const detailsHref = $derived.by(() => {
+		if (href) return href;
 		if (!movie) return '/';
 		if (movie.canonicalPath) return `/${movie.canonicalPath.replace(/^\//, '')}`;
 		const type = movie.mediaType || movie.media_type || 'movie';

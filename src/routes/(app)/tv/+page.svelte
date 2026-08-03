@@ -2,6 +2,8 @@
   import { page } from '$app/stores';
   import { goto } from '$app/navigation';
   import { fly } from 'svelte/transition';
+  import MediaCard from '$lib/components/media/MediaCard.svelte';
+  import { toLibraryMovie } from '$lib/utils/tmdb';
 
   let shows = $derived($page.data?.shows ?? []);
   let currentQuery = $derived($page.data?.query ?? '');
@@ -82,28 +84,7 @@
   {#if shows.length > 0}
     <div class="show-grid">
       {#each shows as show (show.id)}
-        <a href="/tv/{show.id}" class="show-card glass">
-          <div class="show-poster">
-            {#if show.poster_path}
-              <img
-                src="https://image.tmdb.org/t/p/w342{show.poster_path}"
-                alt={show.name}
-                loading="lazy"
-              />
-            {:else}
-              <div class="show-poster-placeholder">
-                <span>{show.name?.[0] || '?'}</span>
-              </div>
-            {/if}
-            {#if show.vote_average}
-              <span class="show-rating">★ {show.vote_average.toFixed(1)}</span>
-            {/if}
-          </div>
-          <div class="show-info">
-            <h3 class="show-title">{show.name}</h3>
-            <p class="show-year">{show.first_air_date?.split('-')[0] || '—'}</p>
-          </div>
-        </a>
+        <MediaCard movie={toLibraryMovie(show)} href="/tv/{show.id}" />
       {/each}
     </div>
   {:else}
@@ -234,76 +215,7 @@
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
     gap: 1rem;
-  }
-
-  .show-card {
-    display: block;
-    text-decoration: none;
-    border-radius: var(--radius-lg, 16px);
-    overflow: hidden;
-    transition: transform 0.2s, box-shadow 0.2s;
-  }
-
-  .show-card:hover {
-    transform: translateY(-4px);
-    box-shadow: var(--shadow-md, 0 4px 16px rgba(0,0,0,0.4));
-  }
-
-  .show-poster {
-    position: relative;
-    aspect-ratio: 2 / 3;
-    background: var(--bg-card, #18181f);
-    overflow: hidden;
-  }
-
-  .show-poster img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-  }
-
-  .show-poster-placeholder {
-    width: 100%;
-    height: 100%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 2.5rem;
-    font-weight: 700;
-    background: var(--gradient-brand, linear-gradient(135deg, #7c5cfc, #c94b8c));
-    color: white;
-  }
-
-  .show-rating {
-    position: absolute;
-    top: 0.5rem;
-    right: 0.5rem;
-    padding: 0.2rem 0.5rem;
-    border-radius: 99px;
-    background: rgba(0,0,0,0.7);
-    color: #fbbf24;
-    font-size: 0.75rem;
-    font-weight: 600;
-  }
-
-  .show-info {
-    padding: 0.75rem;
-  }
-
-  .show-title {
-    font-size: 0.9rem;
-    font-weight: 600;
-    color: var(--text-primary, #f1f1f7);
-    margin: 0;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-
-  .show-year {
-    font-size: 0.78rem;
-    color: var(--text-tertiary, #66667a);
-    margin: 0.2rem 0 0;
+    justify-items: center;
   }
 
   .empty-state {

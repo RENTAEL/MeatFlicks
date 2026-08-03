@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
-	import MediaCard from '$lib/components/MediaCard.svelte';
+	import MediaCard from '$lib/components/media/MediaCard.svelte';
+	import { toLibraryMovie } from '$lib/utils/tmdb';
 	import type { PageData } from './$types';
 
 	let { data }: { data: PageData } = $props();
@@ -121,7 +122,7 @@
 	{:else}
 		<div class="grid grid-cols-3 gap-4 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6">
 			{#each filteredMovies as movie (movie.id)}
-				<MediaCard media={movie} />
+				<MediaCard movie={toLibraryMovie(movie)} />
 			{/each}
 		</div>
 

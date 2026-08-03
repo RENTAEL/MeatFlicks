@@ -2,7 +2,8 @@
 	import { page } from '$app/stores';
 	import { goto } from '$app/navigation';
 	import type { PageData } from './$types';
-	import MediaCard from '$lib/components/MediaCard.svelte';
+	import MediaCard from '$lib/components/media/MediaCard.svelte';
+	import { toLibraryMovie } from '$lib/utils/tmdb';
 	import SkeletonCard from '$lib/components/SkeletonCard.svelte';
 	import { fly } from 'svelte/transition';
 
@@ -146,7 +147,7 @@
 		<div class="grid grid-cols-3 gap-4 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6">
 			{#each filteredMovies as movie, i (movie.id)}
 				<div in:fly={{ y: 20, duration: 200, delay: Math.min(i * 30, 400) }}>
-					<MediaCard media={movie} href="/afrikaans/{movie.id}" />
+					<MediaCard movie={toLibraryMovie(movie)} href="/afrikaans/{movie.id}" />
 				</div>
 			{/each}
 		</div>

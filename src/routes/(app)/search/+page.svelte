@@ -2,7 +2,8 @@
 	import { browser } from '$app/environment';
 	import { untrack } from 'svelte';
 	import { fly, fade } from 'svelte/transition';
-	import MediaCard from '$lib/components/MediaCard.svelte';
+	import MediaCard from '$lib/components/media/MediaCard.svelte';
+	import { toLibraryMovie } from '$lib/utils/tmdb';
 	import type { PageData } from './$types';
 
 	let { data }: { data: PageData } = $props();
@@ -268,7 +269,7 @@
 			<div class="grid grid-cols-3 gap-4 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6">
 				{#each results as item (item.id + item.mediaType)}
 					<div in:fly={{ y: 16, duration: 300, delay: 50 }}>
-						<MediaCard media={item} href={item.href} />
+						<MediaCard movie={toLibraryMovie(item)} href={item.href} />
 						<div class="mt-1">
 						<span
 							class="rounded text-[10px] font-medium px-1.5 py-0.5 {item.mediaType === 'movie' ? 'text-indigo-400 bg-indigo-400/10' : 'text-emerald-400 bg-emerald-400/10'}"
