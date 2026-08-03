@@ -13,9 +13,12 @@ class PlayerPreferences {
 		if (this.initialized || !browser) return;
 		this.initialized = true;
 		try {
-			const rawVolume = Number(localStorage.getItem(VOLUME_KEY));
-			if (!Number.isNaN(rawVolume) && rawVolume >= 0 && rawVolume <= 100) {
-				this.volume = rawVolume;
+			const rawVolume = localStorage.getItem(VOLUME_KEY);
+			if (rawVolume !== null) {
+				const volume = Number(rawVolume);
+				if (!Number.isNaN(volume) && volume >= 0 && volume <= 100) {
+					this.volume = volume;
+				}
 			}
 			const rawMuted = localStorage.getItem(MUTED_KEY);
 			if (rawMuted !== null) this.muted = rawMuted === '1';
