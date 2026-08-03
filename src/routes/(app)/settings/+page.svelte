@@ -3,10 +3,26 @@
   import { redirect } from '@sveltejs/kit';
   import ThemePicker from '$lib/components/ThemePicker.svelte';
   import ThemeToggle from '$lib/themes/ThemeToggle.svelte';
-  import { displayMode, isWebXRAvailable } from '$lib/state/stores/displayModeStore.svelte';
+  import { onMount } from 'svelte';
+  import { displayMode, isImmersiveVrSupported } from '$lib/state/stores/displayModeStore.svelte';
 
   $: user = $page.data?.user;
-  $: vrHint = isWebXRAvailable() ? '' : 'VR theater is available in the Meta Quest browser. Open Streamium on your headset and add it to the home screen.';
+
+  let xrSupported = 'unknown';
+  onMount(() => {
+    (async () => {
+      try {
+        xrSupported = (await isImmersiveVrSupported()) ? 'yes' : 'no';
+      } catch {
+        xrSupported = 'no';
+      }
+    })();
+  });
+
+  $: vrHint =
+    displayMode.mode === 'vr' && xrSupported !== 'yes'
+      ? 'VR theater is available in the Meta Quest browser. Open Streamium on your headset and add it to the home screen.'
+      : '';
 
   $: if (!user) {
     redirect(303, '/login');

@@ -10,6 +10,20 @@ export function isWebXRAvailable(): boolean {
 	return !!nav.xr && typeof nav.xr.isSessionSupported === 'function';
 }
 
+export async function isImmersiveVrSupported(): Promise<boolean> {
+	const nav = navigator as Navigator & {
+		xr?: { isSessionSupported?: (mode: string) => Promise<boolean> };
+	};
+	if (typeof navigator === 'undefined' || !nav.xr || typeof nav.xr.isSessionSupported !== 'function') {
+		return false;
+	}
+	try {
+		return await nav.xr.isSessionSupported('immersive-vr');
+	} catch {
+		return false;
+	}
+}
+
 class DisplayModeStore {
 	#mode = $state<DisplayMode>('desktop');
 
