@@ -3,6 +3,7 @@ export interface NextEpisodeLike {
 	episode_number: number;
 	name: string;
 	air_date: string | null;
+	still_path: string | null;
 }
 
 interface SeasonMeta {
@@ -16,6 +17,7 @@ interface EpisodeMeta {
 	episode_number: number;
 	name: string;
 	air_date: string | null;
+	still_path: string | null;
 }
 
 export function resolveNextEpisode(
@@ -34,7 +36,8 @@ export function resolveNextEpisode(
 			season_number: ep.season_number,
 			episode_number: ep.episode_number,
 			name: ep.name,
-			air_date: ep.air_date ?? null
+			air_date: ep.air_date ?? null,
+			still_path: ep.still_path ?? null
 		};
 	}
 
@@ -47,7 +50,8 @@ export function resolveNextEpisode(
 			season_number: nextSeason.season_number,
 			episode_number: 1,
 			name: 'Episode 1',
-			air_date: nextSeason.air_date ?? null
+			air_date: nextSeason.air_date ?? null,
+			still_path: null
 		};
 	}
 

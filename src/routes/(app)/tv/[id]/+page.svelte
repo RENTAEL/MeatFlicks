@@ -25,6 +25,12 @@
 			? resolveNextEpisode(seasons, episodes, selectedEpisode.season, selectedEpisode.episode)
 			: null
 	);
+	function findCurrentEpisode(): any {
+		const s = selectedEpisode;
+		if (!s) return null;
+		return episodes.find((e: any) => e.season_number === s.season && e.episode_number === s.episode) ?? null;
+	}
+	let currentEp = $derived(findCurrentEpisode());
 	let seasonTabsEl: HTMLDivElement | null = $state(null);
 	let canScrollLeft = $state(false);
 	let canScrollRight = $state(false);
@@ -423,6 +429,8 @@
 					episode={selectedEpisode.episode}
 					imdbId={data.show?.imdb_id || null}
 					title={`${show.name} — S${selectedEpisode.season}:E${selectedEpisode.episode}`}
+					runtime={currentEp?.runtime ?? null}
+					backdrop={show.backdrop_path ?? null}
 					next={next}
 					onnext={() => { if (next) playEpisode(next); }}
 				/>

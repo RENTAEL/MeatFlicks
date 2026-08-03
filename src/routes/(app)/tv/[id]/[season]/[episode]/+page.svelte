@@ -127,6 +127,8 @@
 			episode={episodeNum}
 			imdbId={imdbId}
 			title={`${show.name} — S${seasonNum}:E${episodeNum}`}
+			runtime={episodes[currentEpIndex]?.runtime ?? null}
+			backdrop={show.backdrop_path ?? null}
 			next={next}
 			onnext={() => { if (next) goEpisode(next); }}
 		/>

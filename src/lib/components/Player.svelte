@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { onMount, onDestroy } from 'svelte';
+	import { browser } from '$app/environment';
 
 	let {
 		tmdbId,
@@ -8,7 +9,9 @@
 		episode = 1,
 		title = '',
 		imdbId = null as string | null,
-		next = null as { season_number: number; episode_number: number; name: string; air_date: string | null } | null,
+		runtime = null as number | null,
+		backdrop = null as string | null,
+		next = null as { season_number: number; episode_number: number; name: string; air_date: string | null; still_path: string | null } | null,
 		onnext = undefined as (() => void) | undefined,
 		onerror,
 		preResolvedSource = null as string | null
@@ -19,7 +22,9 @@
 		episode?: number;
 		title?: string;
 		imdbId?: string | null;
-		next?: { season_number: number; episode_number: number; name: string; air_date: string | null } | null;
+		runtime?: number | null;
+		backdrop?: string | null;
+		next?: { season_number: number; episode_number: number; name: string; air_date: string | null; still_path: string | null } | null;
 		onnext?: () => void;
 		onerror?: (detail: { message: string }) => void;
 		preResolvedSource?: string | null;
@@ -50,11 +55,105 @@
 	let loadedProviders = $state<Set<string>>(new Set());
 
 	let nextUnavailable = $derived(!!next && !!next.air_date && new Date(next.air_date).getTime() > Date.now());
+	let nextReady = $derived(!!next && !nextUnavailable);
+	let upNextThumb = $derived(
+		next?.still_path
+			? `https://image.tmdb.org/t/p/w500${next.still_path}`
+			: backdrop
+				? `https://image.tmdb.org/t/p/w1280${backdrop}`
+				: ''
+	);
+
+	const AUTOPLAY_KEY = 'streamium-autoplay-next';
+	let autoplayNext = $state(true);
+	let upNextVisible = $state(false);
+	let upNextLeft = $state(10);
+	let autoTick: ReturnType<typeof setInterval> | null = null;
+	let upNextTick: ReturnType<typeof setInterval> | null = null;
+	let autoElapsed = 0;
+	let autoTarget = 0;
+	let suppressedKey: string | null = null;
+	let currentKey = $derived(`${season}:${episode}`);
 
 	function formatAirDate(iso: string | null) {
 		if (!iso) return '';
 		return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 	}
+
+	function toggleAutoplay() {
+		autoplayNext = !autoplayNext;
+		if (browser) {
+			try { localStorage.setItem(AUTOPLAY_KEY, autoplayNext ? '1' : '0'); } catch {}
+		}
+	}
+
+	$effect(() => {
+		if (browser) {
+			try {
+				const v = localStorage.getItem(AUTOPLAY_KEY);
+				autoplayNext = v === null ? true : v === '1';
+			} catch {}
+		}
+	});
+
+	function stopAutoTick() {
+		if (autoTick) { clearInterval(autoTick); autoTick = null; }
+	}
+	function stopUpNextTick() {
+		if (upNextTick) { clearInterval(upNextTick); upNextTick = null; }
+	}
+
+	function syncAutoTick() {
+		stopAutoTick();
+		if (upNextVisible) return;
+		if (!autoplayNext || !iframeLoaded || !runtime || runtime <= 0) return;
+		if (!next || nextUnavailable || suppressedKey === currentKey) return;
+
+		autoElapsed = 0;
+		autoTarget = Math.max(1, Math.round(runtime * 60));
+		autoTick = setInterval(() => {
+			if (typeof document !== 'undefined' && document.hidden) return;
+			autoElapsed++;
+			if (autoElapsed >= autoTarget) {
+				stopAutoTick();
+				openUpNext();
+			}
+		}, 1000);
+	}
+
+	function openUpNext() {
+		if (!nextReady || upNextVisible) return;
+		upNextVisible = true;
+		upNextLeft = 10;
+		stopUpNextTick();
+		upNextTick = setInterval(() => {
+			if (typeof document !== 'undefined' && document.hidden) return;
+			upNextLeft--;
+			if (upNextLeft <= 0) {
+				stopUpNextTick();
+				doAdvance();
+			}
+		}, 1000);
+	}
+
+	function doAdvance() {
+		stopUpNextTick();
+		upNextVisible = false;
+		onnext?.();
+	}
+
+	function cancelUpNext() {
+		stopUpNextTick();
+		upNextVisible = false;
+		suppressedKey = currentKey;
+	}
+
+	$effect(() => {
+		const dep = `${season}:${episode}:${iframeLoaded}:${autoplayNext}:${next?.season_number}:${next?.episode_number}:${runtime}:${nextUnavailable}`;
+		void dep;
+		if (suppressedKey && suppressedKey !== currentKey) suppressedKey = null;
+		syncAutoTick();
+	});
 
 	async function scan() {
 		if (preResolvedSource) {
@@ -155,7 +254,7 @@
 
 	onMount(() => { if (tmdbId) scan(); });
 	$effect(() => { if (tmdbId) scan(); });
-	onDestroy(() => { stopAutoSwitch(); });</script>
+	onDestroy(() => { stopAutoSwitch(); stopAutoTick(); stopUpNextTick(); });</script>
 
 <div class="player-root">
 	<div class="iframe-container">
@@ -197,6 +296,39 @@
 				onerror={onIframeError}
 			></iframe>
 		{/if}
+
+		{#if upNextVisible && next && !nextUnavailable}
+			<div class="upnext-overlay" role="dialog" aria-label="Up next">
+				{#if upNextThumb}
+					<img src={upNextThumb} alt="" class="upnext-bg" />
+				{/if}
+				<div class="upnext-shade"></div>
+				<div class="upnext-body">
+					<div class="upnext-text">
+						<span class="upnext-kicker">Up Next</span>
+						<span class="upnext-spec">S{next.season_number}:E{next.episode_number}</span>
+						<span class="upnext-name">{next.name}</span>
+					</div>
+					<div class="upnext-actions">
+						<button class="upnext-play" onclick={doAdvance}>Play Now</button>
+						<button class="upnext-cancel" onclick={cancelUpNext}>Cancel</button>
+					</div>
+					<div class="upnext-ring" title="Auto-playing in {upNextLeft}s">
+						<svg viewBox="0 0 48 48">
+							<circle class="upnext-ring-bg" cx="24" cy="24" r="20"></circle>
+							<circle
+								class="upnext-ring-fg"
+								cx="24"
+								cy="24"
+								r="20"
+								style={`stroke-dashoffset: ${125.66 * (1 - upNextLeft / 10)}`}
+							></circle>
+						</svg>
+						<span class="upnext-num">{upNextLeft}</span>
+					</div>
+				</div>
+			</div>
+		{/if}
 	</div>
 
 	<div class="provider-bar">
@@ -220,6 +352,16 @@
 					>
 						<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="next-icon"><path d="M5 3l14 9-14 9V3z"/></svg>
 						Next <span class="next-spec">S{next.season_number}:E{next.episode_number}</span>
+					</button>
+				{/if}
+				{#if type === 'tv'}
+					<button
+						class="auto-btn"
+						class:auto-btn-on={autoplayNext}
+						onclick={toggleAutoplay}
+						title="Auto-play the next episode after this one finishes"
+					>
+						Auto-next <span class="auto-pill">{autoplayNext ? 'On' : 'Off'}</span>
 					</button>
 				{/if}
 				<button onclick={() => showServerList = !showServerList} class="switch-btn" aria-label="Switch server">
@@ -326,6 +468,11 @@
 	.next-btn:active:not(:disabled) { background: #18181b; }
 	.next-icon { width: 14px; height: 14px; }
 	.next-spec { color: #818cf8; font-weight: 700; }
+	.auto-btn { display: inline-flex; align-items: center; gap: 6px; padding: 6px 10px; background: #18181b; color: #71717a; border: 1px solid #27272a; border-radius: 6px; font-size: 12px; cursor: pointer; }
+	.auto-btn:hover { color: #a1a1aa; }
+	.auto-btn-on { color: #d4d4d8; background: #27272a; border-color: #3f3f46; }
+	.auto-pill { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.4px; color: #a1a1aa; }
+	.auto-btn-on .auto-pill { color: #6ee7b7; }
 	.switch-btn { display: flex; align-items: center; gap: 6px; padding: 6px 12px; background: #27272a; color: #d4d4d8; border: 1px solid #3f3f46; border-radius: 6px; font-size: 12px; cursor: pointer; }
 	.switch-btn:hover { background: #3f3f46; }
 	.switch-icon { width: 14px; height: 14px; }
@@ -358,4 +505,29 @@
 	.rescan-btn { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; padding: 8px 16px; background: #18181b; color: #a1a1aa; border: 1px solid #27272a; border-radius: 8px; font-size: 13px; cursor: pointer; }
 	.rescan-btn:hover { background: #27272a; color: #e4e4e7; }
 	.rescan-icon { width: 16px; height: 16px; }
+
+	.upnext-overlay { position: absolute; inset: 0; z-index: 20; display: flex; flex-direction: column; justify-content: flex-end; background: #000; overflow: hidden; }
+	.upnext-bg { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0.5; }
+	.upnext-shade { position: absolute; inset: 0; background: linear-gradient(to top, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0.6) 55%, rgba(0,0,0,0.2) 100%); }
+	.upnext-body { position: relative; display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; padding: 24px; flex-wrap: wrap; }
+	.upnext-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+	.upnext-kicker { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: #a78bfa; }
+	.upnext-spec { font-size: 12px; font-weight: 600; color: #818cf8; }
+	.upnext-name { font-size: 20px; font-weight: 700; color: #fff; overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+	.upnext-actions { display: flex; gap: 8px; flex-shrink: 0; }
+	.upnext-play { padding: 10px 20px; background: #818cf8; color: #fff; border: none; border-radius: 10px; font-size: 14px; font-weight: 600; cursor: pointer; font-family: inherit; }
+	.upnext-play:hover { background: #6d7cf0; }
+	.upnext-cancel { padding: 10px 20px; background: rgba(255,255,255,0.08); color: #d4d4d8; border: 1px solid rgba(255,255,255,0.25); border-radius: 10px; font-size: 14px; cursor: pointer; font-family: inherit; }
+	.upnext-cancel:hover { background: rgba(255,255,255,0.16); }
+	.upnext-ring { position: absolute; top: 14px; right: 14px; width: 52px; height: 52px; }
+	.upnext-ring svg { width: 100%; height: 100%; transform: scaleX(-1); }
+	.upnext-ring-bg { fill: none; stroke: rgba(255,255,255,0.2); stroke-width: 4; }
+	.upnext-ring-fg { fill: none; stroke: #818cf8; stroke-width: 4; stroke-linecap: round; stroke-dasharray: 125.66; transform: rotate(-90deg); transform-origin: center; transition: stroke-dashoffset 1s linear; }
+	.upnext-num { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 14px; font-weight: 700; }
+	@media (max-width: 560px) {
+		.upnext-body { padding: 16px; align-items: flex-start; }
+		.upnext-name { font-size: 16px; }
+		.upnext-actions { width: 100%; }
+		.upnext-ring { top: 12px; right: 12px; width: 44px; height: 44px; }
+	}
 </style>
