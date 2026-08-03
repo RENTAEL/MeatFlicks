@@ -87,7 +87,7 @@
     </div>
 
     {#if activeMode === 'vr' && xrSupported !== 'yes'}
-      <p class="vr-hint">?? VR theater is available in the Meta Quest browser. Open Streamium on your headset and add it to the home screen.</p>
+      <p class="vr-hint">🕶️ VR theater is available in the Meta Quest browser. Open Streamium on your headset and add it to the home screen.</p>
     {/if}
   </div>
 
