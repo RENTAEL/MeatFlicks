@@ -70,8 +70,8 @@
 	let upNextLeft = $state(10);
 	let autoTick: ReturnType<typeof setInterval> | null = null;
 	let upNextTick: ReturnType<typeof setInterval> | null = null;
-	let autoElapsed = 0;
-	let autoTarget = 0;
+	let autoEndsAt = 0;
+	let upNextEndsAt = 0;
 	let suppressedKey: string | null = null;
 	let currentKey = $derived(`${season}:${episode}`);
 
@@ -109,12 +109,9 @@
 		if (!autoplayNext || !iframeLoaded || !runtime || runtime <= 0) return;
 		if (!next || nextUnavailable || suppressedKey === currentKey) return;
 
-		autoElapsed = 0;
-		autoTarget = Math.max(1, Math.round(runtime * 60));
+		autoEndsAt = Date.now() + Math.max(1, Math.round(runtime * 60)) * 1000;
 		autoTick = setInterval(() => {
-			if (typeof document !== 'undefined' && document.hidden) return;
-			autoElapsed++;
-			if (autoElapsed >= autoTarget) {
+			if (Date.now() >= autoEndsAt) {
 				stopAutoTick();
 				openUpNext();
 			}
@@ -125,15 +122,15 @@
 		if (!nextReady || upNextVisible) return;
 		upNextVisible = true;
 		upNextLeft = 10;
+		upNextEndsAt = Date.now() + 10_000;
 		stopUpNextTick();
 		upNextTick = setInterval(() => {
-			if (typeof document !== 'undefined' && document.hidden) return;
-			upNextLeft--;
-			if (upNextLeft <= 0) {
+			upNextLeft = Math.max(0, Math.ceil((upNextEndsAt - Date.now()) / 1000));
+			if (Date.now() >= upNextEndsAt) {
 				stopUpNextTick();
 				doAdvance();
 			}
-		}, 1000);
+		}, 250);
 	}
 
 	function doAdvance() {
@@ -152,6 +149,10 @@
 		const dep = `${season}:${episode}:${iframeLoaded}:${autoplayNext}:${next?.season_number}:${next?.episode_number}:${runtime}:${nextUnavailable}`;
 		void dep;
 		if (suppressedKey && suppressedKey !== currentKey) suppressedKey = null;
+		if (!autoplayNext) {
+			stopUpNextTick();
+			upNextVisible = false;
+		}
 		syncAutoTick();
 	});
 
