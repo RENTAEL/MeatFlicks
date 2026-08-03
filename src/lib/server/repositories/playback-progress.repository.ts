@@ -142,6 +142,8 @@ export const playbackProgressRepository = {
 				}))
 				.filter((record) => {
 					if (record.duration <= 0) return false;
+					const staleMs = 30 * 24 * 60 * 60 * 1000;
+					if (Date.now() - (record.updatedAt ?? 0) > staleMs) return false;
 					const progressPercent = (record.progress / record.duration) * 100;
 					return progressPercent < 90;
 				});
