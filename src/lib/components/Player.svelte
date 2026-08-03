@@ -1,6 +1,14 @@
 <script lang="ts">
 	import { onMount, onDestroy } from 'svelte';
 	import { browser } from '$app/environment';
+	import { Play, Pause, RotateCcw, RotateCw, Volume2, VolumeX, Maximize, Minimize, HelpCircle } from '@lucide/svelte';
+	import { playerPreferences } from '$lib/state/stores/playerPreferences.svelte';
+	import {
+		sendEmbedCommand,
+		extractYoutubeId,
+		loadYoutubeApi,
+		PLAYER_SHORTCUTS
+	} from '$lib/utils/embedCommands';
 
 	let {
 		tmdbId,
@@ -35,12 +43,12 @@
 		status: 'working' | 'blocked' | 'dead';
 	}
 
-	export const TRACKING_CAPS: Record<string, { tracksPosition: boolean }> = {
-		vidlink: { tracksPosition: false },
-		vidsrc: { tracksPosition: false },
-		'2embed': { tracksPosition: false },
-		superembed: { tracksPosition: false },
-		'youtube': { tracksPosition: false }
+	export const TRACKING_CAPS: Record<string, { tracksPosition: boolean; playbackControl: 'full' | 'best-effort' }> = {
+		vidlink: { tracksPosition: false, playbackControl: 'best-effort' },
+		vidsrc: { tracksPosition: false, playbackControl: 'best-effort' },
+		'2embed': { tracksPosition: false, playbackControl: 'best-effort' },
+		superembed: { tracksPosition: false, playbackControl: 'best-effort' },
+		youtube: { tracksPosition: true, playbackControl: 'full' }
 	};
 
 	let isScanning = $state(true);
@@ -50,6 +58,7 @@
 	let currentIndex = $state(0);
 	let currentProvider = $derived(workingProviders[currentIndex]);
 	let canResumePosition = $derived(TRACKING_CAPS[currentProvider?.id ?? '']?.tracksPosition ?? false);
+	let hasFullPlaybackControl = $derived(currentProvider?.id === 'youtube');
 	let currentUrl = $derived(
 		type === 'tv' && currentProvider?.tvUrl
 			? currentProvider.tvUrl
@@ -62,6 +71,20 @@
 	let autoSwitchTimer: ReturnType<typeof setTimeout> | null = $state(null);
 	let isAutoSwitching = $state(false);
 	let loadedProviders = $state<Set<string>>(new Set());
+
+	let playerRoot = $state<HTMLElement | null>(null);
+	let frameRef = $state<HTMLIFrameElement | null>(null);
+	let ytHost = $state<HTMLElement | null>(null);
+	let ytPlayer: any = null;
+	let ytReady = $state(false);
+	let controlsVisible = $state(true);
+	let controlsTimer: ReturnType<typeof setTimeout> | null = null;
+	let showShortcuts = $state(false);
+	let isFullscreen = $state(false);
+	let playing = $state(false);
+	let elapsedSeconds = $state(0);
+	let elapsedTick: ReturnType<typeof setInterval> | null = null;
+	let effectiveVolume = $derived(playerPreferences.muted ? 0 : playerPreferences.volume);
 
 	let nextUnavailable = $derived(!!next && !!next.air_date && new Date(next.air_date).getTime() > Date.now());
 	let nextReady = $derived(!!next && !nextUnavailable);
@@ -153,6 +176,208 @@
 		upNextVisible = false;
 		suppressedKey = currentKey;
 	}
+
+	function applyVolume() {
+		if (ytPlayer && ytReady) {
+			ytPlayer.setVolume(effectiveVolume);
+			if (playerPreferences.muted) {
+				ytPlayer.mute();
+			} else {
+				ytPlayer.unMute();
+			}
+		} else if (frameRef && iframeLoaded) {
+			sendEmbedCommand(frameRef, 'setvolume', effectiveVolume);
+			sendEmbedCommand(frameRef, playerPreferences.muted ? 'mute' : 'unmute');
+		}
+	}
+
+	function togglePlay() {
+		if (ytPlayer && ytReady) {
+			if (playing) {
+				ytPlayer.pauseVideo();
+			} else {
+				ytPlayer.playVideo();
+			}
+		} else {
+			playing = !playing;
+			sendEmbedCommand(frameRef, playing ? 'play' : 'pause');
+		}
+		showControlsTemporarily();
+	}
+
+	function seekBy(deltaSeconds: number) {
+		if (ytPlayer && ytReady) {
+			const target = Math.max(0, (ytPlayer.getCurrentTime?.() ?? elapsedSeconds) + deltaSeconds);
+			ytPlayer.seekTo(target, true);
+			elapsedSeconds = target;
+		} else {
+			elapsedSeconds = Math.max(0, elapsedSeconds + deltaSeconds);
+			sendEmbedCommand(frameRef, 'seekto', elapsedSeconds);
+		}
+		showControlsTemporarily();
+	}
+
+	function toggleFullscreen() {
+		if (!playerRoot || !browser) return;
+		try {
+			if (document.fullscreenElement) {
+				document.exitFullscreen();
+			} else {
+				playerRoot.requestFullscreen();
+			}
+		} catch {}
+		showControlsTemporarily();
+	}
+
+	function startElapsed() {
+		stopElapsed();
+		elapsedTick = setInterval(() => {
+			if (iframeLoaded && !upNextVisible) elapsedSeconds += 1;
+		}, 1000);
+	}
+
+	function stopElapsed() {
+		if (elapsedTick) {
+			clearInterval(elapsedTick);
+			elapsedTick = null;
+		}
+	}
+
+	function showControlsTemporarily() {
+		controlsVisible = true;
+		if (controlsTimer) clearTimeout(controlsTimer);
+		controlsTimer = setTimeout(() => {
+			controlsVisible = false;
+		}, 3000);
+	}
+
+	function toggleControlsVisibility() {
+		if (controlsVisible) {
+			controlsVisible = false;
+			if (controlsTimer) clearTimeout(controlsTimer);
+		} else {
+			showControlsTemporarily();
+		}
+	}
+
+	$effect(() => {
+		playerPreferences.init();
+		function onKeyDown(event: KeyboardEvent) {
+			const target = event.target as HTMLElement | null;
+			const inPlayer = !!target?.closest?.('.player-root');
+			if (!inPlayer) return;
+			if (
+				target instanceof HTMLInputElement ||
+				target instanceof HTMLTextAreaElement ||
+				target instanceof HTMLSelectElement
+			) {
+				return;
+			}
+			if (event.ctrlKey || event.metaKey || event.altKey) return;
+			switch (event.key.toLowerCase()) {
+				case '?':
+					event.preventDefault();
+					showShortcuts = !showShortcuts;
+					break;
+				case ' ':
+				case 'k':
+					event.preventDefault();
+					togglePlay();
+					break;
+				case 'arrowleft':
+					event.preventDefault();
+					seekBy(-10);
+					break;
+				case 'arrowright':
+					event.preventDefault();
+					seekBy(10);
+					break;
+				case 'arrowup':
+					event.preventDefault();
+					playerPreferences.setVolume(effectiveVolume + 10);
+					break;
+				case 'arrowdown':
+					event.preventDefault();
+					playerPreferences.setVolume(effectiveVolume - 10);
+					break;
+				case 'm':
+					event.preventDefault();
+					playerPreferences.toggleMute();
+					break;
+				case 'f':
+					event.preventDefault();
+					toggleFullscreen();
+					break;
+				case 'n':
+					event.preventDefault();
+					if (next && !nextUnavailable) onnext?.();
+					break;
+				case 'escape':
+					if (showShortcuts) showShortcuts = false;
+					if (showServerList) showServerList = false;
+					break;
+			}
+		}
+		window.addEventListener('keydown', onKeyDown);
+		return () => window.removeEventListener('keydown', onKeyDown);
+	});
+
+	$effect(() => {
+		function onFullscreenChange() {
+			isFullscreen = !!document.fullscreenElement;
+		}
+		document.addEventListener('fullscreenchange', onFullscreenChange);
+		return () => document.removeEventListener('fullscreenchange', onFullscreenChange);
+	});
+
+	$effect(() => {
+		playerPreferences.init();
+		if (!hasFullPlaybackControl) {
+			try {
+				ytPlayer?.destroy?.();
+			} catch {}
+			ytPlayer = null;
+			ytReady = false;
+			if (ytHost) ytHost.innerHTML = '';
+			return;
+		}
+		if (!currentUrl) return;
+		const videoId = extractYoutubeId(currentUrl);
+		if (!videoId || !ytHost) return;
+		loadYoutubeApi()
+			.then(() => {
+				if (!ytHost) return;
+				ytPlayer = new (window as any).YT.Player(ytHost, {
+					videoId,
+					playerVars: { autoplay: 1, rel: 0, mute: 0, modestbranding: 1 },
+					events: {
+						onReady: () => {
+							ytReady = true;
+							playing = true;
+							iframeLoaded = true;
+							stopAutoSwitch();
+							applyVolume();
+						},
+						onStateChange: (event: any) => {
+							playing = event.data === 1 || event.data === 3;
+						},
+						onError: () => {
+							onIframeError();
+						}
+					}
+				});
+			})
+			.catch(() => {
+				onIframeError();
+			});
+	});
+
+	$effect(() => {
+		if (iframeLoaded && !upNextVisible) {
+			startElapsed();
+		}
+		return stopElapsed;
+	});
 
 	$effect(() => {
 		const dep = `${season}:${episode}:${iframeLoaded}:${autoplayNext}:${next?.season_number}:${next?.episode_number}:${runtime}:${nextUnavailable}`;
@@ -264,10 +489,16 @@
 
 	onMount(() => { if (tmdbId) scan(); });
 	$effect(() => { if (tmdbId) scan(); });
-	onDestroy(() => { stopAutoSwitch(); stopAutoTick(); stopUpNextTick(); });</script>
+	onDestroy(() => {
+		stopAutoSwitch();
+		stopAutoTick();
+		stopUpNextTick();
+		stopElapsed();
+		try { ytPlayer?.destroy?.(); } catch {}
+	});</script>
 
-<div class="player-root">
-	<div class="iframe-container">
+<div class="player-root" bind:this={playerRoot}>
+	<div class="iframe-container" onclick={toggleControlsVisibility} role="button" tabindex="-1" onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleControlsVisibility(); } }} aria-label="Toggle player controls">
 		{#if isScanning}
 			<div class="overlay">
 				<div class="spinner"></div>
@@ -296,15 +527,129 @@
 		{/if}
 
 		{#if currentUrl}
-			<iframe
-				src={currentUrl}
-				class="player-iframe"
-				allow="autoplay; fullscreen; encrypted-media; picture-in-picture; accelerometer; gyroscope"
-				referrerpolicy="origin"
-				title={title || 'Video Player'}
-				onload={onIframeLoad}
-				onerror={onIframeError}
-			></iframe>
+			{#if hasFullPlaybackControl}
+				<div bind:this={ytHost} class="player-iframe yt-host"></div>
+			{:else}
+				<iframe
+					bind:this={frameRef}
+					src={currentUrl}
+					class="player-iframe"
+					allow="autoplay; fullscreen; encrypted-media; picture-in-picture; accelerometer; gyroscope"
+					referrerpolicy="origin"
+					title={title || 'Video Player'}
+					onload={onIframeLoad}
+					onerror={onIframeError}
+				></iframe>
+			{/if}
+		{/if}
+
+		{#if iframeLoaded && !isScanning && !scanError && currentProvider}
+			<div
+				class="player-controls {controlsVisible ? '' : 'player-controls-hidden'}"
+				onclick={(e) => e.stopPropagation()}
+				onkeydown={(e) => e.stopPropagation()}
+				onmousemove={showControlsTemporarily}
+				role="toolbar"
+				tabindex="-1"
+				aria-label="Player controls"
+			>
+				<button type="button" class="ctrl-btn" onclick={togglePlay} aria-label={playing ? 'Pause' : 'Play'} title="Play / Pause (Space or K)">
+					{#if playing}
+						<Pause />
+					{:else}
+						<Play />
+					{/if}
+				</button>
+				<button type="button" class="ctrl-btn" onclick={() => seekBy(-10)} aria-label="Back 10 seconds" title="Back 10 seconds (←)">
+					<RotateCcw />
+				</button>
+				<button type="button" class="ctrl-btn" onclick={() => seekBy(10)} aria-label="Forward 10 seconds" title="Forward 10 seconds (→)">
+					<RotateCw />
+				</button>
+				<div class="volume-wrap">
+					<button
+						type="button"
+						class="ctrl-btn"
+						onclick={() => playerPreferences.toggleMute()}
+						aria-label={playerPreferences.muted ? 'Unmute' : 'Mute'}
+						title="Mute / Unmute (M)"
+					>
+						{#if playerPreferences.muted || playerPreferences.volume === 0}
+							<VolumeX />
+						{:else}
+							<Volume2 />
+						{/if}
+					</button>
+					<input
+						class="volume-slider"
+						type="range"
+						min="0"
+						max="100"
+						value={playerPreferences.volume}
+						oninput={(e) => playerPreferences.setVolume(Number((e.currentTarget as HTMLInputElement).value))}
+						aria-label="Volume"
+						title="Volume (↑ / ↓)"
+					/>
+				</div>
+				<div class="controls-spacer"></div>
+				{#if next && !nextUnavailable}
+					<button type="button" class="ctrl-btn" onclick={() => onnext?.()} aria-label="Play next episode" title="Next episode (N)">
+						<Play />
+						<span class="ctrl-next-label">Next</span>
+					</button>
+				{/if}
+				<button
+					type="button"
+					class="ctrl-btn"
+					onclick={() => (showShortcuts = !showShortcuts)}
+					aria-label="Keyboard shortcuts"
+					title="Keyboard shortcuts (?)"
+				>
+					<HelpCircle />
+				</button>
+				<button
+					type="button"
+					class="ctrl-btn"
+					onclick={toggleFullscreen}
+					aria-label={isFullscreen ? 'Exit fullscreen' : 'Enter fullscreen'}
+					title="Fullscreen (F)"
+				>
+					{#if isFullscreen}
+						<Minimize />
+					{:else}
+						<Maximize />
+					{/if}
+				</button>
+			</div>
+		{/if}
+
+		{#if showShortcuts}
+			<div
+				class="shortcuts-overlay"
+				onclick={(e) => { if (e.target === e.currentTarget) showShortcuts = false; }}
+				onkeydown={(e) => { if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); showShortcuts = false; } }}
+				role="dialog"
+				tabindex="-1"
+				aria-label="Keyboard shortcuts"
+			>
+				<div class="shortcuts-panel">
+					<div class="shortcuts-head">
+						<span>Keyboard Shortcuts</span>
+						<button type="button" class="shortcuts-close" onclick={() => (showShortcuts = false)} aria-label="Close keyboard shortcuts">&times;</button>
+					</div>
+					<div class="shortcuts-grid">
+						{#each PLAYER_SHORTCUTS as shortcut (shortcut.key)}
+							<div class="shortcut-row">
+								<kbd class="shortcut-key">{shortcut.key}</kbd>
+								<span class="shortcut-action">{shortcut.action}</span>
+							</div>
+						{/each}
+					</div>
+					<p class="shortcuts-note">
+						Shortcuts apply when the player is focused. Full playback control is available on sources that support it (e.g. YouTube); other sources receive best-effort commands.
+					</p>
+				</div>
+			</div>
 		{/if}
 
 		{#if upNextVisible && next && !nextUnavailable}
@@ -486,6 +831,34 @@
 	.switch-btn { display: flex; align-items: center; gap: 6px; padding: 6px 12px; background: #27272a; color: #d4d4d8; border: 1px solid #3f3f46; border-radius: 6px; font-size: 12px; cursor: pointer; min-height: 44px; box-sizing: border-box; }
 	.switch-btn:hover { background: #3f3f46; }
 	.switch-icon { width: 14px; height: 14px; }
+
+	.yt-host { overflow: hidden; }
+	.player-controls { position: absolute; left: 0; right: 0; bottom: 0; z-index: 15; display: flex; align-items: center; gap: 4px; padding: 24px 12px 10px; background: linear-gradient(to top, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.25) 60%, transparent 100%); transition: opacity 0.25s ease; }
+	.player-controls-hidden { opacity: 0; pointer-events: none; }
+	.ctrl-btn { display: inline-flex; align-items: center; justify-content: center; gap: 5px; min-width: 38px; min-height: 38px; padding: 0 8px; background: transparent; border: none; border-radius: 8px; color: rgba(255,255,255,0.85); cursor: pointer; }
+	.ctrl-btn:hover { background: rgba(255,255,255,0.12); color: #fff; }
+	.ctrl-btn :global(svg) { width: 18px; height: 18px; }
+	.ctrl-next-label { font-size: 12px; font-weight: 600; }
+	.volume-wrap { display: flex; align-items: center; gap: 2px; }
+	.volume-slider { width: 84px; accent-color: #818cf8; cursor: pointer; }
+	.controls-spacer { flex: 1; }
+	@media (max-width: 560px) {
+		.volume-slider { width: 52px; }
+		.player-controls { padding: 20px 8px 8px; gap: 2px; }
+		.ctrl-btn { min-width: 34px; min-height: 34px; }
+	}
+
+	.shortcuts-overlay { position: absolute; inset: 0; z-index: 30; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,0.7); backdrop-filter: blur(4px); }
+	.shortcuts-panel { width: min(420px, calc(100% - 32px)); background: #111113; border: 1px solid #1f1f23; border-radius: 12px; padding: 16px; max-height: 80%; overflow-y: auto; }
+	.shortcuts-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; font-size: 14px; font-weight: 700; color: #e4e4e7; }
+	.shortcuts-close { background: none; border: none; color: #71717a; font-size: 20px; cursor: pointer; line-height: 1; }
+	.shortcuts-close:hover { color: #e4e4e7; }
+	.shortcuts-grid { display: flex; flex-direction: column; gap: 6px; }
+	.shortcut-row { display: flex; align-items: center; gap: 12px; padding: 5px 8px; border-radius: 6px; }
+	.shortcut-row:nth-child(odd) { background: rgba(255,255,255,0.03); }
+	.shortcut-key { min-width: 92px; padding: 3px 8px; background: #1f1f23; border: 1px solid #3f3f46; border-radius: 5px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11px; color: #c4b5fd; text-align: center; }
+	.shortcut-action { font-size: 13px; color: #d4d4d8; }
+	.shortcuts-note { margin-top: 12px; font-size: 11px; line-height: 1.5; color: #71717a; }
 
 	.server-list { border-top: 1px solid #1f1f23; background: #0c0c0e; max-height: 360px; overflow-y: auto; }
 	.server-list-header { display: flex; align-items: center; justify-content: space-between; padding: 12px 14px 10px; position: sticky; top: 0; background: #0c0c0e; border-bottom: 1px solid #1f1f23; font-size: 13px; font-weight: 600; color: #e4e4e7; }

@@ -1,7 +1,9 @@
 <script lang="ts">
-	import { X, Maximize, Minimize, AlertCircle, ExternalLink } from '@lucide/svelte';
+	import { X, Maximize, Minimize, AlertCircle, ExternalLink, Play, Pause, RotateCcw, RotateCw, Volume2, VolumeX, HelpCircle } from '@lucide/svelte';
 	import { browser } from '$app/environment';
 	import { dev } from '$app/environment';
+	import { playerPreferences } from '$lib/state/stores/playerPreferences.svelte';
+	import { sendEmbedCommand, PLAYER_SHORTCUTS } from '$lib/utils/embedCommands';
 
 	let {
 		src,
@@ -25,6 +27,10 @@
 	let controlsVisible = $state(true);
 	let controlsTimer: ReturnType<typeof setTimeout> | null = null;
 	let showOpenNewTab = $state(false);
+	let showShortcuts = $state(false);
+	let playing = $state(false);
+	let elapsedSeconds = $state(0);
+	let elapsedTick: ReturnType<typeof setInterval> | null = null;
 
 	function isIOS() {
 		return /iPad|iPhone|iPod/.test(navigator.userAgent) ||
@@ -329,13 +335,110 @@
 			if (loadTimeout) clearTimeout(loadTimeout);
 		};
 	});
+
+	function applyVolume() {
+		if (!frameRef || hasError) return;
+		sendEmbedCommand(frameRef, 'setvolume', playerPreferences.muted ? 0 : playerPreferences.volume);
+		sendEmbedCommand(frameRef, playerPreferences.muted ? 'mute' : 'unmute');
+	}
+
+	function togglePlay() {
+		playing = !playing;
+		sendEmbedCommand(frameRef, playing ? 'play' : 'pause');
+	}
+
+	function seekBy(deltaSeconds: number) {
+		elapsedSeconds = Math.max(0, elapsedSeconds + deltaSeconds);
+		sendEmbedCommand(frameRef, 'seekto', elapsedSeconds);
+	}
+
+	function startElapsed() {
+		if (elapsedTick) return;
+		elapsedTick = setInterval(() => {
+			if (!hasError) elapsedSeconds += 1;
+		}, 1000);
+	}
+
+	function stopElapsed() {
+		if (elapsedTick) {
+			clearInterval(elapsedTick);
+			elapsedTick = null;
+		}
+	}
+
+	$effect(() => {
+		playerPreferences.init();
+		function onKeyDown(event: KeyboardEvent) {
+			const target = event.target as HTMLElement | null;
+			if (!target?.closest?.('.inline-player')) return;
+			if (
+				target instanceof HTMLInputElement ||
+				target instanceof HTMLTextAreaElement ||
+				target instanceof HTMLSelectElement
+			) {
+				return;
+			}
+			if (event.ctrlKey || event.metaKey || event.altKey) return;
+			switch (event.key.toLowerCase()) {
+				case '?':
+					event.preventDefault();
+					showShortcuts = !showShortcuts;
+					break;
+				case ' ':
+				case 'k':
+					event.preventDefault();
+					togglePlay();
+					break;
+				case 'arrowleft':
+					event.preventDefault();
+					seekBy(-10);
+					break;
+				case 'arrowright':
+					event.preventDefault();
+					seekBy(10);
+					break;
+				case 'arrowup':
+					event.preventDefault();
+					playerPreferences.setVolume(playerPreferences.volume + 10);
+					break;
+				case 'arrowdown':
+					event.preventDefault();
+					playerPreferences.setVolume(playerPreferences.volume - 10);
+					break;
+				case 'm':
+					event.preventDefault();
+					playerPreferences.toggleMute();
+					break;
+				case 'f':
+					event.preventDefault();
+					isFullscreen ? exitFullscreen() : enterFullscreen();
+					break;
+				case 'escape':
+					if (showShortcuts) showShortcuts = false;
+					break;
+			}
+		}
+		window.addEventListener('keydown', onKeyDown);
+		return () => window.removeEventListener('keydown', onKeyDown);
+	});
+
+	$effect(() => {
+		if (!hasError && frameRef && !isLoading) {
+			startElapsed();
+		}
+		return stopElapsed;
+	});
+
+	$effect(() => {
+		applyVolume();
+	});
 </script>
 
 <div
 	bind:this={wrapperRef}
 	class={compact
-		? 'w-full h-full bg-black'
-		: 'player-safe fixed inset-0 z-[100] flex items-center justify-center bg-black/90'}
+		? 'inline-player w-full h-full bg-black'
+		: 'inline-player player-safe fixed inset-0 z-[100] flex items-center justify-center bg-black/90'}
 	class:fake-fs={isFakeFs}
 	onclick={(e) => {
 		if (isFakeFs) { e.stopPropagation(); toggleControls(); }
@@ -372,10 +475,75 @@ onclick={(e) => e.stopPropagation()}
 			<div class="flex items-center gap-2">
 				<button
 					type="button"
+					onclick={(e) => { e.stopPropagation(); togglePlay(); }}
+					class="flex items-center justify-center size-9 rounded-full text-white/70 hover:text-white hover:bg-white/10 transition-colors backdrop-blur-sm bg-black/30"
+					aria-label={playing ? 'Pause' : 'Play'}
+					title="Play / Pause (Space or K)"
+				>
+					{#if playing}
+						<Pause class="size-4" />
+					{:else}
+						<Play class="size-4" />
+					{/if}
+				</button>
+				<button
+					type="button"
+					onclick={(e) => { e.stopPropagation(); seekBy(-10); }}
+					class="flex items-center justify-center size-9 rounded-full text-white/70 hover:text-white hover:bg-white/10 transition-colors backdrop-blur-sm bg-black/30"
+					aria-label="Back 10 seconds"
+					title="Back 10 seconds (←)"
+				>
+					<RotateCcw class="size-4" />
+				</button>
+				<button
+					type="button"
+					onclick={(e) => { e.stopPropagation(); seekBy(10); }}
+					class="flex items-center justify-center size-9 rounded-full text-white/70 hover:text-white hover:bg-white/10 transition-colors backdrop-blur-sm bg-black/30"
+					aria-label="Forward 10 seconds"
+					title="Forward 10 seconds (→)"
+				>
+					<RotateCw class="size-4" />
+				</button>
+				<div class="flex items-center gap-1">
+					<button
+						type="button"
+						onclick={(e) => { e.stopPropagation(); playerPreferences.toggleMute(); }}
+						class="flex items-center justify-center size-9 rounded-full text-white/70 hover:text-white hover:bg-white/10 transition-colors backdrop-blur-sm bg-black/30"
+						aria-label={playerPreferences.muted ? 'Unmute' : 'Mute'}
+						title="Mute / Unmute (M)"
+					>
+						{#if playerPreferences.muted || playerPreferences.volume === 0}
+							<VolumeX class="size-4" />
+						{:else}
+							<Volume2 class="size-4" />
+						{/if}
+					</button>
+					<input
+						type="range"
+						min="0"
+						max="100"
+						value={playerPreferences.volume}
+						oninput={(e) => playerPreferences.setVolume(Number((e.currentTarget as HTMLInputElement).value))}
+						class="w-20 accent-indigo-400"
+						aria-label="Volume"
+						title="Volume (↑ / ↓)"
+					/>
+				</div>
+				<button
+					type="button"
+					onclick={(e) => { e.stopPropagation(); showShortcuts = !showShortcuts; }}
+					class="flex items-center justify-center size-9 rounded-full text-white/70 hover:text-white hover:bg-white/10 transition-colors backdrop-blur-sm bg-black/30"
+					aria-label="Keyboard shortcuts"
+					title="Keyboard shortcuts (?)"
+				>
+					<HelpCircle class="size-4" />
+				</button>
+				<button
+					type="button"
 					onclick={(e) => { e.stopPropagation(); isFullscreen ? exitFullscreen() : enterFullscreen(); }}
 					class="flex items-center justify-center size-9 rounded-full text-white/70 hover:text-white hover:bg-white/10 transition-colors backdrop-blur-sm bg-black/30"
 					aria-label={isFullscreen ? 'Exit fullscreen' : 'Enter fullscreen'}
-					title="Fullscreen"
+					title="Fullscreen (F)"
 				>
 					{#if isFullscreen}
 						<Minimize class="size-4" />
@@ -468,6 +636,26 @@ onclick={(e) => e.stopPropagation()}
 			<ExternalLink class="size-4" />
 			Open in browser
 		</button>
+	</div>
+{/if}
+
+{#if showShortcuts}
+	<div class="fixed inset-0 z-[100003] flex items-center justify-center bg-black/70 p-4" onclick={(e) => { if (e.target === e.currentTarget) showShortcuts = false; }} onkeydown={(e) => { if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); showShortcuts = false; } }} role="dialog" tabindex="-1" aria-label="Keyboard shortcuts">
+		<div class="w-full max-w-sm rounded-xl border border-white/10 bg-[#111113] p-5">
+			<div class="mb-3 flex items-center justify-between">
+				<span class="text-sm font-bold text-white">Keyboard Shortcuts</span>
+				<button class="text-white/50 hover:text-white" onclick={() => (showShortcuts = false)} aria-label="Close keyboard shortcuts">&times;</button>
+			</div>
+			<div class="flex flex-col gap-1.5">
+				{#each PLAYER_SHORTCUTS as shortcut (shortcut.key)}
+					<div class="flex items-center justify-between gap-3 rounded-md bg-white/[0.03] px-3 py-2">
+						<kbd class="min-w-[92px] rounded border border-white/15 bg-white/5 px-2 py-1 text-center font-mono text-[11px] text-indigo-300">{shortcut.key}</kbd>
+						<span class="text-[13px] text-white/80">{shortcut.action}</span>
+					</div>
+				{/each}
+			</div>
+			<p class="mt-3 text-[11px] leading-relaxed text-white/40">Shortcuts apply when the player is focused. Third-party sources are controlled best-effort.</p>
+		</div>
 	</div>
 {/if}
 
