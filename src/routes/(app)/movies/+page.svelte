@@ -40,18 +40,12 @@
 		goto(`/movies?category=${catId}`, { replaceState: true });
 	}
 
-	function getEndpoint(cat: string, pg: number): string {
-		if (cat === 'trending') return `https://api.themoviedb.org/3/trending/movie/week?api_key=5aa00ca6320d13f8d492d7806e012f9b&page=${pg}`;
-		if (cat === 'all') return `https://api.themoviedb.org/3/movie/now_playing?api_key=5aa00ca6320d13f8d492d7806e012f9b&page=${pg}`;
-		return `https://api.themoviedb.org/3/movie/${cat}?api_key=5aa00ca6320d13f8d492d7806e012f9b&page=${pg}`;
-	}
-
 	async function loadMore() {
 		if (isLoadingMore || !hasMore) return;
 		isLoadingMore = true;
 		const nextPage = currentPage + 1;
 		try {
-			const res = await fetch(getEndpoint(currentCategory, nextPage));
+			const res = await fetch(`/api/tmdb/movies/${currentCategory}?page=${nextPage}`);
 			if (!res.ok) throw new Error('Failed');
 			const json = await res.json();
 			const { formatMovie } = await import('$lib/utils/tmdb');

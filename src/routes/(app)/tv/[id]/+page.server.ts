@@ -52,6 +52,7 @@ export const load: PageServerLoad = async ({ params, fetch, cookies }) => {
 		return {
 			mediaType: 'tv' as const,
 			movie: null,
+			show: { imdb_id: null },
 			streaming: { source: null, resolutions: [] },
 			watchProviders: { flatrate: [], rent: [], buy: [] },
 			csrfToken: getCsrfToken({ cookies }) ?? undefined
@@ -67,6 +68,7 @@ export const load: PageServerLoad = async ({ params, fetch, cookies }) => {
 			return {
 				mediaType: 'tv' as const,
 				movie: null,
+				show: { imdb_id: null },
 				streaming: { source: null, resolutions: [] },
 				watchProviders: { flatrate: [], rent: [], buy: [] },
 				csrfToken: getCsrfToken({ cookies }) ?? undefined
@@ -82,6 +84,7 @@ export const load: PageServerLoad = async ({ params, fetch, cookies }) => {
 		return {
 			mediaType: 'tv' as const,
 			movie: null,
+			show: { imdb_id: null },
 			streaming: { source: null, resolutions: [] },
 			watchProviders: { flatrate: [], rent: [], buy: [] },
 			csrfToken: getCsrfToken({ cookies }) ?? undefined
@@ -124,6 +127,7 @@ export const load: PageServerLoad = async ({ params, fetch, cookies }) => {
 		return {
 			mediaType: 'tv' as const,
 			movie: tvShow,
+			show: { imdb_id: tvShow.imdbId ?? null },
 			streaming,
 			recommendations,
 			watchProviders,
@@ -137,6 +141,7 @@ export const load: PageServerLoad = async ({ params, fetch, cookies }) => {
 		return {
 			mediaType: 'tv' as const,
 			movie: tvShow,
+			show: { imdb_id: tvShow.imdbId ?? null },
 			streaming: { source: null, resolutions: [] },
 			recommendations: [],
 			watchProviders: { flatrate: [], rent: [], buy: [] },

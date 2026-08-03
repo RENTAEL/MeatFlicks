@@ -1,5 +1,4 @@
 import { env } from '$lib/config/env';
-const PUBLIC_TMDB_API_KEY = env.PUBLIC_TMDB_API_KEY;
 
 const TMDB_BASE = 'https://api.themoviedb.org/3';
 
@@ -8,9 +7,9 @@ export async function load({ params, fetch }) {
 
 	try {
 		const [movieRes, creditsRes, similarRes] = await Promise.all([
-			fetch(`${TMDB_BASE}/movie/${id}?append_to_response=videos&api_key=${PUBLIC_TMDB_API_KEY}`),
-			fetch(`${TMDB_BASE}/movie/${id}/credits?api_key=${PUBLIC_TMDB_API_KEY}`),
-			fetch(`${TMDB_BASE}/movie/${id}/similar?api_key=${PUBLIC_TMDB_API_KEY}`)
+			fetch(`${TMDB_BASE}/movie/${id}?append_to_response=videos&api_key=${env.TMDB_API_KEY}`),
+			fetch(`${TMDB_BASE}/movie/${id}/credits?api_key=${env.TMDB_API_KEY}`),
+			fetch(`${TMDB_BASE}/movie/${id}/similar?api_key=${env.TMDB_API_KEY}`)
 		]);
 
 		const [movie, credits, similar] = await Promise.all([

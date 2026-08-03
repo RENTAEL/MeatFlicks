@@ -8,7 +8,7 @@ const TMDB_BASE = 'https://api.themoviedb.org/3';
 async function fetchMovie(id: number) {
 	try {
 		const res = await fetch(
-			`${TMDB_BASE}/movie/${id}?api_key=${env.PUBLIC_TMDB_API_KEY}&language=af&append_to_response=credits`
+			`${TMDB_BASE}/movie/${id}?api_key=${env.TMDB_API_KEY}&language=af&append_to_response=credits`
 		);
 		if (!res.ok) return null;
 		return await res.json();
@@ -47,7 +47,7 @@ export async function load({ url }) {
 		}
 
 		const discoverRes = await fetch(
-			`${TMDB_BASE}/discover/movie?api_key=${env.PUBLIC_TMDB_API_KEY}` +
+			`${TMDB_BASE}/discover/movie?api_key=${env.TMDB_API_KEY}` +
 			`&language=af&with_original_language=af&sort_by=primary_release_date.desc&page=${page}&region=ZA`
 		);
 		const discoverData = await discoverRes.json();

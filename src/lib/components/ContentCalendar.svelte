@@ -12,11 +12,7 @@
 
   async function loadUpcoming() {
     try {
-      const key = 'FAKE_KEY';
-      if (!key) { loading = false; return; }
-      const res = await fetch(
-        `https://api.themoviedb.org/3/movie/upcoming?api_key=${key}&language=en-US&page=1`
-      );
+      const res = await fetch(`/api/tmdb/upcoming`);
       if (!res.ok) throw new Error('Failed');
       const data = await res.json();
       upcoming = (data.results || []).slice(0, 10);
