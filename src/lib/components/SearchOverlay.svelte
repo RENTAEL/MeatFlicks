@@ -7,7 +7,7 @@
 	let results = $state<any[]>([]);
 	let isLoading = $state(false);
 	let debounceTimer: ReturnType<typeof setTimeout> | undefined;
-	let inputEl: HTMLInputElement | undefined;
+	let inputEl = $state<HTMLInputElement | undefined>();
 
 	async function search(q: string) {
 		if (q.length < 2) { results = []; return; }
@@ -64,7 +64,7 @@
 <svelte:window onkeydown={handleKeydown} />
 
 {#if $searchOpen}
-	<div class="search-backdrop" onclick={close} transition:fade={{ duration: 150 }}></div>
+	<div class="search-backdrop" onclick={close} onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ' || e.key === 'Escape') { e.preventDefault(); close(); } }} role="button" tabindex="-1" aria-label="Close search" transition:fade={{ duration: 150 }}></div>
 
 	<div class="search-panel" transition:fly={{ y: -20, duration: 250 }}>
 		<div class="search-input-row">

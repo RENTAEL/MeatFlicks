@@ -37,7 +37,7 @@
 	onDestroy(() => stopAutoplay());
 </script>
 
-<div class="hero" ontouchstart={handleTouchStart} ontouchmove={handleTouchMove} ontouchend={handleTouchEnd}>
+<div class="hero" role="region" aria-label="Featured titles" ontouchstart={handleTouchStart} ontouchmove={handleTouchMove} ontouchend={handleTouchEnd}>
 	<div class="hero-track" style="transform: translateX(-{currentIndex * 100}%)">
 		{#each items as item, i}
 			<div class="hero-slide">
@@ -86,8 +86,8 @@
 	.hero-meta { display: flex; align-items: center; gap: 12px; }
 	.hero-rating { color: #f59e0b; font-weight: 700; font-size: 14px; }
 	.hero-year { color: #a1a1aa; font-size: 14px; }
-	.hero-overview { font-size: 13px; color: #a1a1aa; line-height: 1.5; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-	@media (min-width: 768px) { .hero-overview { font-size: 14px; -webkit-line-clamp: 3; } }
+	.hero-overview { font-size: 13px; color: #a1a1aa; line-height: 1.5; display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+	@media (min-width: 768px) { .hero-overview { font-size: 14px; -webkit-line-clamp: 3; line-clamp: 3; } }
 	.hero-actions { display: flex; gap: 10px; margin-top: 8px; }
 	.hero-play-btn { display: flex; align-items: center; gap: 8px; padding: 12px 24px; background: #818cf8; color: #fff; border: none; border-radius: 14px; font-size: 15px; font-weight: 700; cursor: pointer; transition: all 0.15s; -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
 	.hero-play-btn:active { background: #6366f1; transform: scale(0.97); }

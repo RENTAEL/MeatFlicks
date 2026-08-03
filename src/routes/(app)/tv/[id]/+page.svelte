@@ -214,7 +214,7 @@
 				{:else}
 					<div class="detail-poster-placeholder"></div>
 				{/if}
-				<button class="save-btn" class:saved={isSaved} onclick={toggleWatchlist}>
+				<button class="save-btn" class:saved={isSaved} onclick={toggleWatchlist} aria-label="Toggle watchlist">
 					<svg viewBox="0 0 24 24" fill={isSaved ? 'currentColor' : 'none'} stroke="currentColor" stroke-width="2">
 						<path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/>
 					</svg>
@@ -344,6 +344,7 @@
 								class="episode-play-overlay"
 								disabled={isUnaired}
 								onclick={() => playEpisode(ep)}
+								aria-label="Play episode {ep.episode_number}"
 							>
 								<svg viewBox="0 0 24 24" fill="white"><path d="M8 5v14l11-7z"/></svg>
 							</button>
@@ -474,7 +475,7 @@
 	.section-title { font-size: 17px; font-weight: 700; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
 	.episode-count { font-size: 13px; color: #71717a; font-weight: 400; }
 	.detail-overview { font-size: 14px; color: #a1a1aa; line-height: 1.6; }
-	.detail-overview:not(.overview-expanded) { display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; }
+	.detail-overview:not(.overview-expanded) { display: -webkit-box; -webkit-line-clamp: 4; line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; }
 	.overview-toggle { background: none; border: none; color: #818cf8; font-size: 13px; font-weight: 600; padding: 4px 0; cursor: pointer; margin-top: 4px; }
 
 	.progress-banner { display: flex; align-items: center; justify-content: space-between; margin: 16px; padding: 14px 16px; background: rgba(129,140,248,0.1); border: 1px solid rgba(129,140,248,0.2); border-radius: 14px; gap: 12px; }
@@ -520,14 +521,14 @@
 	.progress-bar-container { position: absolute; bottom: 0; left: 0; right: 0; height: 3px; background: rgba(255,255,255,0.15); }
 	.progress-bar-fill { height: 100%; background: #818cf8; transition: width 0.3s; }
 	.episode-info { flex: 1; min-width: 0; padding: 12px; display: flex; flex-direction: column; gap: 6px; }
-	.episode-title-text { font-size: 14px; font-weight: 600; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+	.episode-title-text { font-size: 14px; font-weight: 600; display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 	.episode-header { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 	.episode-number { font-size: 12px; font-weight: 700; color: #818cf8; }
 	.episode-runtime { font-size: 12px; color: #71717a; }
 	.episode-rating { font-size: 12px; color: #f59e0b; font-weight: 600; }
 	.now-playing-badge { font-size: 10px; font-weight: 700; letter-spacing: 0.4px; text-transform: uppercase; color: #fff; background: #818cf8; padding: 2px 8px; border-radius: 8px; }
 	.episode-play-overlay:disabled { display: none; }
-	.episode-overview { font-size: 12px; color: #a1a1aa; line-height: 1.5; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+	.episode-overview { font-size: 12px; color: #a1a1aa; line-height: 1.5; display: -webkit-box; -webkit-line-clamp: 3; line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
 	.episode-air-date { font-size: 11px; color: #52525b; display: block; }
 	.no-episodes { text-align: center; color: #52525b; padding: 32px 0; }
 

@@ -155,7 +155,6 @@
 				bind:value={query}
 				onkeydown={handleKeydown}
 				placeholder="Search movies and TV shows..."
-				autofocus
 				class="w-full rounded-2xl border border-zinc-700/50 bg-zinc-900/80 py-4 pl-12 pr-12 text-lg text-white placeholder-zinc-500 transition-all focus:border-indigo-500/50 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
 			/>
 			{#if query}

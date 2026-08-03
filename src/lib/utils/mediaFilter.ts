@@ -17,10 +17,9 @@ export function isReleasedMedia(item: MediaDateFields, now: Date = new Date()): 
 }
 
 export function isEligibleMedia(
-	item: MediaDateFields & { vote_count?: number | null },
-	options: { minVoteCount?: number } = {}
+	item: MediaDateFields & { vote_count?: number | null; id?: number | null },
+	minVoteCount: number = MIN_VOTE_COUNT
 ): boolean {
-	const { minVoteCount = MIN_VOTE_COUNT } = options;
 	if (typeof item.vote_count === 'number' && item.vote_count < minVoteCount) return false;
 	return isReleasedMedia(item);
 }

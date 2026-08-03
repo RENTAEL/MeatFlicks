@@ -173,6 +173,7 @@
 		role="button"
 		tabindex="-1"
 		onclick={close}
+		onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ' || e.key === 'Escape') { e.preventDefault(); close(); } }}
 		transition:fade={{ duration: 200 }}
 	></div>
 
@@ -206,6 +207,7 @@
 				<button
 					class="rounded-full p-1 text-zinc-400 hover:bg-zinc-800 hover:text-white transition"
 					onclick={close}
+					aria-label="Close"
 				>
 					<svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
 						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
@@ -222,8 +224,11 @@
 					<button
 						class="relative h-6 w-11 rounded-full transition {autoSelect ? 'bg-indigo-600' : 'bg-zinc-600'}"
 						onclick={() => providerSettings.setAutoSelect(!autoSelect)}
+						role="switch"
+						aria-checked={autoSelect}
+						aria-label="Auto-select best provider"
 					>
-						<div class="absolute top-0.5 left-0.5 h-5 w-5 rounded-full bg-white shadow transition {autoSelect ? 'translate-x-5' : 'translate-x-0'}" />
+						<div class="absolute top-0.5 left-0.5 h-5 w-5 rounded-full bg-white shadow transition {autoSelect ? 'translate-x-5' : 'translate-x-0'}"></div>
 					</button>
 				</div>
 
@@ -238,10 +243,10 @@
 							class="flex items-center gap-2 rounded-lg px-3 py-2 transition {isDisabled ? 'opacity-40' : 'bg-zinc-800/30'}"
 						>
 							<div class="flex flex-col gap-0.5">
-								<button class="text-zinc-500 hover:text-white disabled:opacity-20" onclick={() => moveProvider(i, -1)} disabled={i === 0}>
+								<button class="text-zinc-500 hover:text-white disabled:opacity-20" onclick={() => moveProvider(i, -1)} disabled={i === 0} aria-label="Move up">
 									<svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7" /></svg>
 								</button>
-								<button class="text-zinc-500 hover:text-white disabled:opacity-20" onclick={() => moveProvider(i, 1)} disabled={i === providerSettings.settings.providerOrder.length - 1}>
+								<button class="text-zinc-500 hover:text-white disabled:opacity-20" onclick={() => moveProvider(i, 1)} disabled={i === providerSettings.settings.providerOrder.length - 1} aria-label="Move down">
 									<svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>
 								</button>
 							</div>
@@ -280,8 +285,11 @@
 				<button
 					class="relative h-5 w-9 rounded-full transition {autoSelect ? 'bg-indigo-600' : 'bg-zinc-600'}"
 					onclick={() => providerSettings.setAutoSelect(!autoSelect)}
+					role="switch"
+					aria-checked={autoSelect}
+					aria-label="Auto-select"
 				>
-					<div class="absolute top-0.5 left-0.5 h-4 w-4 rounded-full bg-white shadow transition {autoSelect ? 'translate-x-4' : 'translate-x-0'}" />
+					<div class="absolute top-0.5 left-0.5 h-4 w-4 rounded-full bg-white shadow transition {autoSelect ? 'translate-x-4' : 'translate-x-0'}"></div>
 				</button>
 			</div>
 
@@ -338,13 +346,16 @@
 								{#if autoScanResults[provider.id] === true}
 									<span class="text-green-500">✅</span>
 								{:else if autoScanResults[provider.id] === false}
-									<button
-										class="rounded p-0.5 text-red-400 hover:bg-red-500/20 hover:text-red-300 transition"
+									<span
+										class="rounded p-0.5 text-red-400 hover:bg-red-500/20 hover:text-red-300 transition cursor-pointer"
+										role="button"
+										tabindex="0"
+										aria-label="Report broken"
 										onclick={(e) => { e.stopPropagation(); reportBroken(provider.id); }}
-										title="Report broken"
+										onkeydown={(e) => { e.stopPropagation(); if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); reportBroken(provider.id); } }}
 									>
 										<svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4.5c-.77-.833-2.694-.833-3.464 0L3.34 16.5c-.77.833.192 2.5 1.732 2.5z" /></svg>
-									</button>
+									</span>
 								{:else}
 									<span class="text-zinc-600">→</span>
 								{/if}

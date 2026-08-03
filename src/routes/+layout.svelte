@@ -3,6 +3,8 @@
   import { themeStore } from '$lib/stores/theme';
   import { afterNavigate } from '$app/navigation';
 
+  let { children } = $props();
+
   $effect(() => { $themeStore; });
 
   afterNavigate((nav) => {
@@ -16,4 +18,4 @@
   });
 </script>
 
-<slot />
+{@render children()}

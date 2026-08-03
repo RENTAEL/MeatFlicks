@@ -1,7 +1,7 @@
 <script lang="ts">
   import { isEnabled } from '$lib/config/features';
 
-  let { currentMovie = null }: { currentMovie: { id: number; title: string; genres?: string[] } | null } = $props();
+  let { currentMovie = null }: { currentMovie?: { id: number; title: string; genres?: string[] } | null } = $props();
 
   let moods = [
     { emoji: '😱', label: 'Thriller', icon: '🔪' },
@@ -55,7 +55,7 @@
     {#if loading}
       <div class="loading-skeleton">
         {#each Array(6) as _}
-          <div class="skeleton-card" />
+          <div class="skeleton-card"></div>
         {/each}
       </div>
     {:else if recommendations.length > 0}

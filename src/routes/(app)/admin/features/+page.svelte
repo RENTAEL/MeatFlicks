@@ -63,7 +63,7 @@
             onclick={() => toggle(key)}
             aria-label="Toggle {key}"
           >
-            <span class="toggle-knob" />
+            <span class="toggle-knob"></span>
           </button>
         </div>
         <p class="feature-desc">{descriptions[key]}</p>

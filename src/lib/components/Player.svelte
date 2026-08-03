@@ -514,7 +514,7 @@
 	.upnext-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 	.upnext-kicker { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: #a78bfa; }
 	.upnext-spec { font-size: 12px; font-weight: 600; color: #818cf8; }
-	.upnext-name { font-size: 20px; font-weight: 700; color: #fff; overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+	.upnext-name { font-size: 20px; font-weight: 700; color: #fff; overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical; }
 	.upnext-actions { display: flex; gap: 8px; flex-shrink: 0; }
 	.upnext-play { padding: 10px 20px; background: #818cf8; color: #fff; border: none; border-radius: 10px; font-size: 14px; font-weight: 600; cursor: pointer; font-family: inherit; min-height: 44px; }
 	.upnext-play:hover { background: #6d7cf0; }

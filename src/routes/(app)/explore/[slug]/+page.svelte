@@ -590,11 +590,6 @@
 		50% { background-position: 100% 50%; }
 	}
 
-	.trending-divider {
-		margin: 2.5rem 5% 0;
-		width: auto;
-	}
-
 	@media (max-width: 767px) {
 		.page-header {
 			padding-top: 2rem !important;

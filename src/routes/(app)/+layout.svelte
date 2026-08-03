@@ -116,7 +116,7 @@ import Footer from '$lib/components/navigation/Footer.svelte';
 <UblockPopup />
 
 {#if $menuOpen}
-	<div class="menu-backdrop" onclick={() => menuOpen.set(false)} role="button" tabindex="-1" aria-label="Close menu" transition:fade={{ duration: 150 }}></div>
+	<div class="menu-backdrop" onclick={() => menuOpen.set(false)} onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ' || e.key === 'Escape') { e.preventDefault(); menuOpen.set(false); } }} role="button" tabindex="-1" aria-label="Close menu" transition:fade={{ duration: 150 }}></div>
 
 	<aside class="menu-drawer" transition:fly={{ x: -280, duration: 250 }}>
 		<div class="menu-header">

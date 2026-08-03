@@ -109,9 +109,12 @@ export const playbackProgressRepository = {
 				.limit(1);
 
 			if (results[0]) {
+				const row = results[0];
 				return {
-					...results[0],
-					mediaType: results[0].mediaType as 'movie' | 'tv'
+					...row,
+					progress: row.progress ?? 0,
+					duration: row.duration ?? 0,
+					mediaType: row.mediaType as 'movie' | 'tv'
 				};
 			}
 			return null;
@@ -131,14 +134,17 @@ export const playbackProgressRepository = {
 				.limit(limit);
 
 			return results
-				.filter((record) => {
-					const progressPercent = (record.progress / record.duration) * 100;
-					return progressPercent < 90;
-				})
 				.map((record) => ({
 					...record,
+					progress: record.progress ?? 0,
+					duration: record.duration ?? 0,
 					mediaType: record.mediaType as 'movie' | 'tv'
-				}));
+				}))
+				.filter((record) => {
+					if (record.duration <= 0) return false;
+					const progressPercent = (record.progress / record.duration) * 100;
+					return progressPercent < 90;
+				});
 		} catch (error) {
 			console.error('Error fetching continue watching:', error);
 			return [];

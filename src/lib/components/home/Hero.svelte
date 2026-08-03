@@ -251,6 +251,8 @@
 </script>
 
 {#if hasSlides && activeMovie}
+	<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
+	<!-- svelte-ignore a11y_no_noninteractive_tabindex -->
 	<section
 		class="relative min-h-[60vh] overflow-hidden rounded-2xl border-0 p-0 outline-none md:min-h-[65vh] lg:min-h-[70vh]"
 		aria-label="Featured content spotlight"

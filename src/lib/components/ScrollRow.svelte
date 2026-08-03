@@ -57,7 +57,8 @@
 	}
 </script>
 
-<div class="scroll-row" tabindex="-1" onkeydown={handleKeydown}>
+<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
+<div class="scroll-row" tabindex="-1" role="region" aria-label="Scrollable media row" onkeydown={handleKeydown}>
 	<div
 		bind:this={scrollContainer}
 		class="scroll-content"

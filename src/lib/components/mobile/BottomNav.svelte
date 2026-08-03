@@ -1,7 +1,7 @@
 <script lang="ts">
   import { page } from '$app/stores';
   import { icons } from './icons';
-  const navItems = [
+  const navItems: { href: string; label: string; icon: keyof typeof icons; action?: 'search' }[] = [
     { href: '/', label: 'Home', icon: 'home' },
     { href: '/movies', label: 'Movies', icon: 'grid' },
     { href: '/tv', label: 'Series', icon: 'list' },
@@ -14,7 +14,7 @@
     return path.startsWith(href);
   }
 </script>
-<nav class="bottom-nav" role="navigation" aria-label="Main navigation">
+<nav class="bottom-nav" aria-label="Main navigation">
   {#each navItems as item}
     {@const active = isActive(item.href)}
     {#if item.action === 'search'}

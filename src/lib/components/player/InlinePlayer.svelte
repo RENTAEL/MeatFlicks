@@ -340,6 +340,12 @@
 	onclick={(e) => {
 		if (isFakeFs) { e.stopPropagation(); toggleControls(); }
 	}}
+	role="button"
+	tabindex="-1"
+	aria-label="Toggle player controls"
+	onkeydown={(e) => {
+		if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); if (isFakeFs) toggleControls(); }
+	}}
 >
 	<div
 		class={compact
@@ -352,8 +358,12 @@
 			class="absolute top-0 left-0 right-0 z-20 flex items-center justify-between px-3 pt-3 pb-8 bg-gradient-to-b from-black/60 to-transparent transition-opacity duration-300"
 			class:opacity-0={isFakeFs && !controlsVisible}
 			class:opacity-100={!isFakeFs || controlsVisible}
-			onclick={(e) => e.stopPropagation()}
-		>
+onclick={(e) => e.stopPropagation()}
+		onkeydown={(e) => e.stopPropagation()}
+		role="toolbar"
+		tabindex="-1"
+		aria-label="Player controls"
+	>
 			{#if isFakeFs && title}
 				<span class="text-sm font-medium text-white/90 truncate max-w-[60%]">{title}</span>
 			{:else}
@@ -410,6 +420,7 @@
 			<div
 				class="absolute inset-0 z-10"
 				onclick={(e) => { e.stopPropagation(); showControls(); }}
+				onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); showControls(); } }}
 				role="button"
 				tabindex="-1"
 				aria-label="Show controls"

@@ -21,7 +21,7 @@
     return seg.charAt(0).toUpperCase() + seg.slice(1);
   }
 </script>
-<header class="mobile-header" class:hidden={!isVisible} role="banner">
+<header class="mobile-header" class:hidden={!isVisible}>
   <div class="mobile-header-inner">
     <button type="button" class="mobile-header-btn" onclick={() => menuOpen.set(true)} aria-label="Menu">
       {@html icons.menu}

@@ -885,6 +885,7 @@
 					<button
 						class="rounded-full bg-black/60 p-2 text-white hover:bg-black/80 transition"
 						onclick={() => closePlayer('user')}
+						aria-label="Close player"
 					>
 						<svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
 							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
@@ -904,7 +905,7 @@
 					<div class="w-full max-w-md rounded-xl bg-black/85 p-6 shadow-2xl backdrop-blur-md mx-4">
 						<div class="mb-4 flex items-center justify-between">
 							<h3 class="text-lg font-bold text-white">Keyboard Shortcuts</h3>
-							<button class="text-white/50 hover:text-white" onclick={() => (showShortcutsHelp = false)}>
+							<button class="text-white/50 hover:text-white" onclick={() => (showShortcutsHelp = false)} aria-label="Close keyboard shortcuts">
 								<svg class="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
 							</button>
 						</div>

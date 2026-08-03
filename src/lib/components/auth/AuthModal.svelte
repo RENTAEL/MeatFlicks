@@ -69,6 +69,7 @@
 		class="fixed inset-0 z-[200] flex items-center justify-center bg-black/60 backdrop-blur-sm"
 		role="dialog"
 		aria-modal="true"
+		tabindex="-1"
 		aria-label={mode === 'login' ? 'Sign in' : mode === 'signup' ? 'Create account' : 'Reset password'}
 		onclick={(e) => { if (e.target === e.currentTarget) handleClose(); }}
 		onkeydown={(e) => { if (e.key === 'Escape') handleClose(); }}
