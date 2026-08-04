@@ -3,6 +3,7 @@ import Hero from '$lib/components/home/Hero.svelte';
 import { PersonalizedRows } from '$lib/components/home';
 import { MediaScrollContainer } from '$lib/components/media';
 import HomePageSkeleton from '$lib/components/skeletons/HomePageSkeleton.svelte';
+import MediaRowSkeleton from '$lib/components/skeletons/MediaRowSkeleton.svelte';
 import type { PageData } from './$types';
 import type { HomeLibrary } from '$lib/types/library';
 import { SEOHead } from '$lib/components/seo';
@@ -184,8 +185,10 @@ import ContentCalendar from '$lib/components/ContentCalendar.svelte';
 								{:else}
 									<div
 										bind:this={continueWatchingRef.value}
-										class="h-32 animate-pulse rounded-lg bg-muted/50"
-									></div>
+										class="w-full"
+									>
+										<MediaRowSkeleton variant="wide" items={4} />
+									</div>
 								{/if}
 								<PersonalizedRows />
 							</div>
@@ -196,8 +199,10 @@ import ContentCalendar from '$lib/components/ContentCalendar.svelte';
 								{:else}
 									<div
 										bind:this={recommendedRef.value}
-										class="h-32 animate-pulse rounded-lg bg-muted/50"
-									></div>
+										class="w-full"
+									>
+										<MediaRowSkeleton variant="wide" items={4} />
+									</div>
 								{/if}
 							</div>
 
@@ -207,8 +212,10 @@ import ContentCalendar from '$lib/components/ContentCalendar.svelte';
 								{:else}
 									<div
 										bind:this={trendingMediaRef.value}
-										class="h-48 animate-pulse rounded-lg bg-muted/50"
-									></div>
+										class="w-full"
+									>
+										<MediaRowSkeleton />
+									</div>
 								{/if}
 							{/if}
 
@@ -218,8 +225,10 @@ import ContentCalendar from '$lib/components/ContentCalendar.svelte';
 								{:else}
 									<div
 										bind:this={trendingTvRef.value}
-										class="h-48 animate-pulse rounded-lg bg-muted/50"
-									></div>
+										class="w-full"
+									>
+										<MediaRowSkeleton />
+									</div>
 								{/if}
 							{/if}
 
@@ -228,8 +237,10 @@ import ContentCalendar from '$lib/components/ContentCalendar.svelte';
 							{:else}
 								<div
 									bind:this={recentlyAddedRef.value}
-									class="h-48 animate-pulse rounded-lg bg-muted/50"
-								></div>
+									class="w-full"
+								>
+									<MediaRowSkeleton />
+								</div>
 							{/if}
 
 							{#if TopRatedRow}
@@ -237,8 +248,10 @@ import ContentCalendar from '$lib/components/ContentCalendar.svelte';
 							{:else}
 								<div
 									bind:this={topRatedRef.value}
-									class="h-48 animate-pulse rounded-lg bg-muted/50"
-								></div>
+									class="w-full"
+								>
+									<MediaRowSkeleton />
+								</div>
 							{/if}
 
 							{#if trendingMovies.length === 0 && collections.length === 0 && genres.length === 0}

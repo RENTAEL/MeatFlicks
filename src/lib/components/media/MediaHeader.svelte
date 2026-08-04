@@ -4,7 +4,7 @@
 	import { watchlist } from '$lib/state/stores/watchlistStore.svelte';
 	import { error as errorStore } from '$lib/state/stores/errorStore';
 
-	import { getImageUrl } from '$lib/utils/image';
+	import { getBackdropSrcSet, getImageUrl } from '$lib/utils/image';
 	import type { ProviderResolution } from '$lib/streaming/provider-registry';
 
 	let {
@@ -122,7 +122,7 @@
 <div class="relative mb-8 h-[70vh] w-full overflow-hidden rounded-2xl">
 	<div class="absolute top-0 -right-[5%] -left-[5%] h-full w-[calc(100%+10%)]">
 		{#if movie?.backdropPath}
-			<img src={backdropUrl} alt={movie.title} class="h-full w-full rounded-2xl object-cover" />
+			<img src={backdropUrl} srcset={getBackdropSrcSet(movie?.backdropPath)} sizes="100vw" alt={movie.title} class="h-full w-full rounded-2xl object-cover" />
 		{/if}
 		<div class="absolute inset-0 rounded-2xl bg-linear-to-t from-background via-background/60 to-transparent"></div>
 	</div>

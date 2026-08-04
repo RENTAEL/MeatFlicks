@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { getImageUrl } from '$lib/utils/image';
+	import { getImageUrl, getSrcSet } from '$lib/utils/image';
 	import { User } from '@lucide/svelte';
 	import { Card } from '$lib/components/ui/card';
 
@@ -96,8 +96,12 @@
 			{#if posterPath}
 				<img
 					src={getImageUrl(posterPath, 'w500')}
+					srcset={getSrcSet(posterPath)}
+					sizes="(min-width: 1024px) 384px, 100vw"
 					alt={title}
 					class="mb-4 w-full max-w-sm rounded-lg object-cover"
+					loading="lazy"
+					decoding="async"
 				/>
 			{/if}
 			<div class="w-full max-w-sm">

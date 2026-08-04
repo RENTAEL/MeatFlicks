@@ -10,7 +10,7 @@
 	import { Badge } from '$lib/components/ui/badge';
 	import { Skeleton } from '$lib/components/ui/skeleton';
 	import type { LibraryMovie } from '$lib/types/library';
-	import { getImageUrl } from '$lib/utils/image';
+	import { getImageUrl, getSrcSet, POSTER_SIZES } from '$lib/utils/image';
 	import ProviderBadges from '$lib/components/ProviderBadges.svelte';
 
 	let {
@@ -147,7 +147,7 @@
 					</div>
 				{/if}
 
-				<a href={detailsHref} class="relative block h-full w-full overflow-hidden {showPreview && trailerKey ? 'opacity-0 transition-opacity duration-300' : ''}" aria-label={movie.title}>
+				<a href={detailsHref} data-sveltekit-preload-data="hover" class="relative block h-full w-full overflow-hidden {showPreview && trailerKey ? 'opacity-0 transition-opacity duration-300' : ''}" aria-label={movie.title}>
 					{#if movie.posterPath}
 						<img
 							src={getImageUrl(movie.posterPath, 'w92')}
@@ -161,6 +161,8 @@
 						/>
 						<img
 							src={posterUrl}
+							srcset={getSrcSet(movie.posterPath)}
+							sizes={POSTER_SIZES}
 							alt={`${movie.title} Poster`}
 							class="absolute inset-0 h-full w-full object-cover transition-opacity duration-400"
 							class:opacity-0={!imageLoaded}
@@ -218,6 +220,7 @@
 					<div class="absolute inset-x-0 bottom-0 z-30 animate-slide-up-fade p-4">
 						<a
 							rel="external"
+							data-sveltekit-preload-data="hover"
 							href={detailsHref}
 							class="block"
 						>
@@ -250,6 +253,7 @@
 						<div class="mt-3 flex items-center gap-2">
 							<a
 								rel="external"
+								data-sveltekit-preload-data="hover"
 								href={detailsHref}
 								class="inline-flex items-center gap-1.5 rounded-lg bg-white/20 px-3 py-1.5 text-xs font-semibold text-white backdrop-blur-sm transition-colors hover:bg-white/30"
 							>
@@ -258,6 +262,7 @@
 							</a>
 							<a
 								rel="external"
+								data-sveltekit-preload-data="hover"
 								href={detailsHref}
 								class="inline-flex items-center gap-1.5 rounded-lg bg-white/10 px-3 py-1.5 text-xs font-medium text-white/80 backdrop-blur-sm transition-colors hover:bg-white/20"
 							>

@@ -75,7 +75,7 @@ import Footer from '$lib/components/navigation/Footer.svelte';
 	<WatchlistContext>
 		<ErrorContext>
 			<TopNav />
-			<div class="relative flex min-h-dvh-fallback flex-col text-foreground">
+			<div class="relative flex min-h-dvh-fallback flex-col text-foreground" data-sveltekit-preload-data="hover">
 					<div class="pointer-events-none fixed inset-0 z-0 overflow-hidden">
 						{#each Array.from({ length: 20 }) as _, i}
 							<div

@@ -16,7 +16,7 @@
 	import { Badge } from '$lib/components/ui/badge';
 	import type { LibraryMovie } from '$lib/types/library';
 	import { Card, CardContent, CardHeader, CardTitle } from '$lib/components/ui/card';
-	import { getImageUrl } from '$lib/utils/image';
+	import { getBackdropSrcSet, getImageUrl } from '$lib/utils/image';
 
 	type HeroProps = {
 		movie?: LibraryMovie | null;
@@ -265,7 +265,9 @@
 			{#each slides as slide, index (slide.key)}
 				{#if index === activeIndex}
 					{#if slide.movie.backdropPath || slide.movie.posterPath}
-						{@const src = getImageUrl(slide.movie.backdropPath || slide.movie.posterPath, 'w1280')}
+						{@const backdropPath = slide.movie.backdropPath || slide.movie.posterPath}
+						{@const src = getImageUrl(backdropPath, 'w1280')}
+						{@const srcset = getBackdropSrcSet(backdropPath)}
 
 						<div
 							class="absolute inset-x-0 top-0 -right-[5%] -left-[5%] h-full w-[calc(100%+10%)] overflow-hidden"
@@ -273,6 +275,8 @@
 						>
 							<img
 								{src}
+								{srcset}
+								sizes="100vw"
 								alt=""
 								loading="eager"
 								fetchpriority="high"

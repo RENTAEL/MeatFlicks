@@ -12,6 +12,16 @@ export function getSrcSet(path: string | null | undefined): string | undefined {
 	return widths.map((w) => `/api/images${normalizedPath}?w=${w} ${w.replace('w', '')}w`).join(', ');
 }
 
+export function getBackdropSrcSet(path: string | null | undefined): string | undefined {
+	if (!path || path.startsWith('http')) return undefined;
+	const normalizedPath = path.startsWith('/') ? path : `/${path}`;
+	const widths = ['w780', 'w1280'];
+	return widths.map((w) => `/api/images${normalizedPath}?w=${w} ${w.replace('w', '')}w`).join(', ');
+}
+
+export const POSTER_SIZES = '(max-width: 640px) 112px, (max-width: 1024px) 144px, 192px';
+export const FULL_VIEWPORT_SIZES = '100vw';
+
 export function getOptimalImageSize(context: 'poster' | 'hero' | 'thumbnail' | 'micro' | 'card'): string {
 	if (typeof window === 'undefined') {
 		if (context === 'hero') return 'w1280';
