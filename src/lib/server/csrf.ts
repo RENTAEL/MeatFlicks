@@ -279,28 +279,32 @@ export function csrfMiddleware() {
 	return {
 		name: 'csrf',
 		async handle({ event, resolve }: { event: RequestEvent; resolve: CsrfResolve }) {
-			const csrfCookie = event.cookies.get(CSRF_COOKIE_NAME);
-			if (!csrfCookie) {
-				const csrfToken = generateSecureCsrfToken();
-				const csrfCookie = createSecureCsrfCookie(csrfToken);
+			const isApiRequest = event.url.pathname.includes('/api/');
 
-				event.cookies.set(csrfCookie.name, csrfCookie.value, csrfCookie.attributes);
-			} else {
-				try {
-					const tokenData = JSON.parse(csrfCookie) as Partial<CsrfTokenPayload>;
-					if (tokenData.expires && Date.now() > tokenData.expires - CSRF_TOKEN_ROTATION_INTERVAL) {
-						const newTokenData = generateSecureCsrfToken();
-						const newCsrfCookie = createSecureCsrfCookie(newTokenData);
-						event.cookies.set(newCsrfCookie.name, newCsrfCookie.value, newCsrfCookie.attributes);
-					}
-				} catch {
+			if (!isApiRequest) {
+				const csrfCookie = event.cookies.get(CSRF_COOKIE_NAME);
+				if (!csrfCookie) {
 					const csrfToken = generateSecureCsrfToken();
 					const csrfCookie = createSecureCsrfCookie(csrfToken);
+
 					event.cookies.set(csrfCookie.name, csrfCookie.value, csrfCookie.attributes);
+				} else {
+					try {
+						const tokenData = JSON.parse(csrfCookie) as Partial<CsrfTokenPayload>;
+						if (tokenData.expires && Date.now() > tokenData.expires - CSRF_TOKEN_ROTATION_INTERVAL) {
+							const newTokenData = generateSecureCsrfToken();
+							const newCsrfCookie = createSecureCsrfCookie(newTokenData);
+							event.cookies.set(newCsrfCookie.name, newCsrfCookie.value, newCsrfCookie.attributes);
+						}
+					} catch {
+						const csrfToken = generateSecureCsrfToken();
+						const csrfCookie = createSecureCsrfCookie(csrfToken);
+						event.cookies.set(csrfCookie.name, csrfCookie.value, csrfCookie.attributes);
+					}
 				}
 			}
 
-			if (!event.url.pathname.startsWith('/api/') && !['/login', '/signup', '/logout'].includes(event.url.pathname)) {
+			if (!isApiRequest && !['/login', '/signup', '/logout'].includes(event.url.pathname)) {
 			const csrfValidation = await validateSecureCsrfToken(event);
 
 			if (!csrfValidation.valid) {
