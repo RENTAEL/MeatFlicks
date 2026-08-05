@@ -1,20 +1,34 @@
+function toProxyPath(path: string | null | undefined): string | null {
+	if (!path) return null;
+	if (path.startsWith('http')) {
+		try {
+			const pathname = new URL(path).pathname;
+			const stripped = pathname.replace(/^\/t\/p\/[^/]+\//, '/');
+			if (stripped.startsWith('/') && stripped.length > 1) return stripped;
+		} catch {
+			return null;
+		}
+		return null;
+	}
+	return path.startsWith('/') ? path : `/${path}`;
+}
+
 export function getImageUrl(path: string | null | undefined, width: string = 'original'): string {
-	if (!path) return '';
-	if (path.startsWith('http')) return path;
-	const normalizedPath = path.startsWith('/') ? path : `/${path}`;
+	const normalizedPath = toProxyPath(path);
+	if (!normalizedPath) return path ?? '';
 	return `/api/images${normalizedPath}?w=${width}`;
 }
 
 export function getSrcSet(path: string | null | undefined): string | undefined {
-	if (!path || path.startsWith('http')) return undefined;
-	const normalizedPath = path.startsWith('/') ? path : `/${path}`;
+	const normalizedPath = toProxyPath(path);
+	if (!normalizedPath) return undefined;
 	const widths = ['w92', 'w185', 'w342', 'w500', 'w780'];
 	return widths.map((w) => `/api/images${normalizedPath}?w=${w} ${w.replace('w', '')}w`).join(', ');
 }
 
 export function getBackdropSrcSet(path: string | null | undefined): string | undefined {
-	if (!path || path.startsWith('http')) return undefined;
-	const normalizedPath = path.startsWith('/') ? path : `/${path}`;
+	const normalizedPath = toProxyPath(path);
+	if (!normalizedPath) return undefined;
 	const widths = ['w780', 'w1280'];
 	return widths.map((w) => `/api/images${normalizedPath}?w=${w} ${w.replace('w', '')}w`).join(', ');
 }
