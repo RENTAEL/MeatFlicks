@@ -1,5 +1,6 @@
 <script lang="ts">
 	import AggregatedRating from '$lib/components/AggregatedRating.svelte';
+	import { getImageUrl, getSrcSet } from '$lib/utils/image';
 
 	let expanded = $state(false);
 
@@ -29,9 +30,13 @@
 	<div class="flex flex-col gap-6 md:flex-row">
 		<div class="w-24 shrink-0 md:hidden">
 			<img
-				src={movie.poster_path ? `https://image.tmdb.org/t/p/w342${movie.poster_path}` : '/placeholder-poster.svg'}
+				src={getImageUrl(movie.poster_path, 'w342')}
+				srcset={getSrcSet(movie.poster_path)}
+				sizes="96px"
 				alt={movie.title}
 				class="w-full rounded-lg"
+				loading="lazy"
+				decoding="async"
 			/>
 		</div>
 
