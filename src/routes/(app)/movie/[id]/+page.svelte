@@ -64,6 +64,12 @@
 			>
 				Back to Movies
 			</a>
+			<button
+				onclick={() => window.location.reload()}
+				class="mt-4 ml-3 rounded-lg bg-zinc-800 px-4 py-2 text-sm font-medium text-zinc-200 transition-colors hover:bg-zinc-700"
+			>
+				Retry
+			</button>
 		</div>
 	{:else if data.movie}
 		<Player tmdbId={data.movie.id} title={data.movie.title} />

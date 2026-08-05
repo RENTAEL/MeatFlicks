@@ -459,6 +459,25 @@
 			</div>
 		{/if}
 	</div>
+{:else}
+	<div class="flex flex-col items-center justify-center px-4 py-24 text-center">
+		<p class="text-lg font-medium text-zinc-400">Failed to load this TV series</p>
+		<p class="mt-1 text-sm text-zinc-600">The title may be unavailable right now. Check your connection and try again.</p>
+		<div class="mt-6 flex gap-3">
+			<a
+				href="/tv"
+				class="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-indigo-500"
+			>
+				Back to TV
+			</a>
+			<button
+				onclick={() => window.location.reload()}
+				class="rounded-lg bg-zinc-800 px-4 py-2 text-sm font-medium text-zinc-200 transition-colors hover:bg-zinc-700"
+			>
+				Retry
+			</button>
+		</div>
+	</div>
 {/if}
 
 <style>

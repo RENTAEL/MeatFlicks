@@ -33,12 +33,20 @@ import { getImageUrl } from '$lib/utils/image';
 			<svg class="mb-4 size-16 text-zinc-700" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.34 16.5c-.77.833.192 2.5 1.732 2.5z" /></svg>
 			<p class="text-lg font-medium text-zinc-400">Failed to load film</p>
 			<p class="mt-1 text-sm text-zinc-600">{data.error}</p>
-			<a
-				href="/afrikaans"
-				class="mt-4 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-indigo-500"
-			>
-				Back to Afrikaans Films
-			</a>
+			<div class="mt-4 flex gap-3">
+				<a
+					href="/afrikaans"
+					class="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-indigo-500"
+				>
+					Back to Afrikaans Films
+				</a>
+				<button
+					onclick={() => window.location.reload()}
+					class="rounded-lg bg-zinc-800 px-4 py-2 text-sm font-medium text-zinc-200 transition-colors hover:bg-zinc-700"
+				>
+					Retry
+				</button>
+			</div>
 		</div>
 	{:else if data.movie}
 		{#if data.movie.titleEn}

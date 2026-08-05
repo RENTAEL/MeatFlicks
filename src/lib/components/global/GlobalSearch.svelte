@@ -296,6 +296,13 @@
 												src={getImageUrl(movie.posterPath, 'w154')}
 												alt=""
 												class="h-full w-full object-cover"
+												loading="lazy"
+												decoding="async"
+												onerror={(e) => {
+													const img = e.currentTarget as HTMLImageElement;
+													img.onerror = null;
+													img.remove();
+												}}
 											/>
 										{/if}
 									</div>
