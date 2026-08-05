@@ -1,6 +1,6 @@
-import { initializeApp, getApps, type FirebaseApp } from 'firebase/app';
-import { getAuth, type Auth } from 'firebase/auth';
-import { getFirestore, type Firestore } from 'firebase/firestore';
+import type { FirebaseApp } from 'firebase/app';
+import type { Auth } from 'firebase/auth';
+import type { Firestore } from 'firebase/firestore';
 
 const firebaseConfig = {
 	apiKey: import.meta.env.PUBLIC_FIREBASE_API_KEY,
@@ -18,44 +18,43 @@ function hasFirebaseConfig(): boolean {
 let app: FirebaseApp | null = null;
 let auth: Auth | null = null;
 let db: Firestore | null = null;
-let _initialized = false;
 
-function ensureInitialized() {
-	if (_initialized) return true;
+async function ensureInitialized(): Promise<boolean> {
 	if (!hasFirebaseConfig()) {
 		if (import.meta.env.DEV) {
 			console.info('[firebase] Firebase not configured — auth disabled');
 		}
 		return false;
 	}
-	if (!app) {
-		if (!getApps().length) {
-			app = initializeApp(firebaseConfig);
-		} else {
-			app = getApps()[0];
-		}
+	if (app) return true;
+	const { initializeApp, getApps } = await import('firebase/app');
+	if (getApps().length) {
+		app = getApps()[0];
+	} else {
+		app = initializeApp(firebaseConfig);
 	}
-	_initialized = true;
 	return true;
 }
 
-export function getFirebaseApp(): FirebaseApp | null {
-	return ensureInitialized() ? app : null;
+export async function getFirebaseApp(): Promise<FirebaseApp | null> {
+	return (await ensureInitialized()) ? app : null;
 }
 
-export function getFirebaseAuth(): Auth | null {
-	if (!ensureInitialized()) return null;
+export async function getFirebaseAuth(): Promise<Auth | null> {
+	if (!(await ensureInitialized())) return null;
 	if (!auth) {
-		const fbApp = getFirebaseApp();
+		const { getAuth } = await import('firebase/auth');
+		const fbApp = await getFirebaseApp();
 		if (fbApp) auth = getAuth(fbApp);
 	}
 	return auth;
 }
 
-export function getFirestoreDb(): Firestore | null {
-	if (!ensureInitialized()) return null;
+export async function getFirestoreDb(): Promise<Firestore | null> {
+	if (!(await ensureInitialized())) return null;
 	if (!db) {
-		const fbApp = getFirebaseApp();
+		const { getFirestore } = await import('firebase/firestore');
+		const fbApp = await getFirebaseApp();
 		if (fbApp) db = getFirestore(fbApp);
 	}
 	return db;

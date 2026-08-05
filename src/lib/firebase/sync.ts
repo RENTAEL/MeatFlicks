@@ -6,7 +6,7 @@ import { watchHistory } from '$lib/state/stores/historyStore';
 type AnyFn = (...args: any[]) => any;
 
 export function setupCloudSync() {
-	authStore.init();
+	authStore.init().catch(() => {});
 
 	if ((playbackStore as any).saveProgress) {
 		const origSaveProgress = (playbackStore as any).saveProgress as AnyFn;

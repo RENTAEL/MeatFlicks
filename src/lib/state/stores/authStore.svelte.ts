@@ -1,24 +1,5 @@
 import { browser } from '$app/environment';
-import {
-	createUserWithEmailAndPassword,
-	signInWithEmailAndPassword,
-	signOut,
-	onAuthStateChanged,
-	sendPasswordResetEmail,
-	updateProfile,
-	type User
-} from 'firebase/auth';
-import {
-	doc,
-	setDoc,
-	getDoc,
-	collection,
-	query,
-	where,
-	getDocs,
-	deleteDoc,
-	writeBatch
-} from 'firebase/firestore';
+import type { User } from 'firebase/auth';
 import { getFirebaseAuth, getFirestoreDb } from '$lib/firebase/client';
 import { watchHistory } from './historyStore';
 import { watchlist } from './watchlistStore.svelte';
@@ -39,13 +20,14 @@ function createAuthStore() {
 
 	let unsubscribe: (() => void) | null = null;
 
-	function init() {
+	async function init() {
 		if (!browser) return;
-		const auth = getFirebaseAuth();
+		const auth = await getFirebaseAuth();
 		if (!auth) {
 			state.isLoading = false;
 			return;
 		}
+		const { onAuthStateChanged } = await import('firebase/auth');
 		unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
 			state.isLoading = true;
 			if (firebaseUser) {
@@ -65,8 +47,9 @@ function createAuthStore() {
 	}
 
 	async function signup(email: string, password: string, displayName?: string) {
-		const auth = getFirebaseAuth();
+		const auth = await getFirebaseAuth();
 		if (!auth) throw new Error('Firebase not configured');
+		const { createUserWithEmailAndPassword, updateProfile } = await import('firebase/auth');
 		const cred = await createUserWithEmailAndPassword(auth, email, password);
 		if (displayName) {
 			await updateProfile(cred.user, { displayName });
@@ -76,31 +59,35 @@ function createAuthStore() {
 	}
 
 	async function login(email: string, password: string) {
-		const auth = getFirebaseAuth();
+		const auth = await getFirebaseAuth();
 		if (!auth) throw new Error('Firebase not configured');
+		const { signInWithEmailAndPassword } = await import('firebase/auth');
 		const cred = await signInWithEmailAndPassword(auth, email, password);
 		await migrateLocalData(cred.user.uid);
 		return cred.user;
 	}
 
 	async function logout() {
-		const auth = getFirebaseAuth();
+		const auth = await getFirebaseAuth();
 		if (!auth) return;
+		const { signOut } = await import('firebase/auth');
 		await signOut(auth);
 		state.user = null;
 		state.isGuest = true;
 	}
 
 	async function resetPassword(email: string) {
-		const auth = getFirebaseAuth();
+		const auth = await getFirebaseAuth();
 		if (!auth) throw new Error('Firebase not configured');
+		const { sendPasswordResetEmail } = await import('firebase/auth');
 		await sendPasswordResetEmail(auth, email);
 	}
 
 	async function migrateLocalData(uid: string) {
 		try {
-			const db = getFirestoreDb();
+			const db = await getFirestoreDb();
 			if (!db) return;
+			const { doc, collection, writeBatch, getDoc } = await import('firebase/firestore');
 			const userDoc = doc(db, 'users', uid);
 			const existing = await getDoc(userDoc);
 			if (existing.exists()) return;
@@ -149,8 +136,10 @@ function createAuthStore() {
 
 	async function syncFromCloud(uid: string) {
 		try {
-			const db = getFirestoreDb();
+			const db = await getFirestoreDb();
 			if (!db) return;
+
+			const { collection, getDocs } = await import('firebase/firestore');
 
 			const progressSnap = await getDocs(collection(db, 'users', uid, 'progress'));
 			progressSnap.forEach((d) => {
@@ -177,8 +166,9 @@ function createAuthStore() {
 	async function saveProgressToCloud(mediaId: string, data: any) {
 		if (state.isGuest || !state.user) return;
 		try {
-			const db = getFirestoreDb();
+			const db = await getFirestoreDb();
 			if (!db) return;
+			const { doc, setDoc } = await import('firebase/firestore');
 			await setDoc(doc(db, 'users', state.user.uid, 'progress', mediaId), data, { merge: true });
 		} catch (e) {
 			console.error('[auth] Failed to save progress to cloud:', e);
@@ -188,8 +178,9 @@ function createAuthStore() {
 	async function saveWatchlistToCloud(item: any) {
 		if (state.isGuest || !state.user) return;
 		try {
-			const db = getFirestoreDb();
+			const db = await getFirestoreDb();
 			if (!db) return;
+			const { doc, setDoc } = await import('firebase/firestore');
 			await setDoc(doc(db, 'users', state.user.uid, 'watchlist', String(item.id)), item, { merge: true });
 		} catch (e) {
 			console.error('[auth] Failed to save watchlist to cloud:', e);
@@ -199,8 +190,9 @@ function createAuthStore() {
 	async function removeWatchlistFromCloud(mediaId: string) {
 		if (state.isGuest || !state.user) return;
 		try {
-			const db = getFirestoreDb();
+			const db = await getFirestoreDb();
 			if (!db) return;
+			const { doc, deleteDoc } = await import('firebase/firestore');
 			await deleteDoc(doc(db, 'users', state.user.uid, 'watchlist', mediaId));
 		} catch (e) {
 			console.error('[auth] Failed to remove watchlist from cloud:', e);

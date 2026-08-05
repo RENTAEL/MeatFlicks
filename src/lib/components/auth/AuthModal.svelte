@@ -2,7 +2,6 @@
 	import { X, Mail, Lock, User, Loader2, Eye, EyeOff, AlertCircle } from '@lucide/svelte';
 	import { Button } from '$lib/components/ui/button';
 	import { authStore } from '$lib/state/stores/authStore.svelte';
-	import { FirebaseError } from 'firebase/app';
 
 	let { open = false, onClose }: { open?: boolean; onClose: () => void } = $props();
 
@@ -44,7 +43,8 @@
 			}
 			if (mode !== 'reset') handleClose();
 		} catch (e) {
-			if (e instanceof FirebaseError) {
+			const fbErr = e as { code?: string; message?: string } | null;
+			if (fbErr && typeof fbErr.code === 'string' && fbErr.code.startsWith('auth/')) {
 				const messages: Record<string, string> = {
 					'auth/user-not-found': 'No account found with this email.',
 					'auth/wrong-password': 'Incorrect password.',
@@ -54,7 +54,7 @@
 					'auth/invalid-email': 'Please enter a valid email address.',
 					'auth/too-many-requests': 'Too many attempts. Please try again later.'
 				};
-				error = messages[e.code] || e.message;
+				error = messages[fbErr.code] || fbErr.message || 'Authentication failed.';
 			} else {
 				error = e instanceof Error ? e.message : 'Something went wrong.';
 			}
