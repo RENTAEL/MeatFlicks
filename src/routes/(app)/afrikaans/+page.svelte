@@ -5,6 +5,7 @@
 	import MediaCard from '$lib/components/media/MediaCard.svelte';
 	import { toLibraryMovie } from '$lib/utils/tmdb';
 	import SkeletonCard from '$lib/components/SkeletonCard.svelte';
+	import EmptyState from '$lib/components/media/EmptyState.svelte';
 	import { fly } from 'svelte/transition';
 
 	let { data }: { data: PageData } = $props();
@@ -107,6 +108,18 @@
 				{/each}
 			</div>
 		</section>
+	{:else}
+		<section class="mb-8" aria-label="Nuut: Afrikaans / Recent Afrikaans">
+			<div class="mb-3 flex items-baseline gap-3">
+				<h2 class="text-lg font-semibold text-white">Nuut: Afrikaans</h2>
+				<p class="text-xs text-zinc-500">Recent Afrikaans-language films (laaste 24 maande)</p>
+			</div>
+			<EmptyState
+				compact
+				title="Nog geen onlangse films nie / No recent films yet"
+				subtitle="Kyk binnekort weer / Check back soon"
+			/>
+		</section>
 	{/if}
 
 	{#if recentSA.length > 0}
@@ -122,6 +135,18 @@
 					</a>
 				{/each}
 			</div>
+		</section>
+	{:else}
+		<section class="mb-8" aria-label="Nuut: Suid-Afrikaans / Recent South African">
+			<div class="mb-3 flex items-baseline gap-3">
+				<h2 class="text-lg font-semibold text-white">Nuut: Suid-Afrikaans</h2>
+				<p class="text-xs text-zinc-500">Recent South African releases — SA films, Afrikaans and English</p>
+			</div>
+			<EmptyState
+				compact
+				title="Nog geen onlangse films nie / No recent films yet"
+				subtitle="Kyk binnekort weer / Check back soon"
+			/>
 		</section>
 	{/if}
 
@@ -167,25 +192,28 @@
 			{/each}
 		</div>
 	{:else if movies.length === 0}
-		<div class="flex flex-col items-center justify-center py-20">
-			<svg class="mb-4 size-16 text-zinc-700" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 4v16M17 4v16M3 8h4m10 0h4M3 12h18M3 16h4m10 0h4M4 20h16a1 1 0 001-1V5a1 1 0 00-1-1H4a1 1 0 00-1 1v14a1 1 0 001 1z" /></svg>
-			<p class="text-lg font-medium text-zinc-400">Geen Afrikaanse films gevind nie.</p>
-		</div>
+		<EmptyState
+			icon="film"
+			title="Niks gevind nie / Nothing found"
+			subtitle="Geen Afrikaanse films beskikbaar op die oomblik nie / No Afrikaans films available right now"
+			backdrop={recentSA[0]?.backdrop || recentAfrikaans[0]?.backdrop}
+		/>
 	{:else if data.error}
-		<div class="flex flex-col items-center justify-center py-20">
-			<svg class="mb-4 size-16 text-zinc-700" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.34 16.5c-.77.833.192 2.5 1.732 2.5z" /></svg>
-			<p class="text-lg font-medium text-zinc-400">Failed to load films.</p>
-			<button
-				onclick={() => goto('/afrikaans')}
-				class="mt-4 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-indigo-500"
-			>Retry</button>
-		</div>
+		<EmptyState
+			icon="error"
+			title="Kon nie laai nie / Failed to load films"
+			subtitle="Netwerkprobleem met TMDB / Network problem with TMDB"
+			actionLabel="Probeer weer / Retry"
+			onAction={() => goto('/afrikaans')}
+		/>
 	{:else if filteredMovies.length === 0}
-		<div class="flex flex-col items-center justify-center py-20">
-			<svg class="mb-4 size-16 text-zinc-700" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
-			<p class="text-lg font-medium text-zinc-400">Geen resultate vir "{searchQuery}" nie.</p>
-			<p class="mt-1 text-sm text-zinc-600">Probeer 'n ander soektog / Try a different search.</p>
-		</div>
+		<EmptyState
+			icon="search"
+			title={`Geen resultate vir "{searchQuery}" nie / No results for "{searchQuery}"`}
+			subtitle="Probeer 'n ander soektog / Try a different search"
+			actionLabel="Maak skoon / Clear"
+			onAction={() => searchQuery = ''}
+		/>
 	{:else}
 		<div class="grid grid-cols-3 gap-4 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6">
 			{#each filteredMovies as movie, i (movie.id)}
