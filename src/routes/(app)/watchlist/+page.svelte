@@ -337,8 +337,15 @@
 	}
 </script>
 
+<svelte:head>
+	<title>My Watchlist | Streamium</title>
+	<meta name="description" content="Your saved movies and TV shows, ready to watch on Streamium." />
+	<meta property="og:title" content="My Watchlist — Streamium" />
+	<meta property="og:type" content="website" />
+</svelte:head>
+
 {#if error}
-	<div class="flex min-h-screen flex-col items-center justify-center bg-background text-foreground">
+<div class="flex min-h-screen flex-col items-center justify-center bg-background text-foreground">
 		<p class="text-red-500">Error: {error}</p>
 	</div>
 {:else}

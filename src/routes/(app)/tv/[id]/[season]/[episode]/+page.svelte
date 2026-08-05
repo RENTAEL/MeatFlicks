@@ -89,6 +89,17 @@
 	$effect(() => { if (tmdbId && seasonNum && episodeNum) load(); });
 </script>
 
+<svelte:head>
+	<title>
+		{show?.name
+			? `${show.name} — S${seasonNum}:E${episodeNum} | Streamium`
+			: `TV Episode — S${seasonNum}:E${episodeNum} | Streamium`}
+	</title>
+	{#if show?.name}
+		<meta property="og:title" content={`${show.name} — S${seasonNum}:E${episodeNum}`} />
+	{/if}
+</svelte:head>
+
 {#if isLoading}
 	<div class="ep-page-loading">
 		<div class="ep-player-skel"></div>

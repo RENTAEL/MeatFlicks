@@ -107,6 +107,12 @@
   description={activeGenreName ? `Browse ${activeGenreName} movies - Stream free movies and TV shows` : 'Browse movies by genre - Stream free movies and TV shows'}
 />
 
+<svelte:head>
+	<title>Browse Genres | Streamium</title>
+	<meta name="description" content="Explore movies and TV by genre on Streamium." />
+	<meta property="og:title" content="Browse Genres — Streamium" />
+	<meta property="og:type" content="website" />
+</svelte:head>
 <div class="min-h-screen bg-background">
   <main class="pb-16">
     <div class="sticky top-0 z-40 bg-background/90 backdrop-blur-md border-b border-border/10">

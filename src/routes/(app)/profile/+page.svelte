@@ -26,6 +26,12 @@
 
 <SEOHead title="Profile — Streamium" description="Manage your Streamium profile" noindex />
 
+<svelte:head>
+	<title>Profile | Streamium</title>
+	<meta name="description" content="Manage your Streamium account, preferences, and viewing stats." />
+	<meta property="og:title" content="Profile — Streamium" />
+	<meta property="og:type" content="website" />
+</svelte:head>
 <div class="profile-page">
 	<div class="profile-header glass">
 		<div class="avatar-circle">

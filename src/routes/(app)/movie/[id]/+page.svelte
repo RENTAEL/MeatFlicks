@@ -4,6 +4,7 @@
 	import MovieInfo from '$lib/components/MovieInfo.svelte';
 	import MediaCard from '$lib/components/media/MediaCard.svelte';
 	import { toLibraryMovie } from '$lib/utils/tmdb';
+	import { getImageUrl } from '$lib/utils/image';
 	import { watchHistory } from '$lib/state/stores/historyStore';
 	import type { PageData } from './$types';
 
@@ -29,6 +30,19 @@
 		}
 	});
 </script>
+
+<svelte:head>
+	<title>{data.movie ? `${data.movie.title} — Watch Online | Streamium` : 'Movies | Streamium'}</title>
+	{#if data.movie}
+		<meta name="description" content={data.movie.overview?.slice(0, 155) ?? `Watch ${data.movie.title} on Streamium.`} />
+		<meta property="og:type" content="video.movie" />
+		<meta property="og:title" content={data.movie.title} />
+		<meta property="og:description" content={data.movie.overview?.slice(0, 155) ?? ''} />
+		{#if data.movie.poster_path}
+			<meta property="og:image" content={`https://streamium-cosmic.vercel.app${getImageUrl(data.movie.poster_path, 'w780')}`} />
+		{/if}
+	{/if}
+</svelte:head>
 
 <div class="mx-auto max-w-screen-2xl px-4 py-6 sm:px-6 lg:px-8">
 	<a

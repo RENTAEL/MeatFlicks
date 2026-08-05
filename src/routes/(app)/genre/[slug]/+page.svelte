@@ -9,6 +9,12 @@
 	const hasContent = $derived(data.hasContent);
 </script>
 
+<svelte:head>
+	<title>{genreTitle ? `${genreTitle} Movies | Streamium` : 'Genres | Streamium'}</title>
+	{#if genreTitle}
+		<meta property="og:title" content={`${genreTitle} Movies — Streamium`} />
+	{/if}
+</svelte:head>
 <div class="min-h-screen">
 	<main>
 		<h1 class="my-8 text-center text-4xl font-bold capitalize">{genreTitle}</h1>

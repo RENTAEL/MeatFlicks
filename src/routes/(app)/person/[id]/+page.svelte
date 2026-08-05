@@ -17,6 +17,15 @@
 	}
 </script>
 
+<svelte:head>
+	<title>{person ? `${person.name} — People | Streamium` : 'People | Streamium'}</title>
+	{#if person}
+		<meta property="og:title" content={person.name} />
+		{#if person.biography}
+			<meta name="description" content={person.biography.slice(0, 155)} />
+		{/if}
+	{/if}
+</svelte:head>
 <div class="min-h-screen bg-background text-foreground">
 	<main class="container mx-auto p-4">
 		<div class="mb-8 flex flex-col gap-8 md:flex-row">

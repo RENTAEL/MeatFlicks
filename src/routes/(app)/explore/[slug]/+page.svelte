@@ -269,6 +269,12 @@
 	}
 </script>
 
+<svelte:head>
+	<title>{categoryTitle ? `${categoryTitle} — Explore | Streamium` : 'Explore | Streamium'}</title>
+	{#if categoryTitle}
+		<meta property="og:title" content={`${categoryTitle} — Streamium`} />
+	{/if}
+</svelte:head>
 <div class="min-h-screen bg-background">
 	<main class="space-y-12 pb-16">
 		{#if highlightMovie && !useFilters}

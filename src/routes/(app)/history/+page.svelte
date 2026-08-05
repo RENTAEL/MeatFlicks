@@ -167,6 +167,12 @@
 	};
 </script>
 
+<svelte:head>
+	<title>Watch History | Streamium</title>
+	<meta name="description" content="Pick up where you left off — your recent watch history on Streamium." />
+	<meta property="og:title" content="Watch History — Streamium" />
+	<meta property="og:type" content="website" />
+</svelte:head>
 <div class="min-h-screen bg-background text-foreground">
 	<main class="container mx-auto space-y-6 px-4 py-8">
 		<header class="space-y-2">

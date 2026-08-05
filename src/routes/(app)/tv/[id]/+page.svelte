@@ -8,6 +8,7 @@
 	import { authStore } from '$lib/state/stores/authStore.svelte';
 	import { fade, fly } from 'svelte/transition';
 	import AggregatedRating from '$lib/components/AggregatedRating.svelte';
+	import { getImageUrl } from '$lib/utils/image';
 
 	let { data } = $props();
 	let show: any = $state(null);
@@ -185,6 +186,20 @@
 		return () => ro.disconnect();
 	});
 </script>
+
+<svelte:head>
+	<title>{data.movie ? `${data.movie.title} — Watch Online | Streamium` : show ? `${show.name} — Watch Online | Streamium` : 'TV Series | Streamium'}</title>
+	{#if data.movie?.overview}
+		<meta name="description" content={data.movie.overview.slice(0, 155)} />
+	{/if}
+	{#if data.movie}
+		<meta property="og:type" content="video.tv_show" />
+		<meta property="og:title" content={data.movie.title} />
+		{#if data.movie.posterPath}
+			<meta property="og:image" content={`https://streamium-cosmic.vercel.app${getImageUrl(data.movie.posterPath, 'w780')}`} />
+		{/if}
+	{/if}
+</svelte:head>
 
 {#if isLoading}
 	<div class="detail-skeleton">

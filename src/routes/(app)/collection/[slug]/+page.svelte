@@ -9,6 +9,12 @@
 	const hasContent = $derived(data.hasContent);
 </script>
 
+<svelte:head>
+	<title>{collectionTitle ? `${collectionTitle} — Collections | Streamium` : 'Collections | Streamium'}</title>
+	{#if collectionTitle}
+		<meta property="og:title" content={collectionTitle} />
+	{/if}
+</svelte:head>
 <div class="min-h-screen">
 	<main>
 		<h1 class="my-8 text-center text-4xl font-bold capitalize">{collectionTitle}</h1>
