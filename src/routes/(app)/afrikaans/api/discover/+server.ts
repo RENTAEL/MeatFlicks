@@ -20,10 +20,13 @@ export async function GET({ url }) {
 		.filter((m: any) => !curatedIds.has(m.id) && isEligibleMedia(m, 0))
 		.filter((m: any) => m.poster_path);
 
-	return json({
-		results: results.map(formatMovie),
-		page,
-		total_pages: data.total_pages,
-		hasMore: page < (data.total_pages || 1),
-	});
+	return json(
+		{
+			results: results.map(formatMovie),
+			page,
+			total_pages: data.total_pages,
+			hasMore: page < (data.total_pages || 1),
+		},
+		{ headers: { 'Cache-Control': 'public, max-age=120, s-maxage=600' } }
+	);
 }

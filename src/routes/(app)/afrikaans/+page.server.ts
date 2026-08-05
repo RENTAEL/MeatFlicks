@@ -5,6 +5,19 @@ import { isEligibleMedia } from '$lib/utils/mediaFilter';
 
 const TMDB_BASE = 'https://api.themoviedb.org/3';
 
+const CURATED_CACHE_TTL = 30 * 60 * 1000;
+
+type LandingPayload = {
+	movies: any[];
+	recentAfrikaans: any[];
+	recentSA: any[];
+	page: number;
+	hasMore: boolean;
+	source: string;
+};
+
+let curatedCache: { data: LandingPayload; at: number } | null = null;
+
 function sinceDate(months: number): string {
 	const d = new Date();
 	d.setUTCMonth(d.getUTCMonth() - months);
@@ -18,7 +31,7 @@ function todayParam(): string {
 async function fetchMovie(id: number) {
 	try {
 		const res = await fetch(
-			`${TMDB_BASE}/movie/${id}?api_key=${env.TMDB_API_KEY}&language=af&append_to_response=credits`
+			`${TMDB_BASE}/movie/${id}?api_key=${env.TMDB_API_KEY}&language=af`
 		);
 		if (!res.ok) return null;
 		return await res.json();
@@ -49,11 +62,17 @@ function eligible(results: any[], excluded: Set<number>): any[] {
 	return out;
 }
 
-export async function load({ url }) {
+export async function load({ url, setHeaders }) {
 	const page = Number(url.searchParams.get('page')) || 1;
 
 	try {
 		if (page === 1) {
+			setHeaders({ 'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=300' });
+
+			if (curatedCache && Date.now() - curatedCache.at < CURATED_CACHE_TTL) {
+				return curatedCache.data;
+			}
+
 			const curatedIds = AFRIKAANS_FILMS.map((f) => f.tmdbId);
 			const since = sinceDate(24);
 
@@ -92,7 +111,7 @@ export async function load({ url }) {
 			const recentAfrikaans = eligible(recentAfrikaansData.results, excluded);
 			const recentSA = eligible(recentSAData.results, excluded);
 
-			return {
+			const payload: LandingPayload = {
 				movies,
 				recentAfrikaans,
 				recentSA,
@@ -100,6 +119,8 @@ export async function load({ url }) {
 				hasMore: movies.length >= 20,
 				source: 'curated',
 			};
+			curatedCache = { data: payload, at: Date.now() };
+			return payload;
 		}
 
 		const discoverRes = await fetch(
