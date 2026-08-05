@@ -5,6 +5,16 @@ import { isEligibleMedia } from '$lib/utils/mediaFilter';
 
 const TMDB_BASE = 'https://api.themoviedb.org/3';
 
+function sinceDate(months: number): string {
+	const d = new Date();
+	d.setUTCMonth(d.getUTCMonth() - months);
+	return d.toISOString().slice(0, 10);
+}
+
+function todayParam(): string {
+	return new Date().toISOString().slice(0, 10);
+}
+
 async function fetchMovie(id: number) {
 	try {
 		const res = await fetch(
@@ -17,13 +27,48 @@ async function fetchMovie(id: number) {
 	}
 }
 
+async function fetchDiscover(params: string) {
+	try {
+		const res = await fetch(`${TMDB_BASE}/discover/movie?api_key=${env.TMDB_API_KEY}&${params}`);
+		if (!res.ok) return { results: [] };
+		return await res.json();
+	} catch {
+		return { results: [] };
+	}
+}
+
+function eligible(results: any[], excluded: Set<number>): any[] {
+	const seen = new Set<number>();
+	const out: any[] = [];
+	for (const m of results || []) {
+		if (excluded.has(m.id) || seen.has(m.id)) continue;
+		if (!isEligibleMedia(m, 0) || !m.poster_path) continue;
+		seen.add(m.id);
+		out.push(formatMovie(m));
+	}
+	return out;
+}
+
 export async function load({ url }) {
 	const page = Number(url.searchParams.get('page')) || 1;
 
 	try {
 		if (page === 1) {
 			const curatedIds = AFRIKAANS_FILMS.map((f) => f.tmdbId);
-			const tmdbResults = await Promise.all(curatedIds.map(fetchMovie));
+			const since = sinceDate(24);
+
+			const [tmdbResults, recentAfrikaansData, recentSAData] = await Promise.all([
+				Promise.all(curatedIds.map(fetchMovie)),
+				fetchDiscover(
+					`language=af&with_original_language=af&sort_by=primary_release_date.desc` +
+					`&primary_release_date.gte=${since}&primary_release_date.lte=${todayParam()}&page=1`
+				),
+				fetchDiscover(
+					`language=en-US&with_origin_country=ZA&with_original_language=af|en` +
+					`&sort_by=primary_release_date.desc` +
+					`&primary_release_date.gte=${since}&primary_release_date.lte=${todayParam()}&page=1`
+				)
+			]);
 
 			const movies = AFRIKAANS_FILMS.map((film, i) => {
 				const tmdb = tmdbResults[i];
@@ -43,7 +88,18 @@ export async function load({ url }) {
 				};
 			}).filter(Boolean).filter((m: any) => m.poster);
 
-			return { movies, page: 1, hasMore: movies.length >= 20, source: 'curated' };
+			const excluded = new Set(curatedIds);
+			const recentAfrikaans = eligible(recentAfrikaansData.results, excluded);
+			const recentSA = eligible(recentSAData.results, excluded);
+
+			return {
+				movies,
+				recentAfrikaans,
+				recentSA,
+				page: 1,
+				hasMore: movies.length >= 20,
+				source: 'curated',
+			};
 		}
 
 		const discoverRes = await fetch(
@@ -53,12 +109,12 @@ export async function load({ url }) {
 		const discoverData = await discoverRes.json();
 
 		const curatedIds = new Set(AFRIKAANS_FILMS.map((f) => f.tmdbId));
-		const movies = (discoverData.results || [])
-			.filter((m: any) => !curatedIds.has(m.id) && isEligibleMedia(m, 0))
-			.map(formatMovie);
+		const movies = eligible(discoverData.results, curatedIds);
 
 		return {
 			movies,
+			recentAfrikaans: [],
+			recentSA: [],
 			page,
 			hasMore: page < (discoverData.total_pages || 1),
 			source: 'discover',
@@ -66,6 +122,8 @@ export async function load({ url }) {
 	} catch (e) {
 		return {
 			movies: [],
+			recentAfrikaans: [],
+			recentSA: [],
 			error: 'Failed to load films',
 			page: 1,
 			hasMore: false,

@@ -10,12 +10,14 @@
 	let { data }: { data: PageData } = $props();
 
 	let movies = $state(data.movies || []);
+	let recentAfrikaans = $state(data.recentAfrikaans || []);
+	let recentSA = $state(data.recentSA || []);
 	let currentPage = $state(data.page || 1);
 	let hasMore = $state(data.hasMore ?? false);
 	let loadingMore = $state(false);
 	let searchQuery = $state('');
-	type SortMode = 'default' | 'newest';
-	let sortMode = $state<SortMode>('default');
+	type SortMode = 'newest' | 'rating' | 'az';
+	let sortMode = $state<SortMode>('newest');
 
 	let searchedMovies = $derived(
 		searchQuery
@@ -32,22 +34,29 @@
 			: movies
 	);
 
-	let filteredMovies = $derived(
-		sortMode === 'newest'
-			? [...searchedMovies].sort((a: any, b: any) => {
-				const dateA = a.release_date ? new Date(a.release_date).getTime() : a.year ? new Date(String(a.year)).getTime() : 0;
-				const dateB = b.release_date ? new Date(b.release_date).getTime() : b.year ? new Date(String(b.year)).getTime() : 0;
-				return dateB - dateA;
-			})
-			: searchedMovies
-	);
+	const sortValue = (m: any) => {
+		const d = m.release_date ? new Date(m.release_date).getTime() : m.year && /^\d{4}$/.test(String(m.year)) ? new Date(String(m.year)).getTime() : 0;
+		return Number.isFinite(d) ? d : 0;
+	};
 
-	function toggleSort() {
-		sortMode = sortMode === 'default' ? 'newest' : 'default';
-	}
+	let filteredMovies = $derived(
+		(() => {
+			const list = [...searchedMovies];
+			if (sortMode === 'newest') {
+				list.sort((a: any, b: any) => sortValue(b) - sortValue(a));
+			} else if (sortMode === 'rating') {
+				list.sort((a: any, b: any) => (b.rating ?? 0) - (a.rating ?? 0));
+			} else {
+				list.sort((a: any, b: any) => String(a.title ?? '').localeCompare(String(b.title ?? '')));
+			}
+			return list;
+		})()
+	);
 
 	$effect(() => {
 		if (data.movies) movies = data.movies;
+		recentAfrikaans = data.recentAfrikaans || [];
+		recentSA = data.recentSA || [];
 		currentPage = data.page || 1;
 		hasMore = data.hasMore ?? false;
 	});
@@ -84,6 +93,38 @@
 
 	<p class="mb-6 text-sm text-zinc-500">Afrikaans-language cinema and South African film</p>
 
+	{#if recentAfrikaans.length > 0}
+		<section class="mb-8" aria-label="Nuut: Afrikaans / Recent Afrikaans">
+			<div class="mb-3 flex items-baseline gap-3">
+				<h2 class="text-lg font-semibold text-white">Nuut: Afrikaans</h2>
+				<p class="text-xs text-zinc-500">Recent Afrikaans-language films (laaste 24 maande)</p>
+			</div>
+			<div class="-mx-4 flex gap-4 overflow-x-auto px-4 pb-2 scrollbar-thin scrollbar-thumb-zinc-800 scrollbar-track-transparent">
+				{#each recentAfrikaans as movie (movie.id)}
+					<a href="/afrikaans/{movie.id}" class="w-28 shrink-0 sm:w-36 md:w-48">
+						<MediaCard movie={toLibraryMovie(movie)} href="/afrikaans/{movie.id}" />
+					</a>
+				{/each}
+			</div>
+		</section>
+	{/if}
+
+	{#if recentSA.length > 0}
+		<section class="mb-8" aria-label="Nuut: Suid-Afrikaans / Recent South African">
+			<div class="mb-3 flex items-baseline gap-3">
+				<h2 class="text-lg font-semibold text-white">Nuut: Suid-Afrikaans</h2>
+				<p class="text-xs text-zinc-500">Recent South African releases — SA films, Afrikaans and English</p>
+			</div>
+			<div class="-mx-4 flex gap-4 overflow-x-auto px-4 pb-2 scrollbar-thin scrollbar-thumb-zinc-800 scrollbar-track-transparent">
+				{#each recentSA as movie (movie.id)}
+					<a href="/afrikaans/{movie.id}" class="w-28 shrink-0 sm:w-36 md:w-48">
+						<MediaCard movie={toLibraryMovie(movie)} href="/afrikaans/{movie.id}" />
+					</a>
+				{/each}
+			</div>
+		</section>
+	{/if}
+
 	<div class="toolbar">
 		<div class="search-input-wrap">
 			<svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -99,16 +140,19 @@
 				<button class="search-clear" onclick={() => searchQuery = ''}>✕</button>
 			{/if}
 		</div>
-		<button
-			class="sort-btn"
-			class:active={sortMode === 'newest'}
-			onclick={toggleSort}
-		>
-			<svg class="sort-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-				<path d="M3 6h13M3 12h9M3 18h5" />
-			</svg>
-			<span>{sortMode === 'newest' ? 'Nuutste' : 'Sorteer'}</span>
-		</button>
+		<div class="sort-wrap">
+			<label class="sort-label" for="afrikaans-sort">Sorteer</label>
+			<select
+				id="afrikaans-sort"
+				class="sort-select"
+				bind:value={sortMode}
+				aria-label="Sorteer films / Sort films"
+			>
+				<option value="newest">Nuutste / Newest</option>
+				<option value="rating">Beoordeling / Rating</option>
+				<option value="az">A–Z</option>
+			</select>
+		</div>
 	</div>
 	{#if searchQuery}
 		<p class="mb-4 text-sm text-zinc-500">{filteredMovies.length} van {movies.length} resultate</p>
@@ -190,20 +234,25 @@
 	}
 	.search-clear:hover { color: #e4e4e7; }
 
-	.sort-btn {
-		display: flex; align-items: center; gap: 6px;
-		padding: 10px 16px; background: rgba(30,27,75,0.7);
+	.sort-wrap {
+		display: flex; align-items: center; gap: 8px; flex-shrink: 0;
+	}
+	.sort-label {
+		font-size: 13px; color: #71717a; font-weight: 500; white-space: nowrap;
+	}
+	.sort-select {
+		padding: 9px 12px; background: rgba(30,27,75,0.7);
 		border: 1px solid rgba(129,140,248,0.15); border-radius: 12px;
 		color: #a5b4fc; font-size: 13px; font-weight: 500;
-		cursor: pointer; white-space: nowrap; transition: all 0.15s; flex-shrink: 0;
+		cursor: pointer; outline: none; transition: all 0.15s;
 	}
-	.sort-btn:hover { border-color: rgba(129,140,248,0.3); color: #c7d2fe; }
-	.sort-btn.active { background: rgba(129,140,248,0.15); border-color: rgba(129,140,248,0.4); color: #e0e7ff; }
-	.sort-icon { width: 16px; height: 16px; flex-shrink: 0; }
+	.sort-select:hover { border-color: rgba(129,140,248,0.3); color: #c7d2fe; }
+	.sort-select:focus { border-color: rgba(129,140,248,0.4); }
+	.sort-select option { background: #1e1b2e; color: #e4e4e7; }
 
 	@media (max-width: 640px) {
 		.toolbar { flex-direction: column; align-items: stretch; }
 		.search-input-wrap { max-width: 100%; }
-		.sort-btn { justify-content: center; }
+		.sort-wrap { justify-content: flex-end; }
 	}
 </style>
