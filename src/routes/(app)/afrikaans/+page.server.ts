@@ -54,7 +54,7 @@ export async function load({ url }) {
 
 		const curatedIds = new Set(AFRIKAANS_FILMS.map((f) => f.tmdbId));
 		const movies = (discoverData.results || [])
-			.filter((m: any) => !curatedIds.has(m.id) && isEligibleMedia(m))
+			.filter((m: any) => !curatedIds.has(m.id) && isEligibleMedia(m, 0))
 			.map(formatMovie);
 
 		return {

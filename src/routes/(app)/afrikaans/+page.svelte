@@ -65,7 +65,6 @@
 			movies = [...movies, ...(json.results || [])];
 			currentPage = nextPage;
 			hasMore = json.hasMore ?? false;
-			goto(`/afrikaans?page=${nextPage}`, { replaceState: true, noScroll: true });
 		} catch {
 		} finally {
 			loadingMore = false;
