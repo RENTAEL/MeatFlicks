@@ -209,7 +209,7 @@
 	{:else if filteredMovies.length === 0}
 		<EmptyState
 			icon="search"
-			title={`Geen resultate vir "{searchQuery}" nie / No results for "{searchQuery}"`}
+			title={`Geen resultate vir "${searchQuery}" nie / No results for "${searchQuery}"`}
 			subtitle="Probeer 'n ander soektog / Try a different search"
 			actionLabel="Maak skoon / Clear"
 			onAction={() => searchQuery = ''}
