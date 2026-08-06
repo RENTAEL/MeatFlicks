@@ -117,6 +117,7 @@
 	onmouseenter={startHover}
 	onmouseleave={endHover}
 	onclick={(e) => { const t = e.target as HTMLElement | null; if (t && !t.closest('a, button') && browser) goto(detailsHref); }}
+	onkeydown={(e) => { if (e.key === 'Enter' && browser) goto(detailsHref); }}
 	style="touch-action: manipulation; -webkit-tap-highlight-color: transparent;"
 >
 	<div
