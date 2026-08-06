@@ -230,7 +230,11 @@
 			const res = await fetch(`/${section}/api/discover?${p}`);
 			if (!res.ok) throw new Error('Failed');
 			const json = await res.json();
-			browseItems = [...browseItems, ...(json.results || [])];
+			const merged = new Map(browseItems.map((m) => [gridKey(m), m]));
+			for (const item of json.results ?? []) {
+				if (!merged.has(gridKey(item))) merged.set(gridKey(item), item);
+			}
+			browseItems = [...merged.values()];
 			browsePage = json.page;
 			browseHasMore = json.hasMore ?? false;
 		} catch {
