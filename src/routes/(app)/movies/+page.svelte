@@ -1,9 +1,25 @@
 <script lang="ts">
 	import SectionPage from '$lib/components/sections/SectionPage.svelte';
+	import { SEOHead } from '$lib/components/seo';
 	import type { PageData } from './$types';
 
 	let { data }: { data: PageData } = $props();
 </script>
+
+<SEOHead
+	title="Movies — Streamium"
+	description="Flieks uit die biblioteek — Browse movies from the Streamium library."
+	canonical="/movies"
+	ogType="video.movie"
+	keywords={[
+		'stream movies',
+		'watch movies online',
+		'flieks aanlyn',
+		'movie streaming',
+		'film library',
+		'latest movies'
+	]}
+/>
 
 <SectionPage
 	section="movies"
