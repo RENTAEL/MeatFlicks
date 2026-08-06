@@ -1,3 +1,4 @@
+import { htmlCacheControl } from '$lib/server/caching';
 import type { PageServerLoad } from './$types';
 import { libraryRepository } from '$lib/server';
 import { fromSlug, toSlug } from '$lib/utils';
@@ -61,7 +62,8 @@ async function fetchTmdbTrending(mediaType: 'movie' | 'tv', limit = 20): Promise
 	}
 }
 
-export const load: PageServerLoad = async ({ params, url }) => {
+export const load: PageServerLoad = async ({ params, url, locals, setHeaders }) => {
+	setHeaders({ 'Cache-Control': htmlCacheControl(locals.user) });
 	const { slug } = params;
 	const { filters, sort, pagination } = parseAllFromURL(url.searchParams);
 

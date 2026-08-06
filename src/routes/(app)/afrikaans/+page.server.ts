@@ -1,3 +1,4 @@
+import { htmlCacheControl } from '$lib/server/caching';
 import { AFRIKAANS_FILMS } from '$lib/curated/afrikaans-films';
 import { env } from '$lib/config/env';
 import { formatMovie } from '$lib/utils/tmdb';
@@ -62,12 +63,12 @@ function eligible(results: any[], excluded: Set<number>): any[] {
 	return out;
 }
 
-export async function load({ url, setHeaders }) {
+export async function load({ url, locals, setHeaders }) {
+	setHeaders({ 'Cache-Control': htmlCacheControl(locals.user) });
 	const page = Number(url.searchParams.get('page')) || 1;
 
 	try {
 		if (page === 1) {
-			setHeaders({ 'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=300' });
 
 			if (curatedCache && Date.now() - curatedCache.at < CURATED_CACHE_TTL) {
 				return curatedCache.data;

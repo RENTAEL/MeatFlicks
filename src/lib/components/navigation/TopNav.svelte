@@ -4,6 +4,7 @@
 	import { onMount } from 'svelte';
 	import { fly, fade } from 'svelte/transition';
 	import { searchOpen } from '$lib/stores/search';
+	import { getCsrfTokenClient } from '$lib/utils/csrf.client';
 	import ThemeToggle from '$lib/themes/ThemeToggle.svelte';
 
 	let scrolled = $state(false);
@@ -25,7 +26,7 @@
 
 	async function signOut() {
 		const form = new FormData();
-		form.append('csrf_token', page.data.csrfToken || '');
+		form.append('csrf_token', (await getCsrfTokenClient()) || '');
 		await fetch('/logout', { method: 'POST', body: form });
 		goto('/login');
 	}

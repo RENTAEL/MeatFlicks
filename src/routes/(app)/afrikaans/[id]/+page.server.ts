@@ -1,3 +1,4 @@
+import { htmlCacheControl } from '$lib/server/caching';
 import { AFRIKAANS_FILMS } from '$lib/curated/afrikaans-films';
 import { env } from '$lib/config/env';
 
@@ -49,7 +50,8 @@ async function findYoutubeSource(title: string, year?: string): Promise<string |
 	}
 }
 
-export async function load({ params, fetch }) {
+export async function load({ params, fetch, locals, setHeaders }) {
+	setHeaders({ 'Cache-Control': htmlCacheControl(locals.user) });
 	const { id } = params;
 
 	try {

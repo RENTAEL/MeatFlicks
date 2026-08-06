@@ -1,6 +1,8 @@
+import { htmlCacheControl } from '$lib/server/caching';
 import type { PageServerLoad } from './$types';
 
-export const load: PageServerLoad = async ({ url, fetch }) => {
+export const load: PageServerLoad = async ({ url, fetch, locals, setHeaders }) => {
+	setHeaders({ 'Cache-Control': htmlCacheControl(locals.user) });
   const query = url.searchParams.get('q') || '';
   const page = parseInt(url.searchParams.get('page') || '1');
 

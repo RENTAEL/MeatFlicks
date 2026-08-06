@@ -1,6 +1,7 @@
 import type { LibraryMedia } from '$lib/types/library';
 import { notifications } from './notificationStore';
 import { page } from '$app/state';
+import { getCsrfTokenClient } from '$lib/utils/csrf.client';
 
 export type Media = {
 	id: string;
@@ -34,10 +35,11 @@ type WatchlistCandidate = LibraryMedia | Media | (Partial<Media> & Record<string
 const STORAGE_KEY = 'streamium.watchlist';
 const hasStorage = typeof localStorage !== 'undefined';
 
-const buildJsonHeadersWithCsrf = () => {
+const buildJsonHeadersWithCsrf = async () => {
 	const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-	if (page.data.csrfToken) {
-		headers['X-CSRF-Token'] = page.data.csrfToken;
+	const token = await getCsrfTokenClient();
+	if (token) {
+		headers['X-CSRF-Token'] = token;
 	}
 	return headers;
 };
@@ -248,7 +250,7 @@ class WatchlistStore {
 
 			const response = await fetch('/api/watchlist', {
 				method: 'POST',
-				headers: buildJsonHeadersWithCsrf(),
+				headers: await buildJsonHeadersWithCsrf(),
 				body: JSON.stringify(body),
 				credentials: 'include'
 			});
@@ -293,7 +295,7 @@ class WatchlistStore {
 
 			const response = await fetch('/api/watchlist', {
 				method: 'DELETE',
-				headers: buildJsonHeadersWithCsrf(),
+				headers: await buildJsonHeadersWithCsrf(),
 				body: JSON.stringify(body),
 				credentials: 'include'
 			});
@@ -316,7 +318,7 @@ class WatchlistStore {
 		try {
 			await fetch('/api/watchlist', {
 				method: 'DELETE',
-				headers: buildJsonHeadersWithCsrf(),
+				headers: await buildJsonHeadersWithCsrf(),
 				body: JSON.stringify({ clearAll: true }),
 				credentials: 'include'
 			});

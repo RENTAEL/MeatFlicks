@@ -1,3 +1,4 @@
+import { htmlCacheControl } from '$lib/server/caching';
 import { formatMovie } from '$lib/utils/tmdb';
 import { isEligibleMedia } from '$lib/utils/mediaFilter';
 import { fetchMovieCategory, MOVIE_CATEGORIES } from '$lib/server/tmdb-movies';
@@ -11,7 +12,8 @@ function parsePage(raw: string | null): number {
 	return Number.isFinite(page) && page > 0 ? page : 1;
 }
 
-export async function load({ url }) {
+export async function load({ url, locals, setHeaders }) {
+	setHeaders({ 'Cache-Control': htmlCacheControl(locals.user) });
 	const category = parseCategory(url.searchParams.get('category'));
 	const page = parsePage(url.searchParams.get('page'));
 

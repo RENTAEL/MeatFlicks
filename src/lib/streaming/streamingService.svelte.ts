@@ -1,5 +1,5 @@
 import { untrack } from 'svelte';
-import { page } from '$app/state';
+import { getCsrfTokenClient } from '$lib/utils/csrf.client';
 import type { ProviderResolution } from './provider-registry';
 import type { StreamingSource, VideoQuality, SubtitleTrack, MediaType } from './types';
 
@@ -20,9 +20,9 @@ type EpisodeInfo = {
 	episode?: number;
 };
 
-const buildJsonHeadersWithCsrf = (overrideToken?: string) => {
+const buildJsonHeadersWithCsrf = async (overrideToken?: string) => {
 	const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-	const token = overrideToken ?? page.data.csrfToken;
+	const token = overrideToken ?? (await getCsrfTokenClient());
 	if (token) {
 		headers['X-CSRF-Token'] = token;
 	}
@@ -112,7 +112,7 @@ export class StreamingService {
 		console.log('[STREAMING] resolveProvider:', providerId, 'tmdbId:', options.tmdbId, 'mediaType:', options.mediaType);
 
 		try {
-			const headers = buildJsonHeadersWithCsrf(options.csrfToken);
+			const headers = await buildJsonHeadersWithCsrf(options.csrfToken);
 
 			const response = await fetch('/api/streaming', {
 				method: 'POST',
@@ -170,7 +170,7 @@ export class StreamingService {
 
 		this.state.isReporting = true;
 		try {
-			const headers = buildJsonHeadersWithCsrf();
+			const headers = await buildJsonHeadersWithCsrf();
 
 			const response = await fetch('/api/streaming/report-broken', {
 				method: 'POST',

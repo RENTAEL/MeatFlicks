@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { page } from '$app/state';
 	import { goto } from '$app/navigation';
+	import { getCsrfTokenClient } from '$lib/utils/csrf.client';
 
 	let dropdownOpen = $state(false);
 	let user = $derived(page.data.user);
@@ -10,7 +11,7 @@
 
 	async function logout() {
 		const form = new FormData();
-		form.append('csrf_token', page.data.csrfToken || '');
+		form.append('csrf_token', (await getCsrfTokenClient()) || '');
 		await fetch('/logout', { method: 'POST', body: form });
 		goto('/login');
 	}

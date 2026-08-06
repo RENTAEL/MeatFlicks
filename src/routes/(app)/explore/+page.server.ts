@@ -1,7 +1,9 @@
+import { htmlCacheControl } from '$lib/server/caching';
 import type { PageServerLoad } from './$types';
 import { libraryRepository } from '$lib/server';
 
-export const load: PageServerLoad = async () => {
+export const load: PageServerLoad = async ({ locals, setHeaders }) => {
+	setHeaders({ 'Cache-Control': htmlCacheControl(locals.user) });
 	const genres = await libraryRepository.listGenres();
 
 	return {

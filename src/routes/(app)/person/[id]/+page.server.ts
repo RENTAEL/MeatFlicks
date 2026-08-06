@@ -1,8 +1,10 @@
+import { htmlCacheControl } from '$lib/server/caching';
 import { fetchTmdbPersonDetails } from '$lib/server/services/tmdb.service';
 import { error } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
 
-export const load: PageServerLoad = async ({ params }) => {
+export const load: PageServerLoad = async ({ params, locals, setHeaders }) => {
+	setHeaders({ 'Cache-Control': htmlCacheControl(locals.user) });
 	const personId = Number(params.id);
 
 	if (!personId || isNaN(personId)) {

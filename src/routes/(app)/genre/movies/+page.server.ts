@@ -1,7 +1,9 @@
+import { htmlCacheControl } from '$lib/server/caching';
 import type { PageServerLoad } from './$types';
 import { isEligibleMedia, todayParam } from '$lib/utils/mediaFilter';
 
-export const load: PageServerLoad = async ({ url }) => {
+export const load: PageServerLoad = async ({ url, locals, setHeaders }) => {
+	setHeaders({ 'Cache-Control': htmlCacheControl(locals.user) });
   const genreId = url.searchParams.get('genreId') || '';
   const page = url.searchParams.get('page') || '1';
 

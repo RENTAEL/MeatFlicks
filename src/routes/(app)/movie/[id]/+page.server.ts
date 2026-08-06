@@ -1,8 +1,10 @@
+import { htmlCacheControl } from '$lib/server/caching';
 import { env } from '$lib/config/env';
 
 const TMDB_BASE = 'https://api.themoviedb.org/3';
 
-export async function load({ params, fetch }) {
+export async function load({ params, fetch, locals, setHeaders }) {
+	setHeaders({ 'Cache-Control': htmlCacheControl(locals.user) });
 	const { id } = params;
 
 	try {

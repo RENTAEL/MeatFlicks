@@ -1,6 +1,7 @@
+import { htmlCacheControl } from '$lib/server/caching';
 import { redirect } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
-import { resolveStreaming, getCsrfToken } from '$lib/server';
+import { resolveStreaming } from '$lib/server';
 import {
 	fetchTmdbRecommendations,
 	fetchTmdbWatchProviders
@@ -45,7 +46,8 @@ const detectQueryMode = (identifier: string): 'id' | 'tmdb' | 'imdb' => {
 	return 'id';
 };
 
-export const load: PageServerLoad = async ({ params, fetch, cookies }) => {
+export const load: PageServerLoad = async ({ params, fetch, locals, setHeaders }) => {
+	setHeaders({ 'Cache-Control': htmlCacheControl(locals.user) });
 	const { id: identifier } = params;
 
 	if (!identifier) {
@@ -55,7 +57,6 @@ export const load: PageServerLoad = async ({ params, fetch, cookies }) => {
 			show: { imdb_id: null },
 			streaming: { source: null, resolutions: [] },
 			watchProviders: { flatrate: [], rent: [], buy: [] },
-			csrfToken: getCsrfToken({ cookies }) ?? undefined
 		};
 	}
 
@@ -71,7 +72,6 @@ export const load: PageServerLoad = async ({ params, fetch, cookies }) => {
 				show: { imdb_id: null },
 				streaming: { source: null, resolutions: [] },
 				watchProviders: { flatrate: [], rent: [], buy: [] },
-				csrfToken: getCsrfToken({ cookies }) ?? undefined
 			};
 		}
 
@@ -87,7 +87,6 @@ export const load: PageServerLoad = async ({ params, fetch, cookies }) => {
 			show: { imdb_id: null },
 			streaming: { source: null, resolutions: [] },
 			watchProviders: { flatrate: [], rent: [], buy: [] },
-			csrfToken: getCsrfToken({ cookies }) ?? undefined
 		};
 	}
 
@@ -134,7 +133,6 @@ export const load: PageServerLoad = async ({ params, fetch, cookies }) => {
 			canonicalPath,
 			identifier,
 			queryMode,
-			csrfToken: getCsrfToken({ cookies }) ?? undefined
 		};
 	} catch (error) {
 		console.error('[tv][load] Failed to resolve streaming data', error);
@@ -148,7 +146,6 @@ export const load: PageServerLoad = async ({ params, fetch, cookies }) => {
 			canonicalPath,
 			identifier,
 			queryMode,
-			csrfToken: getCsrfToken({ cookies }) ?? undefined
 		};
 	}
 };
