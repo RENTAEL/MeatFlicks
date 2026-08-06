@@ -136,5 +136,30 @@ export const handle: Handle = async ({ event, resolve }) => {
 	response.headers.delete('Feature-Policy');
 	response.headers.set('Permissions-Policy', 'fullscreen=*');
 
-	return applySecurityHeaders(event, response);
+	const secured = applySecurityHeaders(event, response);
+	applyCacheControl(event, secured);
+	return secured;
 };
+
+function applyCacheControl(event: RequestEvent, response: Response) {
+	const method = event.request.method;
+	if (method !== 'GET' && method !== 'HEAD') return;
+	if (response.status >= 400) return;
+	if (response.headers.has('cache-control')) return;
+	if (event.locals.user) return;
+
+	const path = event.url.pathname;
+
+	if (path.startsWith('/api/')) {
+		const PUBLIC_TMDB_PREFIXES = ['/api/tmdb/', '/api/search/unified', '/api/search/autocomplete'];
+		if (PUBLIC_TMDB_PREFIXES.some((p) => path.startsWith(p)) && !path.startsWith('/api/search/history')) {
+			response.headers.set('Cache-Control', 'public, max-age=60, s-maxage=300, stale-while-revalidate=300');
+		}
+		return;
+	}
+
+	const PRIVATE_PAGE_PREFIXES = ['/login', '/signup', '/logout', '/history', '/watchlist', '/profile'];
+	if (PRIVATE_PAGE_PREFIXES.some((p) => path === p || path.startsWith(p + '/'))) return;
+
+	response.headers.set('Cache-Control', 'public, s-maxage=300, stale-while-revalidate=300');
+}
