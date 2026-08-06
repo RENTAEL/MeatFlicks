@@ -302,6 +302,8 @@
 								{src}
 								{srcset}
 								sizes="100vw"
+								width="1280"
+								height="720"
 								alt=""
 								loading="eager"
 								fetchpriority="high"
