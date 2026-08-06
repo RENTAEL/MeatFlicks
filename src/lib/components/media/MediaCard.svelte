@@ -114,6 +114,7 @@
 
 <div
 	class="media-card group relative {showPreview ? 'z-50' : 'z-10'}"
+	role="group"
 	onmouseenter={startHover}
 	onmouseleave={endHover}
 	onclick={(e) => { const t = e.target as HTMLElement | null; if (t && !t.closest('a, button') && browser) goto(detailsHref); }}
