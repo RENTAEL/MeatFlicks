@@ -153,6 +153,7 @@
 		genre = browseParams.genre ? String(browseParams.genre) : null;
 		decade = browseParams.decade ? String(browseParams.decade) : null;
 		sort = browseParams.sort ?? 'newest';
+		navigating = false;
 	});
 
 	const sortedHero = $derived.by(() => {
@@ -204,7 +205,17 @@
 
 	$effect(() => {
 		if (!sentinel || typeof IntersectionObserver === 'undefined') return;
-		console.log('[sec-io] observing sentinel, browseHasMore=', browseHasMore);
+		let root: Element = document.scrollingElement ?? document.documentElement;
+		let cur: HTMLElement | null = sentinel.parentElement;
+		while (cur) {
+			const s = getComputedStyle(cur);
+			if (/(auto|scroll)/.test(s.overflowY) && cur.scrollHeight > cur.clientHeight + 1) {
+				root = cur;
+				break;
+			}
+			cur = cur.parentElement;
+		}
+		console.log('[sec-io] observing, root=', root.tagName, String((root as HTMLElement).className).slice(0, 40));
 		const io = new IntersectionObserver(
 			(entries) => {
 				const entry = entries[0];
@@ -218,7 +229,7 @@
 					autoFired = false;
 				}
 			},
-			{ rootMargin: '200px 0px' }
+			{ root, rootMargin: '200px 0px' }
 		);
 		io.observe(sentinel);
 		return () => io.disconnect();
