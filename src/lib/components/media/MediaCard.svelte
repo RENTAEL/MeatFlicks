@@ -112,15 +112,7 @@
 	}
 </script>
 
-<div
-	class="media-card group relative {showPreview ? 'z-50' : 'z-10'}"
-	role="group"
-	onmouseenter={startHover}
-	onmouseleave={endHover}
-	onclick={(e) => { const t = e.target as HTMLElement | null; if (t && !t.closest('a, button') && browser) goto(detailsHref); }}
-	onkeydown={(e) => { if (e.key === 'Enter' && browser) goto(detailsHref); }}
-	style="touch-action: manipulation; -webkit-tap-highlight-color: transparent;"
->
+<div class="media-card group relative {showPreview ? 'z-50' : 'z-10'}">
 	<div
 		class="card-inner relative h-40 w-28 sm:h-52 sm:w-36 md:h-72 md:w-48 overflow-hidden rounded-xl bg-background/60 backdrop-blur-sm transition-all duration-500 ease-out {showPreview
 			? 'z-50 scale-[1.12] shadow-[0_0_30px_oklch(0.6_0.2_300/0.4),0_0_60px_oklch(0.5_0.18_280/0.2),0_20px_60px_oklch(0_0_0/0.5)]'
@@ -145,7 +137,7 @@
 					</div>
 				{/if}
 
-				<a href={detailsHref} data-sveltekit-preload-data="hover" class="relative block h-full w-full overflow-hidden {showPreview && trailerKey ? 'opacity-0 transition-opacity duration-300' : ''}" aria-label={movie.title}>
+				<a href={detailsHref} data-sveltekit-preload-data="hover" class="relative block h-full w-full overflow-hidden {showPreview && trailerKey ? 'opacity-0 transition-opacity duration-300' : ''}" aria-label={movie.title} onmouseenter={startHover} onmouseleave={endHover} style="touch-action: manipulation; -webkit-tap-highlight-color: transparent;">
 					{#if movie.posterPath}
 						<img
 							src={getImageUrl(movie.posterPath, 'w92')}
