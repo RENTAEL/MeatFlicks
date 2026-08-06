@@ -205,6 +205,9 @@
 						size="icon"
 						variant={isInWatchlist ? 'destructive' : 'secondary'}
 						onclick={handleWatchlistToggle}
+						aria-label={isInWatchlist
+							? `Remove ${movie.title} from watchlist`
+							: `Add ${movie.title} to watchlist`}
 						class="glass size-8 rounded-full shadow-md"
 					>
 						{#if isInWatchlist}

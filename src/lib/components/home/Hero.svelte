@@ -446,12 +446,11 @@
 					aria-label="Slide navigation"
 				>
 					{#each slides as slide, index (slide.key)}
-						<button
-							type="button"
-							role="tab"
-							aria-selected={index === activeIndex}
-							aria-controls={`slide-${slide.key}`}
-							aria-label={`Go to slide ${index + 1}`}
+					<button
+						type="button"
+						role="tab"
+						aria-selected={index === activeIndex}
+						aria-label={`Go to slide ${index + 1}`}
 							class={`group flex max-w-56 items-center gap-2 rounded-full px-4 py-1 text-xs font-semibold tracking-wide uppercase backdrop-blur transition-colors duration-300 ${
 								index === activeIndex
 									? 'glass-strong text-primary shadow-sm'
