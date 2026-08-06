@@ -200,13 +200,23 @@
 		return p;
 	}
 
+	let autoFired = $state(false);
+
 	$effect(() => {
 		if (!sentinel || typeof IntersectionObserver === 'undefined') return;
 		const io = new IntersectionObserver(
 			(entries) => {
-				if (entries[0].isIntersecting) loadMore();
+				const entry = entries[0];
+				if (entry.isIntersecting) {
+					if (!autoFired) {
+						autoFired = true;
+						loadMore();
+					}
+				} else {
+					autoFired = false;
+				}
 			},
-			{ rootMargin: '600px 0px' }
+			{ rootMargin: '200px 0px' }
 		);
 		io.observe(sentinel);
 		return () => io.disconnect();
