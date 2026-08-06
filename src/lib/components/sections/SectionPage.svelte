@@ -204,9 +204,11 @@
 
 	$effect(() => {
 		if (!sentinel || typeof IntersectionObserver === 'undefined') return;
+		console.log('[sec-io] observing sentinel, browseHasMore=', browseHasMore);
 		const io = new IntersectionObserver(
 			(entries) => {
 				const entry = entries[0];
+				console.log('[sec-io] callback intersect=', entry.isIntersecting, 'autoFired=', autoFired);
 				if (entry.isIntersecting) {
 					if (!autoFired) {
 						autoFired = true;
