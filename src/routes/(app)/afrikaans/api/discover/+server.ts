@@ -1,32 +1,24 @@
 import { json } from '@sveltejs/kit';
-import { env } from '$lib/config/env';
-import { AFRIKAANS_FILMS } from '$lib/curated/afrikaans-films';
-import { formatMovie } from '$lib/utils/tmdb';
-import { isEligibleMedia } from '$lib/utils/mediaFilter';
+import { fetchAfrikaansBrowse, type AfrikaansBrowseSort } from '$lib/server/afrikaans';
+
+const GENRES = new Set(['18', '35', '99']);
+const DECADES = new Set(['1980', '1990', '2000', '2010', '2020']);
+const SORTS = new Set(['newest', 'rating', 'title', 'popularity']);
 
 export async function GET({ url }) {
-	const page = Number(url.searchParams.get('page')) || 1;
+	const page = Math.max(1, Number(url.searchParams.get('page')) || 1);
+	const type = url.searchParams.get('type') === 'reekse' ? 'tv' : 'movie';
+	const genreParam = url.searchParams.get('genre');
+	const decadeParam = url.searchParams.get('decade');
+	const sortParam = url.searchParams.get('sort');
 
-	const res = await fetch(
-		`https://api.themoviedb.org/3/discover/movie?api_key=${env.TMDB_API_KEY}` +
-		`&language=af&with_original_language=af&sort_by=primary_release_date.desc` +
-		`&page=${page}&region=ZA`
-	);
+	const genre = genreParam && GENRES.has(genreParam) ? Number(genreParam) : null;
+	const decade = decadeParam && DECADES.has(decadeParam) ? Number(decadeParam) : null;
+	const sort = sortParam && SORTS.has(sortParam) ? (sortParam as AfrikaansBrowseSort) : null;
 
-	const data = await res.json();
+	const data = await fetchAfrikaansBrowse({ type, page, genre, decade, sort });
 
-	const curatedIds = new Set(AFRIKAANS_FILMS.map((f) => f.tmdbId));
-	const results = (data.results || [])
-		.filter((m: any) => !curatedIds.has(m.id) && isEligibleMedia(m, 0))
-		.filter((m: any) => m.poster_path);
-
-	return json(
-		{
-			results: results.map(formatMovie),
-			page,
-			total_pages: data.total_pages,
-			hasMore: page < (data.total_pages || 1),
-		},
-		{ headers: { 'Cache-Control': 'public, max-age=120, s-maxage=600' } }
-	);
+	return json(data, {
+		headers: { 'Cache-Control': 'public, max-age=120, s-maxage=300, stale-while-revalidate=300' }
+	});
 }

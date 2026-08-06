@@ -3,6 +3,12 @@ import { AFRIKAANS_FILMS } from '$lib/curated/afrikaans-films';
 import { env } from '$lib/config/env';
 import { formatMovie } from '$lib/utils/tmdb';
 import { isEligibleMedia } from '$lib/utils/mediaFilter';
+import {
+	curatedRailItems,
+	fetchAfrikaansBrowse,
+	loadAfrikaansRails,
+	type AfrikaansRail
+} from '$lib/server/afrikaans';
 
 const TMDB_BASE = 'https://api.themoviedb.org/3';
 
@@ -12,6 +18,7 @@ type LandingPayload = {
 	movies: any[];
 	recentAfrikaans: any[];
 	recentSA: any[];
+	rails: AfrikaansRail[];
 	page: number;
 	hasMore: boolean;
 	source: string;
@@ -77,7 +84,7 @@ export async function load({ url, locals, setHeaders }) {
 			const curatedIds = AFRIKAANS_FILMS.map((f) => f.tmdbId);
 			const since = sinceDate(24);
 
-			const [tmdbResults, recentAfrikaansData, recentSAData] = await Promise.all([
+			const [tmdbResults, recentAfrikaansData, recentSAData, rails] = await Promise.all([
 				Promise.all(curatedIds.map(fetchMovie)),
 				fetchDiscover(
 					`language=af&with_original_language=af&sort_by=primary_release_date.desc` +
@@ -87,7 +94,8 @@ export async function load({ url, locals, setHeaders }) {
 					`language=en-US&with_origin_country=ZA&with_original_language=af|en` +
 					`&sort_by=primary_release_date.desc` +
 					`&primary_release_date.gte=${since}&primary_release_date.lte=${todayParam()}&page=1`
-				)
+				),
+				loadAfrikaansRails()
 			]);
 
 			const movies = AFRIKAANS_FILMS.map((film, i) => {
@@ -112,10 +120,17 @@ export async function load({ url, locals, setHeaders }) {
 			const recentAfrikaans = eligible(recentAfrikaansData.results, excluded);
 			const recentSA = eligible(recentSAData.results, excluded);
 
+			const featured: AfrikaansRail = {
+				id: 'featured',
+				title: 'Kurators se Keuses',
+				items: curatedRailItems(tmdbResults, AFRIKAANS_FILMS)
+			};
+
 			const payload: LandingPayload = {
 				movies,
 				recentAfrikaans,
 				recentSA,
+				rails: [featured, ...rails],
 				page: 1,
 				hasMore: movies.length >= 20,
 				source: 'curated',
@@ -124,21 +139,14 @@ export async function load({ url, locals, setHeaders }) {
 			return payload;
 		}
 
-		const discoverRes = await fetch(
-			`${TMDB_BASE}/discover/movie?api_key=${env.TMDB_API_KEY}` +
-			`&language=af&with_original_language=af&sort_by=primary_release_date.desc&page=${page}&region=ZA`
-		);
-		const discoverData = await discoverRes.json();
-
-		const curatedIds = new Set(AFRIKAANS_FILMS.map((f) => f.tmdbId));
-		const movies = eligible(discoverData.results, curatedIds);
-
+		const browse = await fetchAfrikaansBrowse({ type: 'movie', page });
 		return {
-			movies,
+			movies: browse.results,
 			recentAfrikaans: [],
 			recentSA: [],
+			rails: [],
 			page,
-			hasMore: page < (discoverData.total_pages || 1),
+			hasMore: browse.hasMore,
 			source: 'discover',
 		};
 	} catch (e) {
@@ -146,6 +154,7 @@ export async function load({ url, locals, setHeaders }) {
 			movies: [],
 			recentAfrikaans: [],
 			recentSA: [],
+			rails: [],
 			error: 'Failed to load films',
 			page: 1,
 			hasMore: false,
