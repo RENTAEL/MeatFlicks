@@ -8,7 +8,15 @@
 	import EmptyState from '$lib/components/media/EmptyState.svelte';
 	import MediaRowSkeleton from '$lib/components/skeletons/MediaRowSkeleton.svelte';
 	import { toLibraryMovie } from '$lib/utils/tmdb';
+	import {
+		Dialog,
+		DialogContent,
+		DialogDescription,
+		DialogHeader,
+		DialogTitle
+	} from '$lib/components/ui/dialog';
 	import { Button } from '$lib/components/ui/button';
+	import { Badge } from '$lib/components/ui/badge';
 	import type { LibraryMedia } from '$lib/types/library';
 
 	type BrowseResult = {
@@ -44,10 +52,9 @@
 
 	const isMovies = section === 'movies';
 	const sectionTitle = isMovies ? 'Flieks / Movies' : 'Reekse / TV Series';
-	const sectionSub =
-		isMovies
-			? 'Flieks uit die biblioteek / Movies from the library'
-			: 'Reekse uit die biblioteek / Series from the library';
+	const sectionSub = isMovies
+		? 'Flieks uit die biblioteek / Movies from the library'
+		: 'Reekse uit die biblioteek / Series from the library';
 
 	const CATEGORIES: { value: string; label: string }[] = [
 		{ value: 'all', label: 'Alles / All' },
@@ -127,6 +134,16 @@
 
 	let sentinel: HTMLDivElement | undefined = $state();
 
+	let query = $state('');
+	let serverResults = $state<any[]>([]);
+	let searchingServer = $state(false);
+	let serverSearched = $state(false);
+
+	let pickOpen = $state(false);
+	let pickItem = $state<any>(null);
+	let pickTrailer = $state<string | null>(null);
+	let picking = $state(false);
+
 	$effect(() => {
 		browseItems = browse.results ?? [];
 		browsePage = browse.page ?? 1;
@@ -169,36 +186,166 @@
 		const base = section === 'movies' ? '/movies' : '/tv';
 		const qs = p.toString();
 		navigating = true;
+		query = '';
 		goto(qs ? `${base}?${qs}` : base, { keepFocus: true, invalidateAll: true });
 	}
 
+	function buildQueryParams(): URLSearchParams {
+		const p = new URLSearchParams();
+		if (isMovies && category !== 'all') p.set('category', category);
+		if (!isMovies && type !== 'reekse') p.set('type', type);
+		if (genre) p.set('genre', genre);
+		if (decade) p.set('decade', decade);
+		if (sort && sort !== 'newest') p.set('sort', sort);
+		return p;
+	}
+
 	$effect(() => {
-		if (!sentinel) return;
-		const io = new IntersectionObserver((entries) => {
-			if (entries[0]?.isIntersecting) loadMore();
-		});
+		if (!sentinel || typeof IntersectionObserver === 'undefined') return;
+		const io = new IntersectionObserver(
+			(entries) => {
+				if (entries[0].isIntersecting) loadMore();
+			},
+			{ rootMargin: '600px 0px' }
+		);
 		io.observe(sentinel);
 		return () => io.disconnect();
 	});
 
 	async function loadMore() {
-		if (loadingMore || !browseHasMore || navigating) return;
+		if (loadingMore || navigating || !browseHasMore || query) return;
 		loadingMore = true;
 		try {
-			const p = new URLSearchParams($page.url.search);
-			p.set('page', String(browsePage + 1));
+			const p = buildQueryParamsWithPage(browsePage + 1);
 			const res = await fetch(`/${section}/api/discover?${p}`);
 			if (!res.ok) throw new Error('Failed');
 			const json = await res.json();
 			browseItems = [...browseItems, ...(json.results || [])];
 			browsePage = json.page;
-			browseHasMore = json.hasMore;
+			browseHasMore = json.hasMore ?? false;
 		} catch {
-			// keep current items; user can scroll again
+			// user can retry via the button
 		} finally {
 			loadingMore = false;
 		}
 	}
+
+	function buildQueryParamsWithPage(pg: number): URLSearchParams {
+		const p = buildQueryParams();
+		p.set('page', String(pg));
+		return p;
+	}
+
+	const clientMatches = $derived(
+		query
+			? (browseItems as any[]).filter((m) => {
+					const q = query.toLowerCase();
+					return (
+						(m.title ?? '').toLowerCase().includes(q) ||
+						(m.overview ?? '').toLowerCase().includes(q)
+					);
+				})
+			: null
+	);
+
+	const needsServer = $derived(
+		query.trim().length >= 3 && clientMatches !== null && clientMatches.length === 0
+	);
+
+	$effect(() => {
+		serverSearched = false;
+		serverResults = [];
+		if (!needsServer) return;
+		searchingServer = true;
+		const q = query.trim();
+		const timer = setTimeout(async () => {
+			try {
+				if (query.trim() !== q) return;
+				const res = await fetch(`/${section}/api/search?q=${encodeURIComponent(q)}`);
+				if (!res.ok) throw new Error('Failed');
+				const json = await res.json();
+				if (query.trim() !== q) return;
+				serverResults = json.results ?? [];
+			} catch {
+				serverResults = [];
+			} finally {
+				if (query.trim() === q) {
+					searchingServer = false;
+					serverSearched = true;
+				}
+			}
+		}, 350);
+		return () => {
+			clearTimeout(timer);
+			searchingServer = false;
+		};
+	});
+
+	const gridCards = $derived.by(() => {
+		if (query) {
+			if (clientMatches && clientMatches.length > 0) return clientMatches;
+			if (serverSearched && serverResults.length > 0) return serverResults;
+			return [];
+		}
+		return browseItems;
+	});
+
+	const gridKey = (m: any) => `${m.mediaType ?? m.media_type ?? 'movie'}:${m.id}`;
+
+	async function rollPick() {
+		if (picking) return;
+		picking = true;
+		pickTrailer = null;
+		try {
+			const res = await fetch(`/${section}/api/discover?${buildQueryParamsWithPage(1)}`);
+			if (!res.ok) throw new Error('Failed');
+			const first = await res.json();
+			let pool: any[] = first.results ?? [];
+			const totalPages = first.total_pages ?? 1;
+			if (totalPages > 1) {
+				const extraPage = Math.floor(Math.random() * Math.min(totalPages, 5)) + 2;
+				try {
+					const res2 = await fetch(`/${section}/api/discover?${buildQueryParamsWithPage(extraPage)}`);
+					if (res2.ok) {
+						const extra = await res2.json();
+						pool = [...pool, ...(extra.results ?? [])];
+					}
+				} catch {
+					// keep pool
+				}
+			}
+			pickItem = pool.length ? pool[Math.floor(Math.random() * pool.length)] : null;
+			if (pickItem) loadPickTrailer();
+		} catch {
+			pickItem = null;
+		} finally {
+			picking = false;
+		}
+	}
+
+	async function loadPickTrailer() {
+		if (!pickItem) return;
+		const mediaType = (pickItem.mediaType ?? pickItem.media_type ?? 'movie') === 'tv' ? 'tv' : 'movie';
+		try {
+			const res = await fetch(`/api/tmdb/${mediaType}/${pickItem.id}`);
+			if (!res.ok) return;
+			const data = await res.json();
+			const videos = data.videos?.results ?? [];
+			const trailler = videos.find((v: any) => v.site === 'YouTube' && v.type === 'Trailer') ?? videos.find((v: any) => v.site === 'YouTube' && v.type === 'Teaser');
+			if (trailler?.key) pickTrailer = `https://www.youtube.com/watch?v=${trailler.key}`;
+		} catch {
+			// trailer optional
+		}
+	}
+
+	function openPick() {
+		pickOpen = true;
+		rollPick();
+	}
+
+	const pickDetailsHref = $derived(
+		pickItem ? `/${(pickItem.mediaType ?? pickItem.media_type ?? 'movie') === 'tv' ? 'tv' : 'movie'}/${pickItem.id}` : '#'
+	);
 
 	function retry() {
 		navigating = true;
@@ -263,9 +410,39 @@
 							Blaai deur die volle katalogus / Browse the full catalogue
 						</p>
 					</div>
+					<Button
+						type="button"
+						onclick={openPick}
+						class="kies-btn gap-2 font-semibold"
+						aria-label="Kies vir my / Pick for me"
+					>
+						<Shuffle class="size-4" aria-hidden="true" />
+						Kies vir my / Pick for me
+					</Button>
 				</div>
 
 				<div class="mb-6 flex flex-wrap items-center gap-3">
+					<div class="relative min-w-0 flex-1 max-w-xs">
+						<Search class="search-icon" aria-hidden="true" />
+						<input
+							type="search"
+							class="search-input"
+							placeholder="Soek in katalogus / Search catalogue."
+							bind:value={query}
+							aria-label="Soek / Search"
+						/>
+						{#if query}
+							<button
+								type="button"
+								class="search-clear"
+								onclick={() => (query = '')}
+								aria-label="Maak skoon / Clear"
+							>
+								<X class="size-4" aria-hidden="true" />
+							</button>
+						{/if}
+					</div>
+
 					{#if isMovies}
 						<div class="flex overflow-x-auto rounded-xl border border-zinc-800 bg-zinc-900/60" role="group" aria-label="Kategorie / Category">
 							{#each CATEGORIES as cat (cat.value)}
@@ -341,7 +518,19 @@
 						actionLabel="Probeer weer / Retry"
 						onAction={retry}
 					/>
-				{:else if browseItems.length === 0}
+				{:else if query && clientMatches !== null && clientMatches.length === 0 && !searchingServer && !serverSearched}
+					<EmptyState
+						icon="search"
+						title="Soek. / Searching."
+						subtitle="Soek verder op TMDB as jy langer tik / Search TMDB too if you keep typing"
+					/>
+				{:else if query && serverSearched && serverResults.length === 0}
+					<EmptyState
+						icon="search"
+						title="Geen resultate / No results"
+						subtitle="Probeer 'n ander soektog / Try a different search"
+					/>
+				{:else if gridCards.length === 0 && !query}
 					<EmptyState
 						icon="search"
 						title="Niks gevind nie / Nothing found"
@@ -358,7 +547,7 @@
 						</div>
 					{:else}
 						<div class="grid grid-cols-3 gap-4 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6">
-							{#each browseItems as item (item.id)}
+							{#each gridCards as item (gridKey(item))}
 								<MediaCard movie={toLibraryMovie(item)} />
 							{/each}
 							{#if loadingMore}
@@ -370,7 +559,7 @@
 							{/if}
 						</div>
 
-						{#if browseHasMore}
+						{#if !query && browseHasMore}
 							<div class="mt-8 flex justify-center">
 								<Button
 									type="button"
@@ -389,6 +578,79 @@
 		{/if}
 	</div>
 </div>
+
+<Dialog bind:open={pickOpen}>
+	<DialogContent class="w-[min(96vw,720px)] border border-border bg-card text-foreground">
+		<DialogHeader>
+			<DialogTitle class="flex items-center gap-2 text-lg font-semibold">
+				<Shuffle class="size-4 text-[var(--sec)]" aria-hidden="true" />
+				Kies vir my / Pick for me
+			</DialogTitle>
+			<DialogDescription class="text-sm text-muted-foreground">
+				'n lukraak keuring uit jou huidige filters / A random pick from your current filters
+			</DialogDescription>
+		</DialogHeader>
+
+		{#if picking}
+			<div class="flex min-h-64 items-center justify-center" aria-live="polite">
+				<p class="text-sm text-muted-foreground">Kies. / Picking.</p>
+			</div>
+		{:else if pickItem}
+			<div class="grid gap-4 sm:grid-cols-[200px_1fr]">
+				<div class="relative aspect-[2/3] w-full overflow-hidden rounded-xl bg-zinc-900">
+					{#if pickItem.poster}
+						<img src={pickItem.poster} alt="" loading="lazy" class="h-full w-full object-cover" />
+					{/if}
+				</div>
+				<div class="flex flex-col gap-3">
+					<h3 class="text-xl font-bold text-foreground">{pickItem.title}</h3>
+					<div class="flex flex-wrap items-center gap-2 text-sm">
+						<Badge variant="secondary" class="bg-foreground/10 text-foreground">
+							{isMovies ? 'Fliek / Movie' : 'Reeks / Series'}
+						</Badge>
+						{#if pickItem.year && pickItem.year !== '-'}
+							<Badge variant="outline" class="border-foreground/20 text-foreground">{pickItem.year}</Badge>
+						{/if}
+						{#if pickItem.rating > 0}
+							<Badge variant="outline" class="flex items-center gap-1 border-foreground/20 text-foreground">
+								<Star class="size-3.5 text-[var(--sec)]" aria-hidden="true" />
+								{pickItem.rating.toFixed(1)}
+							</Badge>
+						{/if}
+					</div>
+					{#if pickItem.overview}
+						<p class="line-clamp-4 text-sm leading-relaxed text-foreground/80">{pickItem.overview}</p>
+					{/if}
+					<div class="mt-auto flex flex-wrap gap-3 pt-2">
+						<Button type="button" onclick={rollPick} class="gap-2 font-semibold">
+							<Shuffle class="size-4" aria-hidden="true" />
+							Nog een / Another
+						</Button>
+						{#if pickTrailer}
+							<a
+								href={pickTrailer}
+								target="_blank"
+								rel="noopener noreferrer"
+								class="inline-flex items-center gap-1.5 rounded-lg bg-foreground/10 px-3 py-1.5 text-xs font-medium text-foreground hover:bg-foreground/20"
+							>
+								Trailer
+							</a>
+						{/if}
+						<Button type="button" variant="secondary" onclick={() => goto(pickDetailsHref)}>
+							Kyk nou / Watch now
+						</Button>
+					</div>
+				</div>
+			</div>
+		{:else}
+			<div class="flex min-h-40 items-center justify-center" aria-live="polite">
+				<p class="text-sm text-muted-foreground">
+					Niks gevind met hierdie filters nie / Nothing found with these filters
+				</p>
+			</div>
+		{/if}
+	</DialogContent>
+</Dialog>
 
 <style>
 	.wrap-movies {
@@ -454,6 +716,47 @@
 	.more-btn:hover:not(:disabled) {
 		background: var(--sec);
 		color: var(--sec-ink);
+	}
+
+	.kies-btn {
+		background: var(--sec-soft);
+		color: var(--sec);
+		border: 1px solid var(--sec);
+	}
+
+	.kies-btn:hover {
+		background: var(--sec);
+		color: var(--sec-ink);
+	}
+
+	.search-input {
+		border-radius: 0.75rem;
+		border: 1px solid color-mix(in srgb, var(--sec) 35%, transparent);
+		background: color-mix(in srgb, var(--sec-soft) 40%, var(--bg-root, #0a0a0f));
+		color: #d4d4d8;
+		width: 100%;
+		padding: 0.5rem 2.2rem 0.5rem 2.4rem;
+		font-size: 0.85rem;
+	}
+
+	.search-icon {
+		position: absolute;
+		left: 0.75rem;
+		top: 0.7rem;
+		height: 1rem;
+		width: 1rem;
+		color: #71717a;
+	}
+
+	.search-clear {
+		position: absolute;
+		right: 0.5rem;
+		top: 0.55rem;
+		color: #71717a;
+	}
+
+	.search-clear:hover {
+		color: #d4d4d8;
 	}
 
 	.sort-select {
