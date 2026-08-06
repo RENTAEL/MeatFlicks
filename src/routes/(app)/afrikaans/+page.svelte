@@ -19,6 +19,7 @@
 	} from '$lib/components/ui/dialog';
 	import { Button } from '$lib/components/ui/button';
 	import { Badge } from '$lib/components/ui/badge';
+	import { SEOHead } from '$lib/components/seo';
 
 	let { data }: { data: PageData } = $props();
 
@@ -258,10 +259,20 @@
 	});
 </script>
 
-<svelte:head>
-	<title>Afrikaans Films — Streamium</title>
-	<meta name="description" content="Verken Afrikaanse flieks en reekse — Browse Afrikaans-language films and series." />
-</svelte:head>
+<SEOHead
+	title="Afrikaans Films — Streamium"
+	description="Verken Afrikaanse flieks en reekse — Browse Afrikaans-language films and series on Streamium."
+	canonical="/afrikaans"
+	ogType="website"
+	keywords={[
+		'Afrikaans films',
+		'Afrikaanse flieks',
+		'South African cinema',
+		'Afrikaans series',
+		'Afrikaanse reekse',
+		'streaming'
+	]}
+/>
 
 <div class="mx-auto max-w-screen-2xl px-4 py-6 sm:px-6 lg:px-8">
 	<div class="mb-2 flex items-center justify-between">
@@ -330,6 +341,7 @@
 						class="px-3 py-2 text-xs font-medium transition-colors sm:px-4 sm:text-sm"
 						class:afrikaans-active={type === t.value}
 						class:text-zinc-400={type !== t.value}
+						aria-pressed={type === t.value}
 						onclick={() => applyFilters({ type: t.value })}
 					>{t.label}</button>
 				{/each}
@@ -341,6 +353,7 @@
 						type="button"
 						class="chip text-xs"
 						class:chip-active={genre === g.value}
+						aria-pressed={genre === g.value}
 						onclick={() => applyFilters({ genre: g.value })}
 					>{g.label}</button>
 				{/each}

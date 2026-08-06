@@ -247,6 +247,11 @@ export async function loadAfrikaansRails(): Promise<AfrikaansRail[]> {
 		.map((r) => r.value);
 }
 
+export async function fetchAfrikaansRail(id: AfrikaansRailId): Promise<LibraryMedia[]> {
+	const query = railQueries().find((r) => r.id === id);
+	return query ? fetchRail(query) : [];
+}
+
 const SORTS: Record<AfrikaansBrowseSort, { movie: string; tv: string }> = {
 	newest: { movie: 'primary_release_date.desc', tv: 'first_air_date.desc' },
 	year: { movie: 'primary_release_date.desc', tv: 'first_air_date.desc' },

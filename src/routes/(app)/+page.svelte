@@ -280,6 +280,18 @@ import ContentCalendar from '$lib/components/ContentCalendar.svelte';
 								{/if}
 							{/each}
 
+							{#await data.streamed?.afrikaans}
+								<MediaRowSkeleton />
+							{:then afrikaansPicks}
+								{#if afrikaansPicks && afrikaansPicks.length >= 4}
+									<MediaScrollContainer
+										title="Afrikaans Flieks"
+										media={afrikaansPicks}
+										linkTo="/afrikaans"
+									/>
+								{/if}
+							{/await}
+
 							<DiscoveryEngine />
 							<ContentCalendar />
 						</div>
