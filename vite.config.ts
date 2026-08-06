@@ -25,6 +25,12 @@ export default defineConfig({
 		expect: { requireAssertions: true },
 		projects: [
 			{
+				plugins: [sveltekit()],
+				resolve: {
+					alias: {
+						$lib: path.resolve('./src/lib')
+					}
+				},
 				test: {
 					name: 'client',
 					environment: 'browser',
