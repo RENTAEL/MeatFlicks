@@ -234,10 +234,10 @@
 	}
 
 	const pickDetailsHref = $derived(
-		pickItem ? `/${pickItem.media_type === 'tv' ? 'tv' : 'movie'}/${pickItem.id}` : '#'
+		pickItem ? `/${pickItem.mediaType === 'tv' ? 'tv' : 'movie'}/${pickItem.id}` : '#'
 	);
 
-	const gridKey = (m: any) => `${m.media_type ?? 'movie'}:${m.id}`;
+	const gridKey = (m: any) => `${m.mediaType ?? m.media_type ?? 'movie'}:${m.id}`;
 
 	const gridCards = $derived.by(() => {
 		if (query) {
@@ -465,7 +465,7 @@
 					<h3 class="text-xl font-bold text-foreground">{pickItem.title}</h3>
 					<div class="flex flex-wrap items-center gap-2 text-sm">
 						<Badge variant="secondary" class="bg-foreground/10 text-foreground">
-							{pickItem.media_type === 'tv' ? 'Reeks / Series' : 'Fliek / Movie'}
+							{pickItem.mediaType === 'tv' ? 'Reeks / Series' : 'Fliek / Movie'}
 						</Badge>
 						{#if pickItem.year && pickItem.year !== '—'}
 							<Badge variant="outline" class="border-foreground/20 text-foreground">{pickItem.year}</Badge>
