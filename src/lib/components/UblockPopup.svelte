@@ -108,7 +108,7 @@
 
   .popup-cta {
     display: inline-block;
-    background: #818cf8;
+    background: #4338ca;
     color: #fff;
     padding: 12px 24px;
     border-radius: 10px;
@@ -119,6 +119,6 @@
   }
   .popup-cta:hover { background: #6366f1; }
 
-  .popup-settings-hint { margin-top: 16px; font-size: 12px; color: #6b7280; }
+  .popup-settings-hint { margin-top: 16px; font-size: 12px; color: #9ca3af; }
   .popup-settings-hint a { color: #818cf8; text-decoration: underline; }
 </style>
