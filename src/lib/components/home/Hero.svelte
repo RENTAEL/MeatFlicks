@@ -22,6 +22,7 @@
 		movie?: LibraryMovie | null;
 		movies?: LibraryMovie[] | null;
 		autoPlayIntervalMs?: number;
+		pauseOnHover?: boolean;
 	};
 
 	type HeroSlide = {
@@ -41,7 +42,12 @@
 	const MAX_SLIDES = 5;
 	const MESSAGE_DURATION_MS = 3200;
 
-	let { movie = null, movies = [], autoPlayIntervalMs = DEFAULT_INTERVAL_MS }: HeroProps = $props();
+	let {
+		movie = null,
+		movies = [],
+		autoPlayIntervalMs = DEFAULT_INTERVAL_MS,
+		pauseOnHover = false
+	}: HeroProps = $props();
 
 	let message = $state<string | null>(null);
 	let isAutoPlaying = $state(true);
@@ -50,6 +56,12 @@
 	let heroElement = $state<HTMLElement | null>(null);
 	let touchStartX = 0;
 	let touchEndX = 0;
+	let hoverPaused = $state(false);
+	let reducedMotion = $state(false);
+
+	if (typeof window !== 'undefined') {
+		reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+	}
 
 	function normalizeKey(entry: LibraryMovie, index: number): string {
 		const candidates = [
@@ -225,7 +237,13 @@
 	});
 
 	$effect(() => {
-		if (!isAutoPlaying || !isMultiSlide) return;
+		if (reducedMotion && isAutoPlaying) {
+			isAutoPlaying = false;
+		}
+	});
+
+	$effect(() => {
+		if (!isAutoPlaying || !isMultiSlide || hoverPaused) return;
 
 		const timer = setInterval(showNext, safeInterval);
 		return () => clearInterval(timer);
@@ -260,6 +278,8 @@
 		onkeydown={handleKeydown}
 		ontouchstart={handleTouchStart}
 		ontouchend={handleTouchEnd}
+		onpointerenter={() => { if (pauseOnHover && isMultiSlide) hoverPaused = true; }}
+		onpointerleave={() => { hoverPaused = false; }}
 	>
 		<div bind:this={heroElement} class="contents">
 			{#each slides as slide, index (slide.key)}
@@ -474,5 +494,11 @@
 	.animate-ken-burns {
 		animation: ken-burns 20s ease-out infinite alternate;
 		will-change: transform;
+	}
+
+	@media (prefers-reduced-motion: reduce) {
+		.animate-ken-burns {
+			animation: none;
+		}
 	}
 </style>

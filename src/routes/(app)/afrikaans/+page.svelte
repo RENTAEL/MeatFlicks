@@ -1,286 +1,334 @@
 <script lang="ts">
-	import { page } from '$app/stores';
 	import { goto } from '$app/navigation';
+	import { page } from '$app/stores';
 	import type { PageData } from './$types';
+	import Hero from '$lib/components/home/Hero.svelte';
+	import MediaScrollContainer from '$lib/components/media/MediaScrollContainer.svelte';
 	import MediaCard from '$lib/components/media/MediaCard.svelte';
-	import { toLibraryMovie } from '$lib/utils/tmdb';
 	import SkeletonCard from '$lib/components/SkeletonCard.svelte';
 	import EmptyState from '$lib/components/media/EmptyState.svelte';
-	import { fly } from 'svelte/transition';
+	import MediaRowSkeleton from '$lib/components/skeletons/MediaRowSkeleton.svelte';
+	import { toLibraryMovie } from '$lib/utils/tmdb';
 
 	let { data }: { data: PageData } = $props();
 
-	let movies = $state(data.movies || []);
-	let recentAfrikaans = $state(data.recentAfrikaans || []);
-	let recentSA = $state(data.recentSA || []);
-	let currentPage = $state(data.page || 1);
-	let hasMore = $state(data.hasMore ?? false);
-	let loadingMore = $state(false);
-	let searchQuery = $state('');
-	type SortMode = 'newest' | 'rating' | 'az';
-	let sortMode = $state<SortMode>('newest');
+	const rails = $derived(data.rails ?? []);
 
-	let searchedMovies = $derived(
-		searchQuery
-			? movies.filter((m: any) => {
-				const q = searchQuery.toLowerCase();
-				return (
-					(m.title?.toLowerCase() ?? '').includes(q) ||
-					(m.titleEn?.toLowerCase() ?? '').includes(q) ||
-					(m.overview?.toLowerCase() ?? '').includes(q) ||
-					String(m.year ?? '').includes(q) ||
-					(m.director?.toLowerCase() ?? '').includes(q)
-				);
-			})
-			: movies
-	);
-
-	const sortValue = (m: any) => {
-		const d = m.release_date ? new Date(m.release_date).getTime() : m.year && /^\d{4}$/.test(String(m.year)) ? new Date(String(m.year)).getTime() : 0;
-		return Number.isFinite(d) ? d : 0;
-	};
-
-	let filteredMovies = $derived(
-		(() => {
-			const list = [...searchedMovies];
-			if (sortMode === 'newest') {
-				list.sort((a: any, b: any) => sortValue(b) - sortValue(a));
-			} else if (sortMode === 'rating') {
-				list.sort((a: any, b: any) => (b.rating ?? 0) - (a.rating ?? 0));
-			} else {
-				list.sort((a: any, b: any) => String(a.title ?? '').localeCompare(String(b.title ?? '')));
-			}
-			return list;
-		})()
-	);
-
-	$effect(() => {
-		if (data.movies) movies = data.movies;
-		recentAfrikaans = data.recentAfrikaans || [];
-		recentSA = data.recentSA || [];
-		currentPage = data.page || 1;
-		hasMore = data.hasMore ?? false;
+	const heroItems = $derived(rails.find((r) => r.id === 'featured')?.items ?? []);
+	const heroSlides = $derived.by(() => {
+		const withBackdrop = heroItems.filter((i) => i.backdropPath);
+		const rest = heroItems.filter((i) => !i.backdropPath);
+		return [...withBackdrop, ...rest].slice(0, 5);
 	});
 
-	let initialLoad = $derived(!movies.length);
+	type TypeValue = 'flieks' | 'reekse' | 'alles';
+	let type = $state<TypeValue>(
+		data.browseParams.type === 'tv' ? 'reekse' : data.browseParams.type === 'alles' ? 'alles' : 'flieks'
+	);
+	let genre = $state<string | null>(data.browseParams.genre ? String(data.browseParams.genre) : null);
+	let decade = $state<string | null>(data.browseParams.decade ? String(data.browseParams.decade) : null);
+	let sort = $state<string>(data.browseParams.sort ?? 'newest');
+
+	let browseItems = $state(data.browse?.results ?? []);
+	let browsePage = $state(data.browse?.page ?? 1);
+	let browseHasMore = $state(data.browse?.hasMore ?? false);
+	let loadingMore = $state(false);
+	let navigating = $state(false);
+
+	let sentinel: HTMLDivElement | undefined = $state();
+
+	const TYPES: { value: TypeValue; label: string }[] = [
+		{ value: 'flieks', label: 'Flieks / Movies' },
+		{ value: 'reekse', label: 'Reekse / Series' },
+		{ value: 'alles', label: 'Alles / All' }
+	];
+
+	const GENRES: { value: string | null; label: string }[] = [
+		{ value: null, label: 'Alle genres / All genres' },
+		{ value: '18', label: 'Drama' },
+		{ value: '35', label: 'Komedie' },
+		{ value: '99', label: 'Dokumentêre' }
+	];
+
+	const DECADES: { value: string | null; label: string }[] = [
+		{ value: null, label: 'Alle jare / All years' },
+		{ value: '2020', label: '2020s' },
+		{ value: '2010', label: '2010s' },
+		{ value: '2000', label: '2000s' },
+		{ value: '1990', label: '1990s' },
+		{ value: '1980', label: '1980s' }
+	];
+
+	const SORTS: { value: string; label: string }[] = [
+		{ value: 'newest', label: 'Nuutste / Newest' },
+		{ value: 'rating', label: 'Beoordeling / Rating' },
+		{ value: 'year', label: 'Jaar / Year' },
+		{ value: 'title', label: 'Titel / Title' },
+		{ value: 'popularity', label: 'Gewildheid / Popularity' }
+	];
+
+	function buildBrowseParams(overrides: Partial<{ type: TypeValue; genre: string | null; decade: string | null; sort: string }> = {}) {
+		const t = overrides.type ?? type;
+		const g = overrides.genre !== undefined ? overrides.genre : genre;
+		const d = overrides.decade !== undefined ? overrides.decade : decade;
+		const s = overrides.sort ?? sort;
+		const p = new URLSearchParams();
+		if (t !== 'flieks') p.set('type', t);
+		if (g) p.set('genre', g);
+		if (d) p.set('decade', d);
+		if (s && s !== 'newest') p.set('sort', s);
+		return p;
+	}
+
+	function currentPath(qs: URLSearchParams): string {
+		return `/afrikaans${qs.size ? `?${qs}` : ''}`;
+	}
+
+	function applyFilters(overrides?: Partial<{ type: TypeValue; genre: string | null; decade: string | null; sort: string }>) {
+		const next = currentPath(buildBrowseParams(overrides));
+		const current = $page.url.pathname + $page.url.search;
+		if (next === current) return;
+		navigating = true;
+		goto(next, { keepFocus: true, noScroll: true });
+	}
+
+	$effect(() => {
+		if (!navigating || !data.browse) return;
+		browseItems = data.browse.results ?? [];
+		browsePage = data.browse.page ?? 1;
+		browseHasMore = data.browse.hasMore ?? false;
+		navigating = false;
+	});
 
 	async function loadMore() {
-		if (loadingMore || !hasMore) return;
+		if (loadingMore || navigating || !browseHasMore) return;
 		loadingMore = true;
-		const nextPage = currentPage + 1;
 		try {
-			const res = await fetch(`/afrikaans/api/discover?page=${nextPage}`);
+			const p = buildBrowseParams({});
+			p.set('page', String(browsePage + 1));
+			const res = await fetch(`/afrikaans/api/discover?${p}`);
 			if (!res.ok) throw new Error('Failed');
 			const json = await res.json();
-			movies = [...movies, ...(json.results || [])];
-			currentPage = nextPage;
-			hasMore = json.hasMore ?? false;
+			browseItems = [...browseItems, ...(json.results || [])];
+			browsePage = json.page;
+			browseHasMore = json.hasMore ?? false;
 		} catch {
+			// user can retry via the button
 		} finally {
 			loadingMore = false;
 		}
 	}
+
+	$effect(() => {
+		if (!sentinel || typeof IntersectionObserver === 'undefined') return;
+		const io = new IntersectionObserver(
+			(entries) => {
+				if (entries[0].isIntersecting) loadMore();
+			},
+			{ rootMargin: '600px 0px' }
+		);
+		io.observe(sentinel);
+		return () => io.disconnect();
+	});
+
+	const gridKey = (m: any) => `${m.media_type ?? 'movie'}:${m.id}`;
 </script>
 
 <svelte:head>
 	<title>Afrikaans Films — Streamium</title>
-	<meta name="description" content="Browse Afrikaans-language films and South African cinema." />
+	<meta name="description" content="Verken Afrikaanse flieks en reekse — Browse Afrikaans-language films and series." />
 </svelte:head>
 
 <div class="mx-auto max-w-screen-2xl px-4 py-6 sm:px-6 lg:px-8">
 	<div class="mb-2 flex items-center justify-between">
-		<h1 class="text-2xl font-bold text-white">Afrikaans Films</h1>
+		<h1 class="text-2xl font-bold text-foreground">Afrikaans Films</h1>
 	</div>
+	<p class="mb-6 text-sm text-muted-foreground">Verken Afrikaanse flieks en reekse / Browse Afrikaans film and series</p>
 
-	<p class="mb-6 text-sm text-zinc-500">Afrikaans-language cinema and South African film</p>
-
-	{#if recentAfrikaans.length > 0}
-		<section class="mb-8" aria-label="Nuut: Afrikaans / Recent Afrikaans">
-			<div class="mb-3 flex items-baseline gap-3">
-				<h2 class="text-lg font-semibold text-white">Nuut: Afrikaans</h2>
-				<p class="text-xs text-zinc-500">Recent Afrikaans-language films (laaste 24 maande)</p>
-			</div>
-			<div class="-mx-4 flex gap-4 overflow-x-auto px-4 pb-2 scrollbar-thin scrollbar-thumb-zinc-800 scrollbar-track-transparent">
-				{#each recentAfrikaans as movie (movie.id)}
-					<a href="/afrikaans/{movie.id}" class="w-28 shrink-0 sm:w-36 md:w-48">
-						<MediaCard movie={toLibraryMovie(movie)} href="/afrikaans/{movie.id}" />
-					</a>
-				{/each}
-			</div>
-		</section>
-	{:else}
-		<section class="mb-8" aria-label="Nuut: Afrikaans / Recent Afrikaans">
-			<div class="mb-3 flex items-baseline gap-3">
-				<h2 class="text-lg font-semibold text-white">Nuut: Afrikaans</h2>
-				<p class="text-xs text-zinc-500">Recent Afrikaans-language films (laaste 24 maande)</p>
-			</div>
-			<EmptyState
-				compact
-				title="Nog geen onlangse films nie / No recent films yet"
-				subtitle="Kyk binnekort weer / Check back soon"
-			/>
-		</section>
+	{#if heroSlides.length}
+		<div class="mb-8">
+			<Hero movies={heroSlides} pauseOnHover autoPlayIntervalMs={8000} />
+		</div>
 	{/if}
 
-	{#if recentSA.length > 0}
-		<section class="mb-8" aria-label="Nuut: Suid-Afrikaans / Recent South African">
-			<div class="mb-3 flex items-baseline gap-3">
-				<h2 class="text-lg font-semibold text-white">Nuut: Suid-Afrikaans</h2>
-				<p class="text-xs text-zinc-500">Recent South African releases — SA films, Afrikaans and English</p>
-			</div>
-			<div class="-mx-4 flex gap-4 overflow-x-auto px-4 pb-2 scrollbar-thin scrollbar-thumb-zinc-800 scrollbar-track-transparent">
-				{#each recentSA as movie (movie.id)}
-					<a href="/afrikaans/{movie.id}" class="w-28 shrink-0 sm:w-36 md:w-48">
-						<MediaCard movie={toLibraryMovie(movie)} href="/afrikaans/{movie.id}" />
-					</a>
-				{/each}
-			</div>
-		</section>
-	{:else}
-		<section class="mb-8" aria-label="Nuut: Suid-Afrikaans / Recent South African">
-			<div class="mb-3 flex items-baseline gap-3">
-				<h2 class="text-lg font-semibold text-white">Nuut: Suid-Afrikaans</h2>
-				<p class="text-xs text-zinc-500">Recent South African releases — SA films, Afrikaans and English</p>
-			</div>
-			<EmptyState
-				compact
-				title="Nog geen onlangse films nie / No recent films yet"
-				subtitle="Kyk binnekort weer / Check back soon"
-			/>
-		</section>
-	{/if}
-
-	<div class="toolbar">
-		<div class="search-input-wrap">
-			<svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-				<circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
-			</svg>
-			<input
-				type="text"
-				class="search-input"
-				placeholder="Search by title, director, year…"
-				bind:value={searchQuery}
-			/>
-			{#if searchQuery}
-				<button class="search-clear" onclick={() => searchQuery = ''}>✕</button>
+	{#if rails.length}
+		{#each rails as rail (rail.id)}
+			{#if rail.items.length >= 4}
+				<MediaScrollContainer title={rail.title} media={rail.items} />
 			{/if}
-		</div>
-		<div class="sort-wrap">
-			<label class="sort-label" for="afrikaans-sort">Sorteer</label>
-			<select
-				id="afrikaans-sort"
-				class="sort-select"
-				bind:value={sortMode}
-				aria-label="Sorteer films / Sort films"
-			>
-				<option value="newest">Nuutste / Newest</option>
-				<option value="rating">Beoordeling / Rating</option>
-				<option value="az">A–Z</option>
-			</select>
-		</div>
-	</div>
-	{#if searchQuery}
-		<p class="mb-4 text-sm text-zinc-500">{filteredMovies.length} van {movies.length} resultate</p>
-	{/if}
-
-	{#if initialLoad}
-		<div class="grid grid-cols-3 gap-4 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6">
-			{#each Array(20) as _, i}
-				<div in:fly={{ y: 10, duration: 150, delay: i * 30 }}>
-					<SkeletonCard />
-				</div>
-			{/each}
-		</div>
-	{:else if movies.length === 0}
-		<EmptyState
-			icon="film"
-			title="Niks gevind nie / Nothing found"
-			subtitle="Geen Afrikaanse films beskikbaar op die oomblik nie / No Afrikaans films available right now"
-			backdrop={recentSA[0]?.backdrop || recentAfrikaans[0]?.backdrop}
-		/>
-	{:else if data.error}
-		<EmptyState
-			icon="error"
-			title="Kon nie laai nie / Failed to load films"
-			subtitle="Netwerkprobleem met TMDB / Network problem with TMDB"
-			actionLabel="Probeer weer / Retry"
-			onAction={() => goto('/afrikaans')}
-		/>
-	{:else if filteredMovies.length === 0}
-		<EmptyState
-			icon="search"
-			title={`Geen resultate vir "${searchQuery}" nie / No results for "${searchQuery}"`}
-			subtitle="Probeer 'n ander soektog / Try a different search"
-			actionLabel="Maak skoon / Clear"
-			onAction={() => searchQuery = ''}
-		/>
+		{/each}
 	{:else}
-		<div class="grid grid-cols-3 gap-4 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6">
-			{#each filteredMovies as movie, i (movie.id)}
-				<div in:fly={{ y: 20, duration: 200, delay: Math.min(i * 30, 400) }}>
-					<MediaCard movie={toLibraryMovie(movie)} href="/afrikaans/{movie.id}" />
-				</div>
-			{/each}
+		<div class="space-y-8 px-[5%] py-6 sm:px-[10%]">
+			<MediaRowSkeleton variant="poster" items={7} />
+			<MediaRowSkeleton variant="poster" items={7} />
+			<MediaRowSkeleton variant="poster" items={7} />
+		</div>
+	{/if}
+
+	<section class="px-2 py-6 sm:px-4" aria-label="Verken alles / Browse all">
+		<div class="mb-4 flex flex-wrap items-baseline justify-between gap-2">
+			<h2 class="text-xl font-semibold text-foreground sm:text-3xl">Alles</h2>
+			<p class="text-xs text-muted-foreground">Blaai deur die volle katalogus / Browse the full catalogue</p>
 		</div>
 
-		{#if hasMore && !searchQuery}
-			<div class="mt-8 flex justify-center">
-				<button
-					onclick={loadMore}
-					disabled={loadingMore}
-					class="rounded-xl border border-zinc-800 bg-zinc-900/60 px-8 py-3 text-sm font-medium text-zinc-300 backdrop-blur-sm transition-colors hover:bg-zinc-800 disabled:opacity-50"
-				>
-					{loadingMore ? 'Laai... / Loading...' : 'Laai Meer / Load More'}
-				</button>
+		<div class="mb-6 flex flex-wrap items-center gap-3">
+			<div class="flex overflow-hidden rounded-xl border border-zinc-800 bg-zinc-900/60" role="group" aria-label="Tipe / Type">
+				{#each TYPES as t (t.value)}
+					<button
+						type="button"
+						class="px-3 py-2 text-xs font-medium transition-colors sm:px-4 sm:text-sm"
+						class:afrikaans-active={type === t.value}
+						class:text-zinc-400={type !== t.value}
+						onclick={() => applyFilters({ type: t.value })}
+					>{t.label}</button>
+				{/each}
 			</div>
+
+			<div class="flex flex-wrap items-center gap-2">
+				{#each GENRES as g (g.value ?? 'all')}
+					<button
+						type="button"
+						class="chip text-xs"
+						class:chip-active={genre === g.value}
+						onclick={() => applyFilters({ genre: g.value })}
+					>{g.label}</button>
+				{/each}
+			</div>
+
+			<div class="ml-auto flex flex-wrap items-center gap-2">
+				<label class="text-xs text-zinc-500" for="afrikaans-decade">Jare / Years</label>
+				<select
+					id="afrikaans-decade"
+					class="sort-select"
+					value={decade ?? ''}
+					onchange={(e) => applyFilters({ decade: (e.currentTarget.value || null) })}
+				>
+					{#each DECADES as d (d.value ?? 'all')}
+						<option value={d.value ?? ''}>{d.label}</option>
+					{/each}
+				</select>
+
+				<label class="text-xs text-zinc-500" for="afrikaans-sort">Sorteer / Sort</label>
+				<select
+					id="afrikaans-sort"
+					class="sort-select"
+					value={sort}
+					onchange={(e) => applyFilters({ sort: e.currentTarget.value })}
+				>
+					{#each SORTS as s (s.value)}
+						<option value={s.value}>{s.label}</option>
+					{/each}
+				</select>
+			</div>
+		</div>
+
+		{#if data.error}
+			<EmptyState
+				icon="error"
+				title="Kon nie laai nie / Failed to load films"
+				subtitle="Netwerkprobleem met TMDB / Network problem with TMDB"
+				actionLabel="Probeer weer / Retry"
+				onAction={() => goto('/afrikaans')}
+			/>
+		{:else if navigating}
+			<div class="grid grid-cols-3 gap-4 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6">
+				{#each Array(20) as _, i}
+					<div class={i > 11 ? 'hidden sm:block' : ''}>
+						<SkeletonCard />
+					</div>
+				{/each}
+			</div>
+		{:else if browseItems.length === 0}
+			<EmptyState
+				icon="search"
+				title="Niks gevind nie / Nothing found"
+				subtitle="Probeer 'n ander kombinasie / Try a different combination"
+			/>
+		{:else}
+			<div class="grid grid-cols-3 gap-4 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6">
+				{#each browseItems as m (gridKey(m))}
+					<MediaCard movie={toLibraryMovie(m)} />
+				{/each}
+			</div>
+
+			{#if browseHasMore && !navigating}
+				<div class="mt-8 flex justify-center">
+					<button
+						type="button"
+						onclick={loadMore}
+						disabled={loadingMore}
+						class="afrikaans-more rounded-xl border border-zinc-800 bg-zinc-900/60 px-8 py-3 text-sm font-medium text-zinc-300 backdrop-blur-sm transition-colors hover:bg-zinc-800 disabled:opacity-50"
+					>
+						{loadingMore ? 'Laai... / Loading...' : 'Laai Meer / Load More'}
+					</button>
+				</div>
+				<div bind:this={sentinel} aria-hidden="true" class="h-px w-full"></div>
+			{/if}
 		{/if}
-	{/if}
+	</section>
 </div>
 
 <style>
-	.toolbar {
-		display: flex; align-items: center; gap: 12px; margin-bottom: 28px; flex-wrap: wrap;
+	.afrikaans-active {
+		background: var(--afrikaans-accent);
+		color: #1a1200;
 	}
-	.search-input-wrap {
-		position: relative; flex: 1; max-width: 480px; min-width: 200px;
-	}
-	.search-icon {
-		position: absolute; left: 12px; top: 50%; transform: translateY(-50%);
-		width: 16px; height: 16px; color: #71717a; pointer-events: none;
-	}
-	.search-input {
-		width: 100%; padding: 10px 36px 10px 36px;
-		border-radius: 12px; border: 1px solid #27272a;
-		background: rgba(24,24,27,0.6); color: #e4e4e7;
-		font-size: 14px; outline: none; transition: border-color 0.15s;
-	}
-	.search-input:focus { border-color: rgba(99,102,241,0.5); }
-	.search-input::placeholder { color: #52525b; }
-	.search-clear {
-		position: absolute; right: 10px; top: 50%; transform: translateY(-50%);
-		background: none; border: none; color: #71717a; cursor: pointer; font-size: 16px; padding: 4px;
-	}
-	.search-clear:hover { color: #e4e4e7; }
 
-	.sort-wrap {
-		display: flex; align-items: center; gap: 8px; flex-shrink: 0;
+	.afrikaans-more:hover {
+		border-color: var(--afrikaans-accent);
+		color: var(--afrikaans-accent);
+		background: var(--afrikaans-accent-soft);
 	}
-	.sort-label {
-		font-size: 13px; color: #71717a; font-weight: 500; white-space: nowrap;
+
+	.chip {
+		padding: 6px 12px;
+		border-radius: 999px;
+		border: 1px solid #27272a;
+		background: rgba(24, 24, 27, 0.6);
+		color: #a1a1aa;
+		font-weight: 500;
+		transition: all 0.15s;
+		cursor: pointer;
 	}
+
+	.chip:hover {
+		color: var(--afrikaans-accent);
+		border-color: var(--afrikaans-accent);
+	}
+
+	.chip-active {
+		background: var(--afrikaans-accent-soft);
+		border-color: var(--afrikaans-accent);
+		color: var(--afrikaans-accent);
+	}
+
 	.sort-select {
-		padding: 9px 12px; background: rgba(30,27,75,0.7);
-		border: 1px solid rgba(129,140,248,0.15); border-radius: 12px;
-		color: #a5b4fc; font-size: 13px; font-weight: 500;
-		cursor: pointer; outline: none; transition: all 0.15s;
+		padding: 8px 12px;
+		background: rgba(24, 24, 27, 0.6);
+		border: 1px solid #27272a;
+		border-radius: 12px;
+		color: #e4e4e7;
+		font-size: 13px;
+		font-weight: 500;
+		cursor: pointer;
+		outline: none;
+		transition: all 0.15s;
 	}
-	.sort-select:hover { border-color: rgba(129,140,248,0.3); color: #c7d2fe; }
-	.sort-select:focus { border-color: rgba(129,140,248,0.4); }
-	.sort-select option { background: #1e1b2e; color: #e4e4e7; }
+
+	.sort-select:hover {
+		border-color: var(--afrikaans-accent);
+		color: var(--afrikaans-accent);
+	}
+
+	.sort-select option {
+		background: #18181b;
+		color: #e4e4e7;
+	}
 
 	@media (max-width: 640px) {
-		.toolbar { flex-direction: column; align-items: stretch; }
-		.search-input-wrap { max-width: 100%; }
-		.sort-wrap { justify-content: flex-end; }
+		.chip {
+			padding: 5px 10px;
+			font-size: 12px;
+		}
 	}
 </style>

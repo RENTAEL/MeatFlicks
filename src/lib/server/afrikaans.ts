@@ -36,7 +36,9 @@ type RailQuery = {
 	genre?: number;
 };
 
-export type AfrikaansBrowseSort = 'newest' | 'rating' | 'title' | 'popularity';
+export type AfrikaansBrowseSort = 'newest' | 'rating' | 'year' | 'title' | 'popularity';
+
+export type AfrikaansBrowseType = 'movie' | 'tv' | 'alles';
 
 export type AfrikaansBrowseResult = {
 	results: ReturnType<typeof formatMovie>[];
@@ -44,6 +46,42 @@ export type AfrikaansBrowseResult = {
 	total_pages: number;
 	hasMore: boolean;
 };
+
+export const AFRIKAANS_GENRES = [18, 35, 99] as const;
+export const AFRIKAANS_DECADES = [1980, 1990, 2000, 2010, 2020] as const;
+
+export type AfrikaansBrowseParams = {
+	type: AfrikaansBrowseType;
+	genre: number | null;
+	decade: number | null;
+	sort: AfrikaansBrowseSort | null;
+};
+
+export function parseAfrikaansBrowseParams(
+	params: { get(name: string): string | null }
+): AfrikaansBrowseParams {
+	const rawType = params.get('type');
+	const rawGenre = params.get('genre');
+	const rawDecade = params.get('decade');
+	const rawSort = params.get('sort');
+
+	const type: AfrikaansBrowseType =
+		rawType === 'reekse' ? 'tv' : rawType === 'alles' ? 'alles' : 'movie';
+	const genre =
+		rawGenre && AFRIKAANS_GENRES.some((g) => String(g) === rawGenre)
+			? Number(rawGenre)
+			: null;
+	const decade =
+		rawDecade && AFRIKAANS_DECADES.some((d) => String(d) === rawDecade)
+			? Number(rawDecade)
+			: null;
+	const sort =
+		rawSort && ['newest', 'rating', 'year', 'title', 'popularity'].includes(rawSort)
+			? (rawSort as AfrikaansBrowseSort)
+			: null;
+
+	return { type, genre, decade, sort };
+}
 
 function dateGte(months: number): string {
 	const d = new Date();
@@ -211,38 +249,74 @@ export async function loadAfrikaansRails(): Promise<AfrikaansRail[]> {
 
 const SORTS: Record<AfrikaansBrowseSort, { movie: string; tv: string }> = {
 	newest: { movie: 'primary_release_date.desc', tv: 'first_air_date.desc' },
+	year: { movie: 'primary_release_date.desc', tv: 'first_air_date.desc' },
 	rating: { movie: 'vote_average.desc', tv: 'vote_average.desc' },
 	title: { movie: 'original_title.asc', tv: 'original_name.asc' },
 	popularity: { movie: 'popularity.desc', tv: 'popularity.desc' }
 };
 
+type TaggedResult = { _tag: 'movie' | 'tv' } & any;
+
+async function discoverTagged(
+	type: 'movie' | 'tv',
+	opts: { sort: AfrikaansBrowseSort; genre?: number | null; decade?: number | null; page: number }
+): Promise<{ results: TaggedResult[]; total_pages: number }> {
+	const qp = new URLSearchParams();
+	qp.set('sort_by', SORTS[opts.sort][type]);
+	qp.set('vote_count.gte', '1');
+	qp.set(dateField(type, 'lte'), todayParam());
+	if (opts.genre) qp.set('with_genres', String(opts.genre));
+	if (opts.decade) {
+		qp.set(dateField(type, 'gte'), `${opts.decade}-01-01`);
+		qp.set(dateField(type, 'lte'), `${opts.decade + 9}-12-31`);
+	}
+	qp.set('page', String(opts.page));
+
+	const { results, total_pages } = await tmdbDiscover(type, qp);
+	return {
+		results: results.map((m) => ({ ...m, _tag: type })),
+		total_pages
+	};
+}
+
 export async function fetchAfrikaansBrowse(opts: {
-	type: 'movie' | 'tv';
+	type: AfrikaansBrowseType;
 	page: number;
 	genre?: number | null;
 	decade?: number | null;
 	sort?: AfrikaansBrowseSort | null;
 }): Promise<AfrikaansBrowseResult> {
-	const qp = new URLSearchParams();
-	qp.set('sort_by', SORTS[opts.sort ?? 'newest'][opts.type]);
-	qp.set('vote_count.gte', '1');
-	qp.set(dateField(opts.type, 'lte'), todayParam());
-	if (opts.genre) qp.set('with_genres', String(opts.genre));
-	if (opts.decade) {
-		qp.set(dateField(opts.type, 'gte'), `${opts.decade}-01-01`);
-		qp.set(dateField(opts.type, 'lte'), `${opts.decade + 9}-12-31`);
-	}
-	qp.set('page', String(opts.page));
+	const sort = opts.sort ?? 'newest';
 
-	const { results, total_pages } = await tmdbDiscover(opts.type, qp);
+	let raw: TaggedResult[];
+	let totalPages = 0;
+	if (opts.type === 'alles') {
+		const [movies, series] = await Promise.all([
+			discoverTagged('movie', { sort, genre: opts.genre, decade: opts.decade, page: opts.page }),
+			discoverTagged('tv', { sort, genre: opts.genre, decade: opts.decade, page: opts.page })
+		]);
+		raw = [...movies.results, ...series.results];
+		totalPages = Math.max(movies.total_pages, series.total_pages);
+	} else {
+		const single = await discoverTagged(opts.type, {
+			sort,
+			genre: opts.genre,
+			decade: opts.decade,
+			page: opts.page
+		});
+		raw = single.results;
+		totalPages = single.total_pages;
+	}
 
 	const curatedIds = new Set(AFRIKAANS_FILMS.map((f) => f.tmdbId));
-	const eligible = results.filter((m) => m.poster_path && !curatedIds.has(m.id)).map(formatMovie);
+	const eligible = raw
+		.filter((m) => m.poster_path && !curatedIds.has(m.id))
+		.map((m) => formatMovie({ ...m, media_type: m._tag }));
 
 	return {
 		results: eligible,
 		page: opts.page,
-		total_pages: total_pages,
-		hasMore: eligible.length > 0 && opts.page < total_pages
+		total_pages: totalPages,
+		hasMore: eligible.length > 0 && opts.page < totalPages
 	};
 }
