@@ -26,8 +26,8 @@ export interface UnifiedSearchResult {
 	people: any[];
 }
 
-export const GET: RequestHandler = async ({ url }) => {
-	event.setHeaders({ 'Cache-Control': 'public, max-age=60, s-maxage=300, stale-while-revalidate=300' });
+export const GET: RequestHandler = async ({ setHeaders, url }) => {
+	setHeaders({ 'Cache-Control': 'public, max-age=60, s-maxage=300, stale-while-revalidate=300' });
 	try {
 		const queryParams = validateQueryParams(searchQueryParamsSchema, url.searchParams);
 

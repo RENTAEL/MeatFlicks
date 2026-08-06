@@ -5,8 +5,8 @@ import { isEligibleMedia, todayParam } from '$lib/utils/mediaFilter';
 
 const VALID_TYPES = new Set(['movie', 'tv']);
 
-export const GET: RequestHandler = async ({ params, url }) => {
-	event.setHeaders({ 'Cache-Control': 'public, max-age=60, s-maxage=300, stale-while-revalidate=300' });
+export const GET: RequestHandler = async ({ setHeaders, params, url }) => {
+	setHeaders({ 'Cache-Control': 'public, max-age=60, s-maxage=300, stale-while-revalidate=300' });
   const mediaType = params.mediaType;
   if (!VALID_TYPES.has(mediaType)) {
     return json({ error: `Invalid media type: ${mediaType}`, results: [], total_pages: 0 }, { status: 400 });

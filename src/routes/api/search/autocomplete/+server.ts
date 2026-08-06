@@ -8,8 +8,8 @@ const autocompleteSchema = z.object({
 	q: z.string().min(2, 'Query must be at least 2 characters')
 });
 
-export const GET: RequestHandler = async ({ url }) => {
-	event.setHeaders({ 'Cache-Control': 'public, max-age=60, s-maxage=300, stale-while-revalidate=300' });
+export const GET: RequestHandler = async ({ setHeaders, url }) => {
+	setHeaders({ 'Cache-Control': 'public, max-age=60, s-maxage=300, stale-while-revalidate=300' });
 	try {
 		const queryParams = validateQueryParams(autocompleteSchema, url.searchParams);
 		const result = await autocompleteSearch(queryParams.q);

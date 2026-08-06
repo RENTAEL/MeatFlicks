@@ -2,8 +2,8 @@ import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { env } from '$lib/config/env';
 
-export const GET: RequestHandler = async ({ params, fetch }) => {
-	event.setHeaders({ 'Cache-Control': 'public, max-age=60, s-maxage=300, stale-while-revalidate=300' });
+export const GET: RequestHandler = async ({ setHeaders, params, fetch }) => {
+	setHeaders({ 'Cache-Control': 'public, max-age=60, s-maxage=300, stale-while-revalidate=300' });
   try {
     const res = await fetch(`https://api.themoviedb.org/3/tv/${params.id}/credits?api_key=${env.TMDB_API_KEY}&language=en-US`, { signal: AbortSignal.timeout(8000) });
     const data = await res.json();

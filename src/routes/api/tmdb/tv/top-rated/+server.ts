@@ -3,8 +3,8 @@ import type { RequestHandler } from './$types';
 import { env } from '$lib/config/env';
 import { isEligibleMedia } from '$lib/utils/mediaFilter';
 
-export const GET: RequestHandler = async ({ fetch }) => {
-	event.setHeaders({ 'Cache-Control': 'public, max-age=60, s-maxage=300, stale-while-revalidate=300' });
+export const GET: RequestHandler = async ({ setHeaders, fetch }) => {
+	setHeaders({ 'Cache-Control': 'public, max-age=60, s-maxage=300, stale-while-revalidate=300' });
   try {
     const res = await fetch(`https://api.themoviedb.org/3/tv/top_rated?api_key=${env.TMDB_API_KEY}&language=en-US&page=1`, { signal: AbortSignal.timeout(8000) });
     const data = await res.json();
