@@ -2,6 +2,7 @@ import { randomBytes } from 'crypto';
 import type { RequestEvent, ResolveOptions } from '@sveltejs/kit';
 import { logger } from './logger';
 import { UnauthorizedError } from './error-handler';
+import { isPublicPagePath } from './caching';
 
 const isDev = process.env.NODE_ENV === 'development';
 
@@ -280,15 +281,16 @@ export function csrfMiddleware() {
 		name: 'csrf',
 		async handle({ event, resolve }: { event: RequestEvent; resolve: CsrfResolve }) {
 			const isApiRequest = event.url.pathname.includes('/api/');
+			const isPublicPage = isPublicPagePath(event.url.pathname);
 
 			if (!isApiRequest) {
 				const csrfCookie = event.cookies.get(CSRF_COOKIE_NAME);
+
 				if (!csrfCookie) {
 					const csrfToken = generateSecureCsrfToken();
 					const csrfCookie = createSecureCsrfCookie(csrfToken);
-
 					event.cookies.set(csrfCookie.name, csrfCookie.value, csrfCookie.attributes);
-				} else {
+				} else if (!isPublicPage) {
 					try {
 						const tokenData = JSON.parse(csrfCookie) as Partial<CsrfTokenPayload>;
 						if (tokenData.expires && Date.now() > tokenData.expires - CSRF_TOKEN_ROTATION_INTERVAL) {

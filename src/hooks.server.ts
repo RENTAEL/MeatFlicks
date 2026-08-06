@@ -8,6 +8,7 @@ import { apiRateLimiter, authRateLimiter } from '$lib/server/rate-limiter';
 import { applySecurityHeaders } from '$lib/server/security-headers';
 import { csrfMiddleware } from '$lib/server/csrf';
 import { decryptSession, createSessionCookieName, getSessionCookieOptions } from '$lib/server/session-crypto';
+import { isPublicPagePath } from '$lib/server/caching';
 
 
 
@@ -158,8 +159,7 @@ function applyCacheControl(event: RequestEvent, response: Response) {
 		return;
 	}
 
-	const PRIVATE_PAGE_PREFIXES = ['/login', '/signup', '/logout', '/history', '/watchlist', '/profile'];
-	if (PRIVATE_PAGE_PREFIXES.some((p) => path === p || path.startsWith(p + '/'))) return;
+	if (!isPublicPagePath(path)) return;
 
 	response.headers.set('Cache-Control', 'public, s-maxage=300, stale-while-revalidate=300');
 }
