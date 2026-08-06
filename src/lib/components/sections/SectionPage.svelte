@@ -215,11 +215,9 @@
 			}
 			cur = cur.parentElement;
 		}
-		console.log('[sec-io] observing, root=', root.tagName, String((root as HTMLElement).className).slice(0, 40));
 		const io = new IntersectionObserver(
 			(entries) => {
 				const entry = entries[0];
-				console.log('[sec-io] callback intersect=', entry.isIntersecting, 'autoFired=', autoFired);
 				if (entry.isIntersecting) {
 					if (!autoFired) {
 						autoFired = true;
