@@ -3,6 +3,7 @@ import type { RequestHandler } from './$types';
 import { fetchMovieCategory, MOVIE_CATEGORIES } from '$lib/server/tmdb-movies';
 
 export const GET: RequestHandler = async ({ params, url }) => {
+	event.setHeaders({ 'Cache-Control': 'public, max-age=60, s-maxage=300, stale-while-revalidate=300' });
 	const category = MOVIE_CATEGORIES.includes(params.category as any)
 		? (params.category as (typeof MOVIE_CATEGORIES)[number])
 		: 'popular';

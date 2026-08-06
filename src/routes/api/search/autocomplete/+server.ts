@@ -9,6 +9,7 @@ const autocompleteSchema = z.object({
 });
 
 export const GET: RequestHandler = async ({ url }) => {
+	event.setHeaders({ 'Cache-Control': 'public, max-age=60, s-maxage=300, stale-while-revalidate=300' });
 	try {
 		const queryParams = validateQueryParams(autocompleteSchema, url.searchParams);
 		const result = await autocompleteSearch(queryParams.q);

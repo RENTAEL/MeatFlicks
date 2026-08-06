@@ -8,7 +8,6 @@ import { apiRateLimiter, authRateLimiter } from '$lib/server/rate-limiter';
 import { applySecurityHeaders } from '$lib/server/security-headers';
 import { csrfMiddleware } from '$lib/server/csrf';
 import { decryptSession, createSessionCookieName, getSessionCookieOptions } from '$lib/server/session-crypto';
-import { isPublicPagePath } from '$lib/server/caching';
 
 
 
@@ -137,29 +136,5 @@ export const handle: Handle = async ({ event, resolve }) => {
 	response.headers.delete('Feature-Policy');
 	response.headers.set('Permissions-Policy', 'fullscreen=*');
 
-	const secured = applySecurityHeaders(event, response);
-	applyCacheControl(event, secured);
-	return secured;
+	return applySecurityHeaders(event, response);
 };
-
-function applyCacheControl(event: RequestEvent, response: Response) {
-	const method = event.request.method;
-	if (method !== 'GET' && method !== 'HEAD') return;
-	if (response.status >= 400) return;
-	if (response.headers.has('cache-control')) return;
-	if (event.locals.user) return;
-
-	const path = event.url.pathname;
-
-	if (path.startsWith('/api/')) {
-		const PUBLIC_TMDB_PREFIXES = ['/api/tmdb/', '/api/search/unified', '/api/search/autocomplete'];
-		if (PUBLIC_TMDB_PREFIXES.some((p) => path.startsWith(p)) && !path.startsWith('/api/search/history')) {
-			response.headers.set('Cache-Control', 'public, max-age=60, s-maxage=300, stale-while-revalidate=300');
-		}
-		return;
-	}
-
-	if (!isPublicPagePath(path)) return;
-
-	response.headers.set('Cache-Control', 'public, s-maxage=300, stale-while-revalidate=300');
-}

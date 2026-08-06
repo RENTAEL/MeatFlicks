@@ -12,6 +12,7 @@ const batchQueryParamsSchema = z.object({
 });
 
 export const GET: RequestHandler = async ({ url }) => {
+	event.setHeaders({ 'Cache-Control': 'public, max-age=60, s-maxage=300, stale-while-revalidate=300' });
 	try {
 		const { ids } = validateQueryParams(batchQueryParamsSchema, url.searchParams);
 
