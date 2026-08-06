@@ -1,35 +1,33 @@
 import { htmlCacheControl } from '$lib/server/caching';
 import type { PageServerLoad } from './$types';
+import { fetchTvBrowse, fetchTvHero, loadTvRails, parseTvBrowseParams } from '$lib/server/tv';
 
-export const load: PageServerLoad = async ({ url, fetch, locals, setHeaders }) => {
+export const load: PageServerLoad = async ({ url, locals, setHeaders }) => {
 	setHeaders({ 'Cache-Control': htmlCacheControl(locals.user) });
-  const query = url.searchParams.get('q') || '';
-  const page = parseInt(url.searchParams.get('page') || '1');
+	const browseParams = parseTvBrowseParams(url.searchParams);
+	const page = Math.max(1, Number(url.searchParams.get('page')) || 1);
 
-  const params = new URLSearchParams();
-  if (query) params.set('q', query);
-  if (page > 1) params.set('page', String(page));
-
-  const paramStr = params.toString();
-  const apiUrl = `/api/stream/tv${paramStr ? `?${paramStr}` : ''}`;
-
-  try {
-    const res = await fetch(apiUrl);
-
-    if (!res.ok) {
-      return { shows: [], query, page: 1, totalPages: 1 };
-    }
-
-    const data = await res.json();
-
-    return {
-      shows: data.results ?? [],
-      query,
-      page: data.page ?? page,
-      totalPages: data.total_pages ?? 1,
-    };
-  } catch (err) {
-    console.error('Failed to load TV series:', err);
-    return { shows: [], query, page: 1, totalPages: 1 };
-  }
+	try {
+		const [rails, hero, browse] = await Promise.all([
+			loadTvRails(),
+			fetchTvHero(),
+			fetchTvBrowse({
+				type: browseParams.type,
+				page,
+				genre: browseParams.genre,
+				decade: browseParams.decade,
+				sort: browseParams.sort
+			})
+		]);
+		return { section: 'tv', rails, hero, browse, browseParams, error: null };
+	} catch {
+		return {
+			section: 'tv',
+			rails: [],
+			hero: [],
+			browse: { results: [], page: 1, total_pages: 0, hasMore: false },
+			browseParams,
+			error: 'Failed to load TV series'
+		};
+	}
 };
