@@ -71,6 +71,18 @@
   --afrikaans-accent-soft: color-mix(in srgb, var(--afrikaans-accent) 14%, transparent);
   --afrikaans-accent-glow: color-mix(in srgb, var(--afrikaans-accent) 28%, transparent);
 
+  /* Movies section — warm amber accent */
+  --movies-accent: #f59e0b;
+  --movies-accent-hover: color-mix(in srgb, var(--movies-accent) 75%, white);
+  --movies-accent-soft: color-mix(in srgb, var(--movies-accent) 14%, transparent);
+  --movies-accent-glow: color-mix(in srgb, var(--movies-accent) 28%, transparent);
+
+  /* TV section — cool slate accent */
+  --tv-accent: #94a3b8;
+  --tv-accent-hover: color-mix(in srgb, var(--tv-accent) 70%, white);
+  --tv-accent-soft: color-mix(in srgb, var(--tv-accent) 14%, transparent);
+  --tv-accent-glow: color-mix(in srgb, var(--tv-accent) 28%, transparent);
+
   --gradient-brand: linear-gradient(135deg, #7c5cfc 0%, #c94b8c 100%);
   --gradient-brand-horizontal: linear-gradient(90deg, #7c5cfc 0%, #c94b8c 100%);
   --gradient-hero: linear-gradient(180deg, transparent 40%, var(--bg-root) 100%);

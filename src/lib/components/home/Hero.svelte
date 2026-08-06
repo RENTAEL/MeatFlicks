@@ -4,6 +4,7 @@
 		Check,
 		ChevronLeft,
 		ChevronRight,
+		Film,
 		Pause,
 		Play,
 		Plus,
@@ -23,6 +24,8 @@
 		movies?: LibraryMovie[] | null;
 		autoPlayIntervalMs?: number;
 		pauseOnHover?: boolean;
+		trailerButton?: boolean;
+		trailerLabel?: string;
 	};
 
 	type HeroSlide = {
@@ -46,7 +49,9 @@
 		movie = null,
 		movies = [],
 		autoPlayIntervalMs = DEFAULT_INTERVAL_MS,
-		pauseOnHover = false
+		pauseOnHover = false,
+		trailerButton = false,
+		trailerLabel = 'Trailer'
 	}: HeroProps = $props();
 
 	let message = $state<string | null>(null);
@@ -407,6 +412,20 @@
 									<Play class="size-4" aria-hidden="true" />
 									Play
 								</Button>
+
+								{#if trailerButton && activeMovie.trailerUrl}
+									<Button
+										href={activeMovie.trailerUrl}
+										target="_blank"
+										rel="noopener noreferrer"
+										variant="secondary"
+										size="lg"
+										class="glass gap-2 font-semibold text-foreground transition-transform duration-300 hover:-translate-y-0.5"
+									>
+										<Film class="size-4" aria-hidden="true" />
+										{trailerLabel}
+									</Button>
+								{/if}
 
 								<Button
 									type="button"

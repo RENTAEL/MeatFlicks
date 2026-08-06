@@ -5,4 +5,11 @@
 	let { data }: { data: PageData } = $props();
 </script>
 
-<SectionPage section="movies" rails={data.rails} hero={data.hero} browse={data.browse} error={data.error} />
+<SectionPage
+	section="movies"
+	rails={data.rails}
+	hero={data.hero}
+	browse={data.browse}
+	browseParams={data.browseParams}
+	error={data.error}
+/>
