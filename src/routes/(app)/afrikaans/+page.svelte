@@ -2,6 +2,7 @@
 	import { goto } from '$app/navigation';
 	import { page } from '$app/stores';
 	import type { PageData } from './$types';
+	import { Search, Shuffle, Star, X } from '@lucide/svelte';
 	import Hero from '$lib/components/home/Hero.svelte';
 	import MediaScrollContainer from '$lib/components/media/MediaScrollContainer.svelte';
 	import MediaCard from '$lib/components/media/MediaCard.svelte';
@@ -9,6 +10,15 @@
 	import EmptyState from '$lib/components/media/EmptyState.svelte';
 	import MediaRowSkeleton from '$lib/components/skeletons/MediaRowSkeleton.svelte';
 	import { toLibraryMovie } from '$lib/utils/tmdb';
+	import {
+		Dialog,
+		DialogContent,
+		DialogDescription,
+		DialogHeader,
+		DialogTitle
+	} from '$lib/components/ui/dialog';
+	import { Button } from '$lib/components/ui/button';
+	import { Badge } from '$lib/components/ui/badge';
 
 	let { data }: { data: PageData } = $props();
 
@@ -36,6 +46,15 @@
 	let navigating = $state(false);
 
 	let sentinel: HTMLDivElement | undefined = $state();
+
+	let query = $state('');
+	let serverResults = $state<any[]>([]);
+	let searchingServer = $state(false);
+	let serverSearched = $state(false);
+
+	let pickOpen = $state(false);
+	let pickItem = $state<any>(null);
+	let picking = $state(false);
 
 	const TYPES: { value: TypeValue; label: string }[] = [
 		{ value: 'flieks', label: 'Flieks / Movies' },
@@ -131,7 +150,112 @@
 		return () => io.disconnect();
 	});
 
+	const clientMatches = $derived(
+		query
+			? (browseItems as any[]).filter((m) => {
+					const q = query.toLowerCase();
+					return (
+						(m.title ?? '').toLowerCase().includes(q) ||
+						(m.overview ?? '').toLowerCase().includes(q)
+					);
+				})
+			: null
+	);
+
+	const needsServer = $derived(
+		query.trim().length >= 3 && clientMatches !== null && clientMatches.length === 0
+	);
+
+	$effect(() => {
+		serverSearched = false;
+		serverResults = [];
+		if (!needsServer) return;
+		searchingServer = true;
+		const q = query.trim();
+		const timer = setTimeout(async () => {
+			try {
+				if (query.trim() !== q) return;
+				const res = await fetch(`/afrikaans/api/search?q=${encodeURIComponent(q)}`);
+				if (!res.ok) throw new Error('Failed');
+				const json = await res.json();
+				if (query.trim() !== q) return;
+				serverResults = json.results ?? [];
+			} catch {
+				serverResults = [];
+			} finally {
+				if (query.trim() === q) {
+					searchingServer = false;
+					serverSearched = true;
+				}
+			}
+		}, 350);
+		return () => {
+			clearTimeout(timer);
+			searchingServer = false;
+		};
+	});
+
+	async function rollPick() {
+		if (picking) return;
+		picking = true;
+		try {
+			const p = buildBrowseParams({});
+			p.set('page', '1');
+			const res = await fetch(`/afrikaans/api/discover?${p}`);
+			if (!res.ok) throw new Error('Failed');
+			const first = await res.json();
+			let pool: any[] = first.results ?? [];
+			const totalPages = first.total_pages ?? 1;
+			if (totalPages > 1) {
+				const extraPage = Math.floor(Math.random() * Math.min(totalPages, 5)) + 2;
+				const p2 = buildBrowseParams({});
+				p2.set('page', String(extraPage));
+				try {
+					const res2 = await fetch(`/afrikaans/api/discover?${p2}`);
+					if (res2.ok) {
+						const extra = await res2.json();
+						pool = [...pool, ...(extra.results ?? [])];
+					}
+				} catch {
+					// keep pool
+				}
+			}
+			pickItem = pool.length ? pool[Math.floor(Math.random() * pool.length)] : null;
+		} catch {
+			pickItem = null;
+		} finally {
+			picking = false;
+		}
+	}
+
+	function openPick() {
+		pickOpen = true;
+		rollPick();
+	}
+
+	const pickDetailsHref = $derived(
+		pickItem ? `/${pickItem.media_type === 'tv' ? 'tv' : 'movie'}/${pickItem.id}` : '#'
+	);
+
 	const gridKey = (m: any) => `${m.media_type ?? 'movie'}:${m.id}`;
+
+	const gridCards = $derived.by(() => {
+		if (query) {
+			if (clientMatches && clientMatches.length > 0) return clientMatches;
+			if (serverSearched && serverResults.length > 0) return serverResults;
+			return [];
+		}
+		return browseItems;
+	});
+
+	const gridNote = $derived.by(() => {
+		if (!query) return null;
+		if (clientMatches && clientMatches.length > 0)
+			return `${clientMatches.length} resultaat${clientMatches.length === 1 ? '' : 'e'} in die katalogus / in catalogue`;
+		if (serverSearched && serverResults.length > 0)
+			return `Soekresultate van TMDB / Search results from TMDB`;
+		return null;
+	});
 </script>
 
 <svelte:head>
@@ -166,12 +290,39 @@
 	{/if}
 
 	<section class="px-2 py-6 sm:px-4" aria-label="Verken alles / Browse all">
-		<div class="mb-4 flex flex-wrap items-baseline justify-between gap-2">
-			<h2 class="text-xl font-semibold text-foreground sm:text-3xl">Alles</h2>
-			<p class="text-xs text-muted-foreground">Blaai deur die volle katalogus / Browse the full catalogue</p>
+		<div class="mb-4 flex flex-wrap items-center justify-between gap-2">
+			<div>
+				<h2 class="text-xl font-semibold text-foreground sm:text-3xl">Alles</h2>
+				<p class="text-xs text-muted-foreground">Blaai deur die volle katalogus / Browse the full catalogue</p>
+			</div>
+			<Button
+				type="button"
+				onclick={openPick}
+				class="kies-btn gap-2 font-semibold"
+				aria-label="Kies vir my / Pick for me"
+			>
+				<Shuffle class="size-4" aria-hidden="true" />
+				Kies vir my / Pick for me
+			</Button>
 		</div>
 
 		<div class="mb-6 flex flex-wrap items-center gap-3">
+			<div class="relative min-w-0 flex-1 max-w-xs">
+				<Search class="search-icon" aria-hidden="true" />
+				<input
+					type="search"
+					class="search-input"
+					placeholder="Soek in katalogus / Search catalogue…"
+					bind:value={query}
+					aria-label="Soek / Search"
+				/>
+				{#if query}
+					<button type="button" class="search-clear" onclick={() => (query = '')} aria-label="Maak skoon / Clear">
+						<X class="size-4" aria-hidden="true" />
+					</button>
+				{/if}
+			</div>
+
 			<div class="flex overflow-hidden rounded-xl border border-zinc-800 bg-zinc-900/60" role="group" aria-label="Tipe / Type">
 				{#each TYPES as t (t.value)}
 					<button
@@ -222,6 +373,10 @@
 			</div>
 		</div>
 
+		{#if gridNote}
+			<p class="mb-4 text-sm text-zinc-500" role="status">{gridNote}</p>
+		{/if}
+
 		{#if data.error}
 			<EmptyState
 				icon="error"
@@ -230,7 +385,13 @@
 				actionLabel="Probeer weer / Retry"
 				onAction={() => goto('/afrikaans')}
 			/>
-		{:else if navigating}
+		{:else if query && clientMatches !== null && clientMatches.length === 0 && !searchingServer && !serverSearched}
+			<EmptyState
+				icon="search"
+				title="Soek… / Searching…"
+				subtitle="Soek verder op TMDB as jy langer tik / Search TMDB too if you keep typing"
+			/>
+		{:else if navigating || searchingServer}
 			<div class="grid grid-cols-3 gap-4 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6">
 				{#each Array(20) as _, i}
 					<div class={i > 11 ? 'hidden sm:block' : ''}>
@@ -238,20 +399,24 @@
 					</div>
 				{/each}
 			</div>
-		{:else if browseItems.length === 0}
+		{:else if gridCards.length === 0}
 			<EmptyState
 				icon="search"
-				title="Niks gevind nie / Nothing found"
-				subtitle="Probeer 'n ander kombinasie / Try a different combination"
+				title={query ? `Geen resultate vir "${query}" nie / No results for "${query}"` : 'Niks gevind nie / Nothing found'}
+				subtitle={query
+					? 'Probeer \'n ander soektog / Try a different search'
+					: 'Probeer \'n ander kombinasie / Try a different combination'}
+				actionLabel={query ? 'Maak skoon / Clear' : undefined}
+				onAction={query ? () => (query = '') : undefined}
 			/>
 		{:else}
 			<div class="grid grid-cols-3 gap-4 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6">
-				{#each browseItems as m (gridKey(m))}
+				{#each gridCards as m (gridKey(m))}
 					<MediaCard movie={toLibraryMovie(m)} />
 				{/each}
 			</div>
 
-			{#if browseHasMore && !navigating}
+			{#if !query && browseHasMore && !navigating}
 				<div class="mt-8 flex justify-center">
 					<button
 						type="button"
@@ -268,8 +433,87 @@
 	</section>
 </div>
 
+<Dialog bind:open={pickOpen}>
+	<DialogContent class="w-[min(96vw,720px)] border border-border bg-card text-foreground">
+		<DialogHeader>
+			<DialogTitle class="flex items-center gap-2 text-lg font-semibold">
+				<Shuffle class="size-4 text-[var(--afrikaans-accent)]" aria-hidden="true" />
+				Kies vir my / Pick for me
+			</DialogTitle>
+			<DialogDescription class="text-sm text-muted-foreground">
+				'n lukraak keuse uit jou huidige filters / A random pick from your current filters}
+			</DialogDescription>
+		</DialogHeader>
+
+		{#if picking}
+			<div class="flex min-h-64 items-center justify-center" aria-live="polite">
+				<p class="text-sm text-muted-foreground">Kies… / Picking…</p>
+			</div>
+		{:else if pickItem}
+			<div class="grid gap-4 sm:grid-cols-[200px_1fr]">
+				<div class="relative aspect-[2/3] w-full overflow-hidden rounded-xl bg-zinc-900">
+					{#if pickItem.poster}
+						<img
+							src={pickItem.poster}
+							alt=""
+							loading="lazy"
+							class="h-full w-full object-cover"
+						/>
+					{/if}
+				</div>
+				<div class="flex flex-col gap-3">
+					<h3 class="text-xl font-bold text-foreground">{pickItem.title}</h3>
+					<div class="flex flex-wrap items-center gap-2 text-sm">
+						<Badge variant="secondary" class="bg-foreground/10 text-foreground">
+							{pickItem.media_type === 'tv' ? 'Reeks / Series' : 'Fliek / Movie'}
+						</Badge>
+						{#if pickItem.year && pickItem.year !== '—'}
+							<Badge variant="outline" class="border-foreground/20 text-foreground">{pickItem.year}</Badge>
+						{/if}
+						{#if pickItem.rating > 0}
+							<Badge variant="outline" class="flex items-center gap-1 border-foreground/20 text-foreground">
+								<Star class="size-3.5 text-[var(--afrikaans-accent)]" aria-hidden="true" />
+								{pickItem.rating.toFixed(1)}
+							</Badge>
+						{/if}
+					</div>
+					{#if pickItem.overview}
+						<p class="line-clamp-4 text-sm leading-relaxed text-foreground/80">{pickItem.overview}</p>
+					{/if}
+					<div class="mt-auto flex flex-wrap gap-3 pt-2">
+						<Button type="button" onclick={rollPick} class="gap-2 font-semibold">
+							<Shuffle class="size-4" aria-hidden="true" />
+							Nog een / Another
+						</Button>
+						<Button type="button" variant="secondary" onclick={() => goto(pickDetailsHref)}>
+							Kyk nou / Watch now
+						</Button>
+					</div>
+				</div>
+			</div>
+		{:else}
+			<div class="flex min-h-40 items-center justify-center" aria-live="polite">
+				<p class="text-sm text-muted-foreground">
+					Niks gevind met hierdie filters nie / Nothing found with these filters
+				</p>
+			</div>
+		{/if}
+	</DialogContent>
+</Dialog>
+
 <style>
 	.afrikaans-active {
+		background: var(--afrikaans-accent);
+		color: #1a1200;
+	}
+
+	.kies-btn {
+		background: var(--afrikaans-accent-soft);
+		color: var(--afrikaans-accent);
+		border: 1px solid var(--afrikaans-accent);
+	}
+
+	.kies-btn:hover {
 		background: var(--afrikaans-accent);
 		color: #1a1200;
 	}
@@ -322,6 +566,57 @@
 
 	.sort-select option {
 		background: #18181b;
+		color: #e4e4e7;
+	}
+
+	.search-input-wrap {
+		position: relative;
+	}
+
+	.search-icon {
+		position: absolute;
+		left: 12px;
+		top: 50%;
+		transform: translateY(-50%);
+		width: 15px;
+		height: 15px;
+		color: #71717a;
+		pointer-events: none;
+	}
+
+	.search-input {
+		width: 100%;
+		padding: 9px 36px 9px 36px;
+		border-radius: 12px;
+		border: 1px solid #27272a;
+		background: rgba(24, 24, 27, 0.6);
+		color: #e4e4e7;
+		font-size: 14px;
+		outline: none;
+		transition: border-color 0.15s;
+	}
+
+	.search-input:focus {
+		border-color: var(--afrikaans-accent);
+	}
+
+	.search-input::placeholder {
+		color: #52525b;
+	}
+
+	.search-clear {
+		position: absolute;
+		right: 10px;
+		top: 50%;
+		transform: translateY(-50%);
+		background: none;
+		border: none;
+		color: #71717a;
+		cursor: pointer;
+		padding: 4px;
+	}
+
+	.search-clear:hover {
 		color: #e4e4e7;
 	}
 
