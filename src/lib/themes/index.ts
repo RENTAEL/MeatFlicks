@@ -128,6 +128,37 @@ export const themes: Record<ThemeId, ThemeColors> = {
 
 export const DEFAULT_THEME: ThemeId = 'dark';
 
+const WHITE = '#ffffff';
+const INK = '#0c0d14';
+
+function luminance(hex: string): number {
+  const v = parseInt(hex.replace('#', ''), 16);
+  const lin = (c: number) => {
+    const s = c / 255;
+    return s <= 0.04045 ? s / 12.92 : Math.pow((s + 0.055) / 1.055, 2.4);
+  };
+  return 0.2126 * lin((v >> 16) & 255) + 0.7152 * lin((v >> 8) & 255) + 0.0722 * lin(v & 255);
+}
+
+const ratio = (l1: number, l2: number) => (Math.max(l1, l2) + 0.05) / (Math.min(l1, l2) + 0.05);
+
+function darken(hex: string, factor: number): string {
+  const v = parseInt(hex.replace('#', ''), 16);
+  const c = (x: number) => Math.round(Math.min(255, x * factor)).toString(16).padStart(2, '0');
+  return `#${c((v >> 16) & 255)}${c((v >> 8) & 255)}${c(v & 255)}`;
+}
+
+function primaryPair(accent: string): { primary: string; foreground: string } {
+  const l = luminance(accent);
+  if (ratio(l, luminance(WHITE)) >= 4.5) return { primary: accent, foreground: WHITE };
+  if (ratio(l, luminance(INK)) >= 4.5) return { primary: accent, foreground: INK };
+  for (const factor of [0.95, 0.9, 0.85, 0.8, 0.75, 0.7, 0.65, 0.6]) {
+    const primary = darken(accent, factor);
+    if (ratio(luminance(primary), luminance(WHITE)) >= 4.5) return { primary, foreground: WHITE };
+  }
+  return { primary: darken(accent, 0.6), foreground: WHITE };
+}
+
 export function applyTheme(theme: ThemeColors): void {
   const root = document.documentElement;
   root.style.setProperty('--bg-root', theme.bg);
@@ -152,7 +183,8 @@ export function applyTheme(theme: ThemeColors): void {
   root.style.setProperty('--success', theme.success);
   root.style.setProperty('--danger', theme.danger);
   root.style.setProperty('--warning', theme.warning);
-  root.style.setProperty('--primary', theme.accent);
-  root.style.setProperty('--primary-foreground', '#ffffff');
+  const pair = primaryPair(theme.accent);
+  root.style.setProperty('--primary', pair.primary);
+  root.style.setProperty('--primary-foreground', pair.foreground);
   root.setAttribute('data-theme', theme.name);
 }
