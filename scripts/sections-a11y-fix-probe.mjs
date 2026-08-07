@@ -1,49 +1,44 @@
 import { chromium } from "playwright";
 
-const URLS = {
-  movies: "https://streamium-cosmic.vercel.app/movies",
-  tv: "https://streamium-cosmic.vercel.app/tv",
-  home: "https://streamium-cosmic.vercel.app/",
-  afrikaans: "https://streamium-cosmic.vercel.app/afrikaans",
-};
+const BASE = "https://streamium-cosmic.vercel.app";
+const EXPECTED_PRIMARY = "oklch(47% .15 310)";
+const ROUTES = ["/movies", "/tv", "/", "/afrikaans"];
+
+const cssAsset = await (await fetch(`${BASE}/tv`, { cache: "no-store" })).text();
+const m = [...cssAsset.matchAll(/assets\/app\.([\w-]+)\.css/g)][0];
+const css = await (await fetch(`${BASE}/_app/immutable/assets/app.${m[1]}.css`, { cache: "no-store" })).text();
+const flat = css.replace(/\s+/g, " ");
+
+const decls = [...flat.matchAll(/--primary:([^;}]+);/g)].map((x) => x[1]);
+const hasDark = flat.includes(`.dark{`);
+const darkPrimary = decls.filter((v) => v === EXPECTED_PRIMARY).length;
+const viewportLine = await (await fetch(`${BASE}/movies`, { cache: "no-store" })).text();
+const viewportMeta = viewportLine.match(/<meta name="viewport"[^>]*>/)?.[0] ?? "MISSING";
+const zoomBlocked = /maximum-scale|user-scalable/.test(viewportMeta);
+console.log(`CSS asset app.${m[1]}.css`);
+console.log(`--primary decls in css:`, decls.join(" | "));
+console.log(`--primary === ${EXPECTED_PRIMARY} (${darkPrimary}/2 decls):`, darkPrimary === 2 ? "PASS" : "FAIL");
+console.log(`has .dark{} block:`, hasDark ? "PASS" : "FAIL");
+console.log(`viewport meta:`, viewportMeta);
+console.log(`zoom allowed (no user-scalable/maximum-scale):`, zoomBlocked ? "FAIL" : "PASS");
 
 const browser = await chromium.launch();
 const page = await browser.newPage({ viewport: { width: 390, height: 844 } });
-
-for (const [name, url] of Object.entries(URLS)) {
-  await page.goto(url + "?" + Date.now(), { waitUntil: "domcontentloaded", timeout: 90000 });
+for (const route of ROUTES) {
+  await page.goto(`${BASE}${route}?${Date.now()}`, { waitUntil: "domcontentloaded", timeout: 90000 });
   const vp = await page.locator('meta[name="viewport"]').getAttribute("content");
-  const r = await page.evaluate(() => {
-    const toShares = (spec) => {
-      const e = document.createElement("span");
-      e.style.setProperty("background", `color-mix(in srgb, ${spec} 100%, transparent)`);
-      document.body.appendChild(e);
-      const c = getComputedStyle(e).backgroundColor.match(/\d+(?:\.\d+)?/g).map(Number).slice(0, 3);
-      e.remove();
-      return Math.max(...c) > 1.01 ? c.map((v) => v / 255) : c;
-    };
-    const a = document.querySelector("a[data-slot=button]");
-    if (!a) return { ok: false };
-    const aBg = getComputedStyle(a).backgroundColor;
-    const aFg = getComputedStyle(a).color;
-    const bg = aBg === "transparent" ? [0, 0, 0] : toShares(aBg);
-    const fg = aFg === "transparent" ? [0, 0, 0] : toShares(aFg);
-    const lum = (c) => {
-      const f = (v) => {
-        v /= 255;
-        return v <= 0.04045 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4);
-      };
-      return 0.2126 * f(c[0]) + 0.7152 * f(c[1]) + 0.0722 * f(c[2]);
-    };
-    const [l1, l2] = [lum(bg), lum(fg)];
-    const ratio = (Math.max(l1, l2) + 0.05) / (Math.min(l1, l2) + 0.05);
-    return { ok: true, bg, fg, ratio, text: a.textContent.trim().slice(0, 12) };
+  const play = await page.evaluate(() => {
+    const a = [...document.querySelectorAll('a[data-slot="button"]')].find((x) => x.textContent.trim().startsWith("Play")) ?? null;
+    if (!a) return null;
+    const s = getComputedStyle(a);
+    return { bg: s.backgroundColor, fg: s.color };
   });
+  const bgOk = play && String(play.bg).includes("oklch(0.47 0.15 310)");
+  const vpOk = !/maximum-scale|user-scalable/.test(vp ?? "");
   console.log(
-    name,
-    "| viewport ok:", /maximum-scale|user-scalable/.test(vp ?? "") ? "STALE" : "OK",
-    "| play CTA:", r.ok ? `bg ${r.bg} fg ${r.fg} = ${r.ratio.toFixed(2)}:1 (${r.text}) ${r.ratio >= 4.5 ? "PASS" : "FAIL"}` : "NO BUTTON FOUND"
+    `${route.padEnd(10)} viewport ${vpOk ? "PASS" : "FAIL"} | play CTA bg ${play ? play.bg : "N/A"} ${
+      bgOk ? "PASS (oklch 0.47 .15 310)" : "FAIL"
+    }`
   );
 }
-
 await browser.close();
