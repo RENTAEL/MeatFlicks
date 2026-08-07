@@ -20,7 +20,7 @@ for (const [name, url] of Object.entries(URLS)) {
       document.body.appendChild(e);
       const c = getComputedStyle(e).backgroundColor.match(/\d+(?:\.\d+)?/g).map(Number).slice(0, 3);
       e.remove();
-      return c;
+      return Math.max(...c) > 1.01 ? c.map((v) => v / 255) : c;
     };
     const a = document.querySelector("a[data-slot=button]");
     if (!a) return { ok: false };
