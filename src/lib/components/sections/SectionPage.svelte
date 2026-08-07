@@ -50,48 +50,48 @@
 	let { section, rails, hero, browse, browseParams, error = null }: Props = $props();
 
 	const isMovies = section === 'movies';
-	const sectionTitle = isMovies ? 'Flieks / Movies' : 'Reekse / TV Series';
+	const sectionTitle = isMovies ? 'Movies' : 'TV Series';
 	const sectionSub = isMovies
-		? 'Flieks uit die biblioteek / Movies from the library'
-		: 'Reekse uit die biblioteek / Series from the library';
+		? 'Browse the full movie library'
+		: 'Browse the full TV series library';
 
 	const CATEGORIES: { value: string; label: string }[] = [
-		{ value: 'all', label: 'Alles / All' },
-		{ value: 'trending', label: 'Neig / Trending' },
-		{ value: 'popular', label: 'Gewild / Popular' },
-		{ value: 'top_rated', label: 'Topgewaardeer / Top Rated' },
-		{ value: 'upcoming', label: 'Binnekort / Upcoming' }
+		{ value: 'all', label: 'All' },
+		{ value: 'trending', label: 'Trending' },
+		{ value: 'popular', label: 'Popular' },
+		{ value: 'top_rated', label: 'Top Rated' },
+		{ value: 'upcoming', label: 'Upcoming' }
 	];
 
 	const TYPES: { value: string; label: string }[] = [
-		{ value: 'reekse', label: 'Reekse / Series' },
-		{ value: 'minireeks', label: 'Minireeks / Miniseries' },
-		{ value: 'alles', label: 'Alles / All' }
+		{ value: 'series', label: 'Series' },
+		{ value: 'miniseries', label: 'Miniseries' },
+		{ value: 'all', label: 'All' }
 	];
 
 	const GENRES: Record<'movies' | 'tv', { value: string | null; label: string }[]> = {
 		movies: [
-			{ value: null, label: 'Alle genres / All genres' },
-			{ value: '28', label: 'Aksie / Action' },
-			{ value: '35', label: 'Komedie / Comedy' },
+			{ value: null, label: 'All genres' },
+			{ value: '28', label: 'Action' },
+			{ value: '35', label: 'Comedy' },
 			{ value: '18', label: 'Drama' },
-			{ value: '27', label: 'Gruwel / Horror' },
-			{ value: '878', label: 'Wetenskapfiksie / Sci-Fi' },
-			{ value: '99', label: 'Dokumentêr / Documentary' }
+			{ value: '27', label: 'Horror' },
+			{ value: '878', label: 'Sci-Fi' },
+			{ value: '99', label: 'Documentary' }
 		],
 		tv: [
-			{ value: null, label: 'Alle genres / All genres' },
+			{ value: null, label: 'All genres' },
 			{ value: '18', label: 'Drama' },
-			{ value: '35', label: 'Komedie / Comedy' },
-			{ value: '80', label: 'Misdaad / Crime' },
-			{ value: '10765', label: 'Wetenskapfiksie / Sci-Fi' },
-			{ value: '16', label: 'Animasiereeks / Animation' }
+			{ value: '35', label: 'Comedy' },
+			{ value: '80', label: 'Crime' },
+			{ value: '10765', label: 'Sci-Fi & Fantasy' },
+			{ value: '16', label: 'Animation' }
 		]
 	};
 
 	const DECADES: Record<'movies' | 'tv', { value: string | null; label: string }[]> = {
 		movies: [
-			{ value: null, label: 'Alle jare / All years' },
+			{ value: null, label: 'All years' },
 			{ value: '2020', label: '2020s' },
 			{ value: '2010', label: '2010s' },
 			{ value: '2000', label: '2000s' },
@@ -102,7 +102,7 @@
 			{ value: '1950', label: '1950s' }
 		],
 		tv: [
-			{ value: null, label: 'Alle jare / All years' },
+			{ value: null, label: 'All years' },
 			{ value: '2020', label: '2020s' },
 			{ value: '2010', label: '2010s' },
 			{ value: '2000', label: '2000s' },
@@ -112,15 +112,15 @@
 	};
 
 	const SORTS: { value: string; label: string }[] = [
-		{ value: 'newest', label: 'Nuutste / Newest' },
-		{ value: 'rating', label: 'Beoordeling / Rating' },
-		{ value: 'year', label: 'Jaar / Year' },
-		{ value: 'title', label: 'Titel / Title' },
-		{ value: 'popularity', label: 'Gewildheid / Popularity' }
+		{ value: 'newest', label: 'Newest' },
+		{ value: 'rating', label: 'Rating' },
+		{ value: 'year', label: 'Year' },
+		{ value: 'title', label: 'Title' },
+		{ value: 'popularity', label: 'Popularity' }
 	];
 
 	let category = $state<string>(browseParams.category ?? 'all');
-	let type = $state<string>(browseParams.type ?? 'reekse');
+	let type = $state<string>(browseParams.type ?? 'series');
 	let genre = $state<string | null>(browseParams.genre ? String(browseParams.genre) : null);
 	let decade = $state<string | null>(browseParams.decade ? String(browseParams.decade) : null);
 	let sort = $state<string>(browseParams.sort ?? 'newest');
@@ -148,7 +148,7 @@
 		browsePage = browse.page ?? 1;
 		browseHasMore = browse.hasMore ?? false;
 		category = browseParams.category ?? 'all';
-		type = browseParams.type ?? 'reekse';
+		type = browseParams.type ?? 'series';
 		genre = browseParams.genre ? String(browseParams.genre) : null;
 		decade = browseParams.decade ? String(browseParams.decade) : null;
 		sort = browseParams.sort ?? 'newest';
@@ -178,7 +178,7 @@
 
 		const p = new URLSearchParams();
 		if (isMovies && c !== 'all') p.set('category', c);
-		if (!isMovies && t !== 'reekse') p.set('type', t);
+		if (!isMovies && t !== 'series') p.set('type', t);
 		if (g) p.set('genre', g);
 		if (d) p.set('decade', d);
 		if (s && s !== 'newest') p.set('sort', s);
@@ -193,7 +193,7 @@
 	function buildQueryParams(): URLSearchParams {
 		const p = new URLSearchParams();
 		if (isMovies && category !== 'all') p.set('category', category);
-		if (!isMovies && type !== 'reekse') p.set('type', type);
+		if (!isMovies && type !== 'series') p.set('type', type);
 		if (genre) p.set('genre', genre);
 		if (decade) p.set('decade', decade);
 		if (sort && sort !== 'newest') p.set('sort', sort);
@@ -406,9 +406,9 @@
 		{#if error && rails.length === 0}
 			<EmptyState
 				icon="error"
-				title="Kon nie laai nie / Failed to load"
+				title="Failed to load"
 				subtitle={error}
-				actionLabel="Probeer weer / Retry"
+				actionLabel="Retry"
 				onAction={retry}
 			/>
 		{:else}
@@ -426,22 +426,22 @@
 				{/if}
 			</div>
 
-			<section class="mt-12 px-1 pb-8 sm:px-2" aria-label="Blaai deur alles / Browse all">
+			<section class="mt-12 px-1 pb-8 sm:px-2" aria-label="Browse all">
 				<div class="mb-4 flex flex-wrap items-center justify-between gap-2">
 					<div>
-						<h2 class="text-xl font-semibold text-foreground sm:text-3xl">Alles</h2>
+						<h2 class="text-xl font-semibold text-foreground sm:text-3xl">All</h2>
 						<p class="text-xs text-muted-foreground">
-							Blaai deur die volle katalogus / Browse the full catalogue
+							Browse the full catalogue
 						</p>
 					</div>
 					<Button
 						type="button"
 						onclick={openPick}
 						class="kies-btn gap-2 font-semibold"
-						aria-label="Kies vir my / Pick for me"
+						aria-label="Pick for me"
 					>
 						<Shuffle class="size-4" aria-hidden="true" />
-						Kies vir my / Pick for me
+						Pick For Me
 					</Button>
 				</div>
 
@@ -451,16 +451,16 @@
 						<input
 							type="search"
 							class="search-input"
-							placeholder="Soek in katalogus / Search catalogue."
+							placeholder="Search catalogue"
 							bind:value={query}
-							aria-label="Soek / Search"
+							aria-label="Search"
 						/>
 						{#if query}
 							<button
 								type="button"
 								class="search-clear"
 								onclick={() => (query = '')}
-								aria-label="Maak skoon / Clear"
+								aria-label="Clear"
 							>
 								<X class="size-4" aria-hidden="true" />
 							</button>
@@ -468,7 +468,7 @@
 					</div>
 
 					{#if isMovies}
-						<div class="flex overflow-x-auto rounded-xl border border-zinc-800 bg-zinc-900/60" role="group" aria-label="Kategorie / Category">
+						<div class="flex overflow-x-auto rounded-xl border border-zinc-800 bg-zinc-900/60" role="group" aria-label="Category">
 							{#each CATEGORIES as cat (cat.value)}
 								<button
 									type="button"
@@ -481,7 +481,7 @@
 							{/each}
 						</div>
 					{:else}
-						<div class="flex overflow-hidden rounded-xl border border-zinc-800 bg-zinc-900/60" role="group" aria-label="Tipe / Type">
+						<div class="flex overflow-hidden rounded-xl border border-zinc-800 bg-zinc-900/60" role="group" aria-label="Type">
 							{#each TYPES as t (t.value)}
 								<button
 									type="button"
@@ -508,7 +508,7 @@
 					</div>
 
 					<div class="ml-auto flex flex-wrap items-center gap-2">
-						<label class="text-xs text-zinc-500" for={`${section}-decade`}>Jare / Years</label>
+						<label class="text-xs text-zinc-500" for={`${section}-decade`}>Years</label>
 						<select
 							id={`${section}-decade`}
 							class="sort-select"
@@ -520,7 +520,7 @@
 							{/each}
 						</select>
 
-						<label class="text-xs text-zinc-500" for={`${section}-sort`}>Sorteer / Sort</label>
+						<label class="text-xs text-zinc-500" for={`${section}-sort`}>Sort</label>
 						<select
 							id={`${section}-sort`}
 							class="sort-select"
@@ -537,28 +537,28 @@
 				{#if error && browseItems.length === 0}
 					<EmptyState
 						icon="error"
-						title="Kon nie laai nie / Failed to load"
+						title="Failed to load"
 						subtitle={error}
-						actionLabel="Probeer weer / Retry"
+						actionLabel="Retry"
 						onAction={retry}
 					/>
 				{:else if query && clientMatches !== null && clientMatches.length === 0 && !searchingServer && !serverSearched}
 					<EmptyState
 						icon="search"
-						title="Soek. / Searching."
-						subtitle="Soek verder op TMDB as jy langer tik / Search TMDB too if you keep typing"
+						title="Searching"
+						subtitle="Searching TMDB too if you keep typing"
 					/>
 				{:else if query && serverSearched && serverResults.length === 0}
 					<EmptyState
 						icon="search"
-						title="Geen resultate / No results"
-						subtitle="Probeer 'n ander soektog / Try a different search"
+						title="No results"
+						subtitle="Try a different search"
 					/>
 				{:else if gridCards.length === 0 && !query}
 					<EmptyState
 						icon="search"
-						title="Niks gevind nie / Nothing found"
-						subtitle="Probeer ander filters / Try different filters"
+						title="Nothing found"
+						subtitle="Try different filters"
 					/>
 				{:else}
 					{#if navigating}
@@ -591,7 +591,7 @@
 									disabled={loadingMore || navigating}
 									class="more-btn gap-2"
 								>
-									{loadingMore ? 'Laai... / Loading...' : 'Laai Meer / Load More'}
+									{loadingMore ? 'Loading...' : 'Load More'}
 								</Button>
 							</div>
 							<div bind:this={sentinel} aria-hidden="true" class="h-px w-full"></div>
@@ -608,16 +608,16 @@
 		<DialogHeader>
 			<DialogTitle class="flex items-center gap-2 text-lg font-semibold">
 				<Shuffle class="size-4 text-[var(--sec)]" aria-hidden="true" />
-				Kies vir my / Pick for me
+				Pick for me
 			</DialogTitle>
 			<DialogDescription class="text-sm text-muted-foreground">
-				'n lukraak keuring uit jou huidige filters / A random pick from your current filters
+				A random pick from your current filters
 			</DialogDescription>
 		</DialogHeader>
 
 		{#if picking}
 			<div class="flex min-h-64 items-center justify-center" aria-live="polite">
-				<p class="text-sm text-muted-foreground">Kies. / Picking.</p>
+				<p class="text-sm text-muted-foreground">Picking...</p>
 			</div>
 		{:else if pickItem}
 			<div class="grid gap-4 sm:grid-cols-[200px_1fr]">
@@ -629,9 +629,9 @@
 				<div class="flex flex-col gap-3">
 					<h3 class="text-xl font-bold text-foreground">{pickItem.title}</h3>
 					<div class="flex flex-wrap items-center gap-2 text-sm">
-						<Badge variant="secondary" class="bg-foreground/10 text-foreground">
-							{isMovies ? 'Fliek / Movie' : 'Reeks / Series'}
-						</Badge>
+<Badge variant="secondary" class="bg-foreground/10 text-foreground">
+						{isMovies ? 'Movie' : 'Series'}
+					</Badge>
 						{#if pickItem.year && pickItem.year !== '-'}
 							<Badge variant="outline" class="border-foreground/20 text-foreground">{pickItem.year}</Badge>
 						{/if}
@@ -646,10 +646,10 @@
 						<p class="line-clamp-4 text-sm leading-relaxed text-foreground/80">{pickItem.overview}</p>
 					{/if}
 					<div class="mt-auto flex flex-wrap gap-3 pt-2">
-						<Button type="button" onclick={rollPick} class="gap-2 font-semibold">
-							<Shuffle class="size-4" aria-hidden="true" />
-							Nog een / Another
-						</Button>
+<Button type="button" onclick={rollPick} class="gap-2 font-semibold">
+						<Shuffle class="size-4" aria-hidden="true" />
+						Another
+					</Button>
 						{#if pickTrailer}
 							<a
 								href={pickTrailer}
@@ -660,16 +660,16 @@
 								Trailer
 							</a>
 						{/if}
-						<Button type="button" variant="secondary" onclick={() => goto(pickDetailsHref)}>
-							Kyk nou / Watch now
-						</Button>
+<Button type="button" variant="secondary" onclick={() => goto(pickDetailsHref)}>
+						Watch now
+					</Button>
 					</div>
 				</div>
 			</div>
 		{:else}
 			<div class="flex min-h-40 items-center justify-center" aria-live="polite">
 				<p class="text-sm text-muted-foreground">
-					Niks gevind met hierdie filters nie / Nothing found with these filters
+					Nothing found with these filters
 				</p>
 			</div>
 		{/if}
