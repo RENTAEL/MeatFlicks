@@ -148,15 +148,19 @@ function darken(hex: string, factor: number): string {
   return `#${c((v >> 16) & 255)}${c((v >> 8) & 255)}${c(v & 255)}`;
 }
 
+// Rendered button text is near-white (~0.90 luminance), not pure white — require
+// 5.0:1 vs white so the real pair clears 4.5:1 AA.
+const AA_WHITE = 5.0;
+
 function primaryPair(accent: string): { primary: string; foreground: string } {
   const l = luminance(accent);
-  if (ratio(l, luminance(WHITE)) >= 4.5) return { primary: accent, foreground: WHITE };
+  if (ratio(l, luminance(WHITE)) >= AA_WHITE) return { primary: accent, foreground: WHITE };
   if (ratio(l, luminance(INK)) >= 4.5) return { primary: accent, foreground: INK };
-  for (const factor of [0.95, 0.9, 0.85, 0.8, 0.75, 0.7, 0.65, 0.6]) {
+  for (let factor = 0.92; factor > 0.3; factor -= 0.04) {
     const primary = darken(accent, factor);
-    if (ratio(luminance(primary), luminance(WHITE)) >= 4.5) return { primary, foreground: WHITE };
+    if (ratio(luminance(primary), luminance(WHITE)) >= AA_WHITE) return { primary, foreground: WHITE };
   }
-  return { primary: darken(accent, 0.6), foreground: WHITE };
+  return { primary: darken(accent, 0.3), foreground: WHITE };
 }
 
 export function applyTheme(theme: ThemeColors): void {
