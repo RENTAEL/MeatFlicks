@@ -8,13 +8,12 @@
 
 <SEOHead
 	title="Movies — Streamium"
-	description="Flieks uit die biblioteek — Browse movies from the Streamium library."
+	description="Browse movies from the Streamium library."
 	canonical="/movies"
 	ogType="video.movie"
 	keywords={[
 		'stream movies',
 		'watch movies online',
-		'flieks aanlyn',
 		'movie streaming',
 		'film library',
 		'latest movies'

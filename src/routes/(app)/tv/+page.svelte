@@ -8,13 +8,12 @@
 
 <SEOHead
 	title="TV Series — Streamium"
-	description="Reekse uit die biblioteek — Browse TV series from the Streamium library."
+	description="Browse TV series from the Streamium library."
 	canonical="/tv"
 	ogType="video.tv_show"
 	keywords={[
 		'stream tv series',
 		'watch series online',
-		'reekse aanlyn',
 		'tv show streaming',
 		'series library',
 		'top series'
