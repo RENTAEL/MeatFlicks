@@ -22,13 +22,12 @@ export type TvRailId =
 
 export type TvRail = {
 	id: TvRailId;
-	titleAf: string;
-	titleEn: string;
+	title: string;
 	items: LibraryMedia[];
 };
 
 export type TvBrowseSort = 'newest' | 'rating' | 'year' | 'title' | 'popularity';
-export type TvBrowseType = 'reekse' | 'minireeks' | 'alles';
+export type TvBrowseType = 'series' | 'miniseries' | 'all';
 
 export type TvBrowseResult = {
 	results: ReturnType<typeof formatMovie>[];
@@ -56,7 +55,7 @@ export function parseTvBrowseParams(
 	const rawSort = params.get('sort');
 
 	const type: TvBrowseType =
-		rawType === 'minireeks' ? 'minireeks' : rawType === 'alles' ? 'alles' : 'reekse';
+		rawType === 'miniseries' ? 'miniseries' : rawType === 'all' ? 'all' : 'series';
 	const genre =
 		rawGenre && TV_GENRES.some((g) => String(g) === rawGenre) ? Number(rawGenre) : null;
 	const decade =
@@ -83,8 +82,7 @@ const dateField = (suffix: 'gte' | 'lte') => `first_air_date.${suffix}`;
 
 type RailQuery = {
 	id: TvRailId;
-	titleAf: string;
-	titleEn: string;
+	title: string;
 	endpoint: 'discover' | 'trending' | 'popular' | 'top_rated' | 'airing_today' | 'on_the_air';
 	sortBy: string;
 	voteGte: number;
@@ -97,48 +95,42 @@ function railQueries(): RailQuery[] {
 	return [
 		{
 			id: 'trending',
-			titleAf: 'Neig',
-			titleEn: 'Trending',
+			title: 'Trending',
 			endpoint: 'trending',
 			sortBy: 'popularity.desc',
 			voteGte: 1
 		},
 		{
 			id: 'popular',
-			titleAf: 'Gewild',
-			titleEn: 'Popular',
+			title: 'Popular',
 			endpoint: 'popular',
 			sortBy: 'popularity.desc',
 			voteGte: 1
 		},
 		{
 			id: 'top',
-			titleAf: 'Topgewaardeer',
-			titleEn: 'Top Rated',
+			title: 'Top Rated',
 			endpoint: 'discover',
 			sortBy: 'vote_average.desc',
 			voteGte: 100
 		},
 		{
 			id: 'airing',
-			titleAf: 'Vandag Op Lug',
-			titleEn: 'Airing Today',
+			title: 'Airing Today',
 			endpoint: 'airing_today',
 			sortBy: 'popularity.desc',
 			voteGte: 1
 		},
 		{
 			id: 'onair',
-			titleAf: 'Op Die Lug',
-			titleEn: 'On The Air',
+			title: 'On The Air',
 			endpoint: 'on_the_air',
 			sortBy: 'popularity.desc',
 			voteGte: 1
 		},
 		{
 			id: 'drama',
-			titleAf: 'Drama',
-			titleEn: 'Drama',
+			title: 'Drama',
 			endpoint: 'discover',
 			sortBy: 'popularity.desc',
 			voteGte: 5,
@@ -146,8 +138,7 @@ function railQueries(): RailQuery[] {
 		},
 		{
 			id: 'komedie',
-			titleAf: 'Komedie',
-			titleEn: 'Comedy',
+			title: 'Comedy',
 			endpoint: 'discover',
 			sortBy: 'popularity.desc',
 			voteGte: 3,
@@ -155,8 +146,7 @@ function railQueries(): RailQuery[] {
 		},
 		{
 			id: 'misdaad',
-			titleAf: 'Misdaad',
-			titleEn: 'Crime',
+			title: 'Crime',
 			endpoint: 'discover',
 			sortBy: 'popularity.desc',
 			voteGte: 3,
@@ -164,8 +154,7 @@ function railQueries(): RailQuery[] {
 		},
 		{
 			id: 'wetenskapfiksie',
-			titleAf: 'Wetenskapfiksie',
-			titleEn: 'Sci-Fi',
+			title: 'Sci-Fi & Fantasy',
 			endpoint: 'discover',
 			sortBy: 'popularity.desc',
 			voteGte: 3,
@@ -173,8 +162,7 @@ function railQueries(): RailQuery[] {
 		},
 		{
 			id: 'animasie',
-			titleAf: 'Animasiereeks',
-			titleEn: 'Animation',
+			title: 'Animation',
 			endpoint: 'discover',
 			sortBy: 'popularity.desc',
 			voteGte: 3,
@@ -262,8 +250,7 @@ export async function loadTvRails(): Promise<TvRail[]> {
 	const settled = await Promise.allSettled(
 		railQueries().map(async (query) => ({
 			id: query.id,
-			titleAf: query.titleAf,
-			titleEn: query.titleEn,
+			title: query.title,
 			items: await fetchRail(query)
 		}))
 	);
@@ -326,14 +313,14 @@ export async function fetchTvBrowse(opts: {
 	decade?: number | null;
 	sort?: TvBrowseSort | null;
 }): Promise<TvBrowseResult> {
-	const type = opts.type ?? 'reekse';
+	const type = opts.type ?? 'series';
 	const sort = opts.sort ?? 'newest';
 	const qp = new URLSearchParams();
 	qp.set('sort_by', SORTS[sort]);
 	qp.set('vote_count.gte', '1');
 	qp.set(dateField('lte'), todayParam());
-	if (type === 'reekse') qp.set('with_type', '4');
-	if (type === 'minireeks') qp.set('with_type', '2');
+	if (type === 'series') qp.set('with_type', '4');
+	if (type === 'miniseries') qp.set('with_type', '2');
 	if (opts.genre) qp.set('with_genres', String(opts.genre));
 	if (opts.decade) {
 		qp.set(dateField('gte'), `${opts.decade}-01-01`);

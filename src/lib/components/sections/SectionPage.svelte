@@ -28,8 +28,7 @@
 
 	type Rail = {
 		id: string;
-		titleAf: string;
-		titleEn: string;
+		title: string;
 		items: LibraryMedia[];
 	};
 
@@ -421,7 +420,7 @@
 				{:else}
 					{#each rails as rail (rail.id)}
 						{#if rail.items.length >= 4}
-							<MediaScrollContainer title={`${rail.titleAf} / ${rail.titleEn}`} media={rail.items} />
+							<MediaScrollContainer title={rail.title} media={rail.items} />
 						{/if}
 					{/each}
 				{/if}

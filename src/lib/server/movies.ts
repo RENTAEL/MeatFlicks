@@ -23,8 +23,7 @@ export type MoviesRailId =
 
 export type MoviesRail = {
 	id: MoviesRailId;
-	titleAf: string;
-	titleEn: string;
+	title: string;
 	items: LibraryMedia[];
 };
 
@@ -89,8 +88,7 @@ const dateField = (suffix: 'gte' | 'lte') => `primary_release_date.${suffix}`;
 
 type RailQuery = {
 	id: MoviesRailId;
-	titleAf: string;
-	titleEn: string;
+	title: string;
 	endpoint: 'discover' | 'trending' | 'popular' | 'top_rated' | 'upcoming' | 'now_playing';
 	sortBy: string;
 	voteGte: number;
@@ -103,32 +101,28 @@ function railQueries(): RailQuery[] {
 	return [
 		{
 			id: 'trending',
-			titleAf: 'Neig',
-			titleEn: 'Trending',
+			title: 'Trending',
 			endpoint: 'trending',
 			sortBy: 'popularity.desc',
 			voteGte: 1
 		},
 		{
 			id: 'popular',
-			titleAf: 'Gewild',
-			titleEn: 'Popular',
+			title: 'Popular',
 			endpoint: 'popular',
 			sortBy: 'popularity.desc',
 			voteGte: 1
 		},
 		{
 			id: 'top',
-			titleAf: 'Topgewaardeer',
-			titleEn: 'Top Rated',
+			title: 'Top Rated',
 			endpoint: 'discover',
 			sortBy: 'vote_average.desc',
 			voteGte: 100
 		},
 		{
 			id: 'upcoming',
-			titleAf: 'Binnekort',
-			titleEn: 'Upcoming',
+			title: 'Upcoming',
 			endpoint: 'upcoming',
 			sortBy: 'primary_release_date.asc',
 			voteGte: 0,
@@ -136,16 +130,14 @@ function railQueries(): RailQuery[] {
 		},
 		{
 			id: 'now',
-			titleAf: 'In Teaters',
-			titleEn: 'Now Playing',
+			title: 'Now Playing',
 			endpoint: 'now_playing',
 			sortBy: 'popularity.desc',
 			voteGte: 1
 		},
 		{
 			id: 'aksie',
-			titleAf: 'Aksie',
-			titleEn: 'Action',
+			title: 'Action',
 			endpoint: 'discover',
 			sortBy: 'popularity.desc',
 			voteGte: 3,
@@ -153,8 +145,7 @@ function railQueries(): RailQuery[] {
 		},
 		{
 			id: 'komedie',
-			titleAf: 'Komedie',
-			titleEn: 'Comedy',
+			title: 'Comedy',
 			endpoint: 'discover',
 			sortBy: 'popularity.desc',
 			voteGte: 3,
@@ -162,8 +153,7 @@ function railQueries(): RailQuery[] {
 		},
 		{
 			id: 'drama',
-			titleAf: 'Drama',
-			titleEn: 'Drama',
+			title: 'Drama',
 			endpoint: 'discover',
 			sortBy: 'popularity.desc',
 			voteGte: 5,
@@ -171,8 +161,7 @@ function railQueries(): RailQuery[] {
 		},
 		{
 			id: 'gruwel',
-			titleAf: 'Gruwel',
-			titleEn: 'Horror',
+			title: 'Horror',
 			endpoint: 'discover',
 			sortBy: 'popularity.desc',
 			voteGte: 3,
@@ -180,8 +169,7 @@ function railQueries(): RailQuery[] {
 		},
 		{
 			id: 'wetenskapfiksie',
-			titleAf: 'Wetenskapfiksie',
-			titleEn: 'Sci-Fi',
+			title: 'Sci-Fi',
 			endpoint: 'discover',
 			sortBy: 'popularity.desc',
 			voteGte: 3,
@@ -189,8 +177,7 @@ function railQueries(): RailQuery[] {
 		},
 		{
 			id: 'dokumenter',
-			titleAf: 'Dokumentêr',
-			titleEn: 'Documentary',
+			title: 'Documentary',
 			endpoint: 'discover',
 			sortBy: 'popularity.desc',
 			voteGte: 1,
@@ -281,8 +268,7 @@ export async function loadMoviesRails(): Promise<MoviesRail[]> {
 	const settled = await Promise.allSettled(
 		railQueries().map(async (query) => ({
 			id: query.id,
-			titleAf: query.titleAf,
-			titleEn: query.titleEn,
+			title: query.title,
 			items: await fetchRail(query)
 		}))
 	);
