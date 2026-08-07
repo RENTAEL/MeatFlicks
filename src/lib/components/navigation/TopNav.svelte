@@ -64,6 +64,10 @@
 						<div class="avatar-sm">{(page.data.user.username || '?').charAt(0).toUpperCase()}</div>
 						<span class="username-label">{page.data.user.username}</span>
 					</a>
+					<a href="/watch-party" class="wp-btn">
+						<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 10l4.553-2.276A1 1 0 0 1 21 8.618v6.764a1 1 0 0 1-1.447.894L15 14M5 18h8a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2z"/></svg>
+						Watch Party
+					</a>
 					<button class="signout-btn" onclick={signOut}>Sign Out</button>
 				</div>
 			{:else}
@@ -226,6 +230,26 @@
 		font-size: 0.85rem;
 		font-weight: var(--font-weight-medium);
 		color: var(--text-primary);
+	}
+
+	.wp-btn {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.4rem;
+		padding: 0.35rem 0.75rem;
+		border-radius: var(--radius-full);
+		font-size: 0.85rem;
+		font-weight: var(--font-weight-semibold);
+		color: var(--text-primary);
+		background: var(--bg-card);
+		border: 1px solid var(--border-stream);
+		transition: all var(--transition-fast);
+	}
+
+	.wp-btn:hover {
+		background: var(--bg-card-hover);
+		border-color: var(--accent-color, #818cf8);
+		color: var(--accent-color, #818cf8);
 	}
 
 	.signout-btn {
