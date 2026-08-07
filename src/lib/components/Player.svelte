@@ -22,7 +22,10 @@
 		next = null as { season_number: number; episode_number: number; name: string; air_date: string | null; still_path: string | null } | null,
 		onnext = undefined as (() => void) | undefined,
 		onerror,
-		preResolvedSource = null as string | null
+		preResolvedSource = null as string | null,
+		readOnly = false as boolean,
+		remoteSync = null as { seq: number; playing: boolean; position: number; positionAt: number } | null,
+		onPlaybackChange = undefined as ((signal: { playing: boolean; position: number }) => void) | undefined
 	}: {
 		tmdbId: number;
 		type?: 'movie' | 'tv';
@@ -36,6 +39,9 @@
 		onnext?: () => void;
 		onerror?: (detail: { message: string }) => void;
 		preResolvedSource?: string | null;
+		readOnly?: boolean;
+		remoteSync?: { seq: number; playing: boolean; position: number; positionAt: number } | null;
+		onPlaybackChange?: (signal: { playing: boolean; position: number }) => void;
 	} = $props();
 
 	interface ScanResult {
@@ -106,6 +112,33 @@
 	let upNextEndsAt = 0;
 	let suppressedKey: string | null = null;
 	let currentKey = $derived(`${season}:${episode}`);
+	let remoteAppliedSeq = 0;
+
+	$effect(() => {
+		const rs = remoteSync;
+		if (!rs) return;
+		if (rs.seq === remoteAppliedSeq) return;
+		if (!iframeLoaded) return;
+		remoteAppliedSeq = rs.seq;
+		const target = Math.max(0, rs.playing ? rs.position + (Date.now() - rs.positionAt) / 1000 : rs.position);
+		const current = ytPlayer?.getCurrentTime?.() ?? elapsedSeconds;
+		if (Math.abs(current - target) > 2) {
+			if (ytPlayer && ytReady) {
+				ytPlayer.seekTo(target, true);
+			} else {
+				sendEmbedCommand(frameRef, 'seekto', target);
+			}
+		}
+		if (ytPlayer && ytReady) {
+			if (rs.playing) ytPlayer.playVideo();
+			else ytPlayer.pauseVideo();
+			playing = rs.playing;
+		} else {
+			sendEmbedCommand(frameRef, rs.playing ? 'play' : 'pause');
+			playing = rs.playing;
+		}
+		elapsedSeconds = target;
+	});
 
 	function formatAirDate(iso: string | null) {
 		if (!iso) return '';
@@ -192,27 +225,33 @@
 	}
 
 	function togglePlay() {
+		if (readOnly) return;
 		if (ytPlayer && ytReady) {
 			if (playing) {
 				ytPlayer.pauseVideo();
 			} else {
 				ytPlayer.playVideo();
 			}
+			onPlaybackChange?.({ playing: !playing, position: ytPlayer.getCurrentTime?.() ?? elapsedSeconds });
 		} else {
 			playing = !playing;
 			sendEmbedCommand(frameRef, playing ? 'play' : 'pause');
+			onPlaybackChange?.({ playing, position: elapsedSeconds });
 		}
 		showControlsTemporarily();
 	}
 
 	function seekBy(deltaSeconds: number) {
+		if (readOnly) return;
 		if (ytPlayer && ytReady) {
 			const target = Math.max(0, (ytPlayer.getCurrentTime?.() ?? elapsedSeconds) + deltaSeconds);
 			ytPlayer.seekTo(target, true);
 			elapsedSeconds = target;
+			onPlaybackChange?.({ playing, position: target });
 		} else {
 			elapsedSeconds = Math.max(0, elapsedSeconds + deltaSeconds);
 			sendEmbedCommand(frameRef, 'seekto', elapsedSeconds);
+			onPlaybackChange?.({ playing, position: elapsedSeconds });
 		}
 		showControlsTemporarily();
 	}
@@ -471,6 +510,7 @@
 		hasError = false;
 		loadedProviders.add(currentProvider?.id || '');
 		stopAutoSwitch();
+		remoteAppliedSeq = 0;
 	}
 
 	function onIframeError() {
@@ -553,19 +593,21 @@
 				tabindex="-1"
 				aria-label="Player controls"
 			>
-				<button type="button" class="ctrl-btn" onclick={togglePlay} aria-label={playing ? 'Pause' : 'Play'} title="Play / Pause (Space or K)">
-					{#if playing}
-						<Pause />
-					{:else}
-						<Play />
-					{/if}
-				</button>
-				<button type="button" class="ctrl-btn" onclick={() => seekBy(-10)} aria-label="Back 10 seconds" title="Back 10 seconds (←)">
-					<RotateCcw />
-				</button>
-				<button type="button" class="ctrl-btn" onclick={() => seekBy(10)} aria-label="Forward 10 seconds" title="Forward 10 seconds (→)">
-					<RotateCw />
-				</button>
+				{#if !readOnly}
+					<button type="button" class="ctrl-btn" onclick={togglePlay} aria-label={playing ? 'Pause' : 'Play'} title="Play / Pause (Space or K)">
+						{#if playing}
+							<Pause />
+						{:else}
+							<Play />
+						{/if}
+					</button>
+					<button type="button" class="ctrl-btn" onclick={() => seekBy(-10)} aria-label="Back 10 seconds" title="Back 10 seconds (←)">
+						<RotateCcw />
+					</button>
+					<button type="button" class="ctrl-btn" onclick={() => seekBy(10)} aria-label="Forward 10 seconds" title="Forward 10 seconds (→)">
+						<RotateCw />
+					</button>
+				{/if}
 				<div class="volume-wrap">
 					<button
 						type="button"

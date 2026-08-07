@@ -641,6 +641,98 @@ export const watchlistTagsRelations = relations(watchlistTags, ({ one, many }) =
 	itemTags: many(watchlistItemTags)
 }));
 
+export const watchPartyRooms = sqliteTable(
+	'watch_party_rooms',
+	{
+		id: text('id').primaryKey(),
+		hostUserId: text('host_user_id').notNull(),
+		hostUsername: text('host_username').notNull(),
+		title: text('title').notNull(),
+		mediaType: text('media_type', { enum: ['movie', 'tv'] }).notNull(),
+		tmdbId: integer('tmdb_id').notNull(),
+		season: integer('season'),
+		episode: integer('episode'),
+		playing: integer('playing', { mode: 'boolean' }).notNull().default(false),
+		position: real('position').notNull().default(0),
+		positionAt: integer('position_at').notNull().$defaultFn(() => Date.now()),
+		seq: integer('seq').notNull().default(0),
+		lastSound: text('last_sound'),
+		soundSeq: integer('sound_seq').notNull().default(0),
+		lastMessageId: integer('last_message_id').notNull().default(0),
+		lastActivityAt: integer('last_activity_at').notNull().$defaultFn(() => Date.now()),
+		closedAt: integer('closed_at'),
+		createdAt: integer('created_at').notNull().$defaultFn(() => Date.now())
+	},
+	(table) => [
+		index('idx_wp_rooms_host').on(table.hostUserId),
+		index('idx_wp_rooms_activity').on(table.lastActivityAt),
+		index('idx_wp_rooms_closed').on(table.closedAt)
+	]
+);
+
+export const watchPartyMembers = sqliteTable(
+	'watch_party_members',
+	{
+		roomId: text('room_id')
+			.notNull()
+			.references(() => watchPartyRooms.id, { onDelete: 'cascade' }),
+		userId: text('user_id')
+			.notNull()
+			.references(() => users.id, { onDelete: 'cascade' }),
+		username: text('username').notNull(),
+		lastSeenAt: integer('last_seen_at').notNull().$defaultFn(() => Date.now()),
+		joinedAt: integer('joined_at').notNull().$defaultFn(() => Date.now())
+	},
+	(table) => [
+		primaryKey({ columns: [table.roomId, table.userId] }),
+		index('idx_wp_members_user').on(table.userId),
+		index('idx_wp_members_seen').on(table.lastSeenAt)
+	]
+);
+
+export const watchPartyMessages = sqliteTable(
+	'watch_party_messages',
+	{
+		id: integer('id').primaryKey({ autoIncrement: true }),
+		roomId: text('room_id')
+			.notNull()
+			.references(() => watchPartyRooms.id, { onDelete: 'cascade' }),
+		userId: text('user_id').notNull(),
+		username: text('username').notNull(),
+		body: text('body').notNull(),
+		deleted: integer('deleted', { mode: 'boolean' }).notNull().default(false),
+		deletedAt: integer('deleted_at'),
+		createdAt: integer('created_at').notNull().$defaultFn(() => Date.now())
+	},
+	(table) => [
+		index('idx_wp_messages_room').on(table.roomId, table.createdAt),
+		index('idx_wp_messages_user').on(table.userId)
+	]
+);
+
+export const watchPartyRoomsRelations = relations(watchPartyRooms, ({ many }) => ({
+	members: many(watchPartyMembers),
+	messages: many(watchPartyMessages)
+}));
+
+export const watchPartyMembersRelations = relations(watchPartyMembers, ({ one }) => ({
+	room: one(watchPartyRooms, {
+		fields: [watchPartyMembers.roomId],
+		references: [watchPartyRooms.id]
+	}),
+	user: one(users, {
+		fields: [watchPartyMembers.userId],
+		references: [users.id]
+	})
+}));
+
+export const watchPartyMessagesRelations = relations(watchPartyMessages, ({ one }) => ({
+	room: one(watchPartyRooms, {
+		fields: [watchPartyMessages.roomId],
+		references: [watchPartyRooms.id]
+	})
+}));
+
 export const watchlistItemTagsRelations = relations(watchlistItemTags, ({ one }) => ({
 	user: one(users, {
 		fields: [watchlistItemTags.userId],

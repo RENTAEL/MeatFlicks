@@ -1,14 +1,26 @@
 <script lang="ts">
 	import { untrack } from 'svelte';
+	import { goto } from '$app/navigation';
 	import Player from '$lib/components/Player.svelte';
 	import MovieInfo from '$lib/components/MovieInfo.svelte';
 	import MediaCard from '$lib/components/media/MediaCard.svelte';
 	import { toLibraryMovie } from '$lib/utils/tmdb';
 	import { getImageUrl } from '$lib/utils/image';
 	import { watchHistory } from '$lib/state/stores/historyStore';
+	import { createWatchParty } from '$lib/watch-party/client';
 	import type { PageData } from './$types';
 
 	let { data }: { data: PageData } = $props();
+
+	async function startParty() {
+		if (!data.movie) return;
+		const roomId = await createWatchParty({ mediaType: 'movie', tmdbId: data.movie.id });
+		if (roomId) {
+			await goto(`/watch/${roomId}`);
+		} else {
+			await goto(`/login?next=${encodeURIComponent(`/movie/${data.movie.id}`)}`);
+		}
+	}
 
 	$effect(() => {
 		if (data.movie) {
@@ -73,6 +85,16 @@
 		</div>
 	{:else if data.movie}
 		<Player tmdbId={data.movie.id} title={data.movie.title} />
+
+		<div class="mt-3 flex items-center gap-3">
+			<button
+				onclick={startParty}
+				class="inline-flex items-center gap-2 rounded-lg bg-zinc-800 px-4 py-2 text-sm font-medium text-zinc-200 transition-colors hover:bg-zinc-700"
+			>
+				<svg class="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0 1 21 8.618v6.764a1 1 0 0 1-1.447.894L15 14M5 18h8a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2z" /></svg>
+				Start Watch Party
+			</button>
+		</div>
 
 		<MovieInfo movie={data.movie} />
 

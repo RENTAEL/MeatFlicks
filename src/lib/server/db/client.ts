@@ -221,6 +221,55 @@ const runInitSql = async (client: Client) => {
 			PRIMARY KEY ("watchlistId", "tagId")
 		)`);
 
+		await client.execute(`CREATE TABLE IF NOT EXISTS watch_party_rooms (
+			"id" TEXT PRIMARY KEY NOT NULL,
+			"host_user_id" TEXT NOT NULL,
+			"host_username" TEXT NOT NULL,
+			"title" TEXT NOT NULL,
+			"media_type" TEXT NOT NULL,
+			"tmdb_id" INTEGER NOT NULL,
+			"season" INTEGER,
+			"episode" INTEGER,
+			"playing" INTEGER NOT NULL DEFAULT 0,
+			"position" REAL NOT NULL DEFAULT 0,
+			"position_at" INTEGER NOT NULL DEFAULT ${Date.now()},
+			"seq" INTEGER NOT NULL DEFAULT 0,
+			"last_sound" TEXT,
+			"sound_seq" INTEGER NOT NULL DEFAULT 0,
+			"last_message_id" INTEGER NOT NULL DEFAULT 0,
+			"last_activity_at" INTEGER NOT NULL DEFAULT ${Date.now()},
+			"closed_at" INTEGER,
+			"created_at" INTEGER NOT NULL DEFAULT ${Date.now()}
+		)`);
+		try { await client.execute('CREATE INDEX IF NOT EXISTS idx_wp_rooms_host ON watch_party_rooms("host_user_id")'); } catch {}
+		try { await client.execute('CREATE INDEX IF NOT EXISTS idx_wp_rooms_activity ON watch_party_rooms("last_activity_at")'); } catch {}
+		try { await client.execute('CREATE INDEX IF NOT EXISTS idx_wp_rooms_closed ON watch_party_rooms("closed_at")'); } catch {}
+
+		await client.execute(`CREATE TABLE IF NOT EXISTS watch_party_members (
+			"room_id" TEXT NOT NULL REFERENCES watch_party_rooms("id") ON DELETE CASCADE,
+			"user_id" TEXT NOT NULL REFERENCES users("id") ON DELETE CASCADE,
+			"username" TEXT NOT NULL,
+			"last_seen_at" INTEGER NOT NULL DEFAULT ${Date.now()},
+			"joined_at" INTEGER NOT NULL DEFAULT ${Date.now()},
+			PRIMARY KEY ("room_id", "user_id")
+		)`);
+		try { await client.execute('CREATE INDEX IF NOT EXISTS idx_wp_members_user ON watch_party_members("user_id")'); } catch {}
+		try { await client.execute('CREATE INDEX IF NOT EXISTS idx_wp_members_seen ON watch_party_members("last_seen_at")'); } catch {}
+
+		await client.execute(`CREATE TABLE IF NOT EXISTS watch_party_messages (
+			"id" INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+			"room_id" TEXT NOT NULL REFERENCES watch_party_rooms("id") ON DELETE CASCADE,
+			"user_id" TEXT NOT NULL,
+			"username" TEXT NOT NULL,
+			"body" TEXT NOT NULL,
+			"deleted" INTEGER NOT NULL DEFAULT 0,
+			"deleted_at" INTEGER,
+			"created_at" INTEGER NOT NULL DEFAULT ${Date.now()}
+		)`);
+		try { await client.execute('CREATE INDEX IF NOT EXISTS idx_wp_messages_room ON watch_party_messages("room_id", "created_at")'); } catch {}
+		try { await client.execute('CREATE INDEX IF NOT EXISTS idx_wp_messages_user ON watch_party_messages("user_id")'); } catch {}
+		try { await client.execute('ALTER TABLE watch_party_messages ADD COLUMN "deleted_at" INTEGER'); } catch {}
+
 		await client.execute(`CREATE TABLE IF NOT EXISTS seasons (
 			"id" INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
 			"tmdbId" INTEGER NOT NULL,

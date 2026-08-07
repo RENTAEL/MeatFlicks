@@ -3,6 +3,7 @@
 	import { goto } from '$app/navigation';
 	import Player from '$lib/components/Player.svelte';
 	import { resolveNextEpisode } from '$lib/episodeNav';
+	import { createWatchParty } from '$lib/watch-party/client';
 
 	let show: any = $state(null);
 	let episodes: any[] = $state([]);
@@ -86,6 +87,15 @@
 		});
 	}
 
+	async function startParty() {
+		const roomId = await createWatchParty({ mediaType: 'tv', tmdbId, season: seasonNum, episode: episodeNum });
+		if (roomId) {
+			await goto(`/watch/${roomId}`);
+		} else {
+			await goto(`/login?next=${encodeURIComponent(`/tv/${tmdbId}/${seasonNum}/${episodeNum}`)}`);
+		}
+	}
+
 	$effect(() => { if (tmdbId && seasonNum && episodeNum) load(); });
 </script>
 
@@ -144,6 +154,11 @@
 			onnext={() => { if (next) goEpisode(next); }}
 		/>
 
+		<button class="word-press-btn" onclick={startParty}>
+			<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15 10l4.553-2.276A1 1 0 0 1 21 8.618v6.764a1 1 0 0 1-1.447.894L15 14M5 18h8a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2z"/></svg>
+			Start Watch Party
+		</button>
+
 		<div class="ep-section">
 			<h3 class="ep-section-title">Episode List</h3>
 			<div class="ep-list" class:ep-list-scroll={episodes.length > 15}>
@@ -199,6 +214,10 @@
 	.ep-list-num { font-size: 12px; font-weight: 700; color: #818cf8; }
 	.ep-list-name { font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 	.ep-list-runtime { font-size: 11px; color: #71717a; margin-left: auto; }
+
+	.word-press-btn { display: inline-flex; align-items: center; gap: 8px; margin: 12px 16px 0; padding: 8px 16px; background: #18181b; color: #c4b5fd; border: 1px solid #3f3f46; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; font-family: inherit; }
+	.word-press-btn:hover { background: #27272a; }
+	.word-press-btn svg { width: 16px; height: 16px; }
 
 	.ep-page-loading { padding-bottom: 40px; }
 	.ep-player-skel { width: calc(100% - 32px); margin: 0 16px; aspect-ratio: 16/9; background: #18181b; border-radius: 12px; animation: pul 1.5s infinite; }
