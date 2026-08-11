@@ -82,8 +82,6 @@
 	let ytHost = $state<HTMLElement | null>(null);
 	let ytPlayer: any = null;
 	let ytReady = $state(false);
-	let controlsVisible = $state(true);
-	let controlsTimer: ReturnType<typeof setTimeout> | null = null;
 	let isFullscreen = $state(false);
 	let playing = $state(false);
 	let elapsedSeconds = $state(0);
@@ -510,7 +508,6 @@
 			sendEmbedCommand(frameRef, playing ? 'play' : 'pause');
 			onPlaybackChange?.({ playing, position: elapsedSeconds, provider: currentProviderInfo() });
 		}
-		showControlsTemporarily();
 	}
 
 	function seekBy(deltaSeconds: number) {
@@ -525,7 +522,6 @@
 			sendEmbedCommand(frameRef, 'seekto', elapsedSeconds);
 			onPlaybackChange?.({ playing, position: elapsedSeconds, provider: currentProviderInfo() });
 		}
-		showControlsTemporarily();
 	}
 
 	function toggleFullscreen() {
@@ -537,7 +533,6 @@
 				playerRoot.requestFullscreen();
 			}
 		} catch {}
-		showControlsTemporarily();
 	}
 
 	function startElapsed() {
@@ -551,23 +546,6 @@
 		if (elapsedTick) {
 			clearInterval(elapsedTick);
 			elapsedTick = null;
-		}
-	}
-
-	function showControlsTemporarily() {
-		controlsVisible = true;
-		if (controlsTimer) clearTimeout(controlsTimer);
-		controlsTimer = setTimeout(() => {
-			controlsVisible = false;
-		}, 3000);
-	}
-
-	function toggleControlsVisibility() {
-		if (controlsVisible) {
-			controlsVisible = false;
-			if (controlsTimer) clearTimeout(controlsTimer);
-		} else {
-			showControlsTemporarily();
 		}
 	}
 
@@ -828,7 +806,7 @@
 	});</script>
 
 <div class="player-root" bind:this={playerRoot}>
-	<div class="iframe-container" onclick={toggleControlsVisibility} role="button" tabindex="-1" onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleControlsVisibility(); } }} aria-label="Toggle player controls">
+	<div class="iframe-container">
 		{#if isScanning}
 			<div class="overlay">
 				<div class="spinner"></div>
@@ -875,13 +853,6 @@
 			{/if}
 		{/if}
 
-		<div
-			class="player-hover-strip"
-			onmousemove={showControlsTemporarily}
-			onpointerenter={showControlsTemporarily}
-			aria-hidden="true"
-		></div>
-
 		{#if needsTapToContinue}
 			<div
 				class="tap-overlay"
@@ -901,10 +872,7 @@
 
 		{#if iframeLoaded && !isScanning && !scanError && currentProvider}
 			<div
-				class="player-controls {controlsVisible ? '' : 'player-controls-hidden'}"
-				onclick={(e) => e.stopPropagation()}
-				onkeydown={() => {}}
-				onmousemove={showControlsTemporarily}
+				class="player-controls"
 				role="toolbar"
 				tabindex="-1"
 				aria-label="Player controls"
@@ -1116,7 +1084,6 @@
 <style>
 	.player-root { display: flex; flex-direction: column; width: 100%; background: #0a0a0b; border-radius: 12px; overflow: hidden; border: 1px solid #1f1f23; }
 	.iframe-container { position: relative; width: 100%; aspect-ratio: 16 / 9; background: #000; }
-	.player-hover-strip { position: absolute; left: 0; right: 0; bottom: 0; height: 64px; z-index: 14; }
 	.player-iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: none; }
 	.overlay { position: absolute; inset: 0; z-index: 10; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; background: rgba(0,0,0,0.9); backdrop-filter: blur(8px); }
 	.loading-overlay { background: rgba(0,0,0,0.75); pointer-events: none; }
@@ -1154,8 +1121,7 @@
 	.switch-icon { width: 14px; height: 14px; }
 
 	.yt-host { overflow: hidden; }
-	.player-controls { position: absolute; left: 0; right: 0; bottom: 0; z-index: 15; display: flex; align-items: center; gap: 4px; padding: 24px 12px 10px; background: linear-gradient(to top, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.25) 60%, transparent 100%); transition: opacity 0.25s ease; }
-	.player-controls-hidden { opacity: 0; pointer-events: none; }
+	.player-controls { position: absolute; left: 0; right: 0; bottom: 0; z-index: 15; display: flex; align-items: center; gap: 4px; padding: 24px 12px 10px; background: linear-gradient(to top, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.25) 60%, transparent 100%); }
 	.ctrl-btn { display: inline-flex; align-items: center; justify-content: center; gap: 5px; min-width: 38px; min-height: 38px; padding: 0 8px; background: transparent; border: none; border-radius: 8px; color: rgba(255,255,255,0.85); cursor: pointer; }
 	.ctrl-btn:hover { background: rgba(255,255,255,0.12); color: #fff; }
 	.ctrl-btn :global(svg) { width: 18px; height: 18px; }
