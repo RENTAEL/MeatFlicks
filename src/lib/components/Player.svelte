@@ -213,7 +213,7 @@
 
 	function reloadSync(position: number, playing: boolean): boolean {
 		const now = Date.now();
-		if (now - lastSyncReloadAt < 25000 || syncReloadStreak >= 3) {
+		if (now - lastSyncReloadAt < 8000 || syncReloadStreak >= 3) {
 			const rs = latestRemote;
 			updateSyncState(currentPosition(), rs ? targetOf(rs) : position);
 			return false;
