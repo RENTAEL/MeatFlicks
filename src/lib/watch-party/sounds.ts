@@ -224,6 +224,9 @@ export function playSoundEffect(kind: string) {
 function playUnlocked(kind: string) {
 	const ac = getContext();
 	if (!ac) return;
+	try {
+		(window as any).__wpLastSound = { kind, at: Date.now(), source: buffers.has(kind) ? 'buffer' : 'synth' };
+	} catch {}
 	const prev = activeByKind.get(kind);
 	if (prev) prev.stop();
 	const active = playFromBuffer(kind, ac) ?? synthEffects[kind]?.(ac);

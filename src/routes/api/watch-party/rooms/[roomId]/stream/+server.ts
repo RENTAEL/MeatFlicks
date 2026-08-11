@@ -9,6 +9,10 @@ const TICK_MS = 700;
 const HEARTBEAT_MS = 15000;
 const MAX_LIFETIME_MS = 50000;
 
+export const config = {
+	maxDuration: 60
+};
+
 export const GET: RequestHandler = async ({ params, locals, request }) => {
 	try {
 		const roomId = roomIdFromParams(params);
