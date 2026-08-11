@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { onDestroy } from 'svelte';
 	import { browser } from '$app/environment';
-	import { Play, Pause, RotateCcw, RotateCw, Volume2, VolumeX, Maximize, Minimize } from '@lucide/svelte';
+	import { Play } from '@lucide/svelte';
 	import { playerPreferences } from '$lib/state/stores/playerPreferences.svelte';
 	import { sendEmbedCommand, extractYoutubeId, loadYoutubeApi } from '$lib/utils/embedCommands';
 
@@ -82,7 +82,6 @@
 	let ytHost = $state<HTMLElement | null>(null);
 	let ytPlayer: any = null;
 	let ytReady = $state(false);
-	let isFullscreen = $state(false);
 	let playing = $state(false);
 	let elapsedSeconds = $state(0);
 	let elapsedTick: ReturnType<typeof setInterval> | null = null;
@@ -607,14 +606,6 @@
 	});
 
 	$effect(() => {
-		function onFullscreenChange() {
-			isFullscreen = !!document.fullscreenElement;
-		}
-		document.addEventListener('fullscreenchange', onFullscreenChange);
-		return () => document.removeEventListener('fullscreenchange', onFullscreenChange);
-	});
-
-	$effect(() => {
 		playerPreferences.init();
 		if (!hasFullPlaybackControl) {
 			try {
@@ -870,76 +861,6 @@
 			</div>
 		{/if}
 
-		{#if iframeLoaded && !isScanning && !scanError && currentProvider}
-			<div
-				class="player-controls"
-				role="toolbar"
-				tabindex="-1"
-				aria-label="Player controls"
-			>
-				{#if !readOnly}
-					<button type="button" class="ctrl-btn" onclick={togglePlay} aria-label={playing ? 'Pause' : 'Play'} title="Play / Pause (Space or K)">
-						{#if playing}
-							<Pause />
-						{:else}
-							<Play />
-						{/if}
-					</button>
-					<button type="button" class="ctrl-btn" onclick={() => seekBy(-10)} aria-label="Back 10 seconds" title="Back 10 seconds (←)">
-						<RotateCcw />
-					</button>
-					<button type="button" class="ctrl-btn" onclick={() => seekBy(10)} aria-label="Forward 10 seconds" title="Forward 10 seconds (→)">
-						<RotateCw />
-					</button>
-				{/if}
-				<div class="volume-wrap">
-					<button
-						type="button"
-						class="ctrl-btn"
-						onclick={() => playerPreferences.toggleMute()}
-						aria-label={playerPreferences.muted ? 'Unmute' : 'Mute'}
-						title="Mute / Unmute (M)"
-					>
-						{#if playerPreferences.muted || playerPreferences.volume === 0}
-							<VolumeX />
-						{:else}
-							<Volume2 />
-						{/if}
-					</button>
-					<input
-						class="volume-slider"
-						type="range"
-						min="0"
-						max="100"
-						value={playerPreferences.volume}
-						oninput={(e) => playerPreferences.setVolume(Number((e.currentTarget as HTMLInputElement).value))}
-						aria-label="Volume"
-						title="Volume (↑ / ↓)"
-					/>
-				</div>
-				<div class="controls-spacer"></div>
-				{#if next && !nextUnavailable}
-					<button type="button" class="ctrl-btn" onclick={() => onnext?.()} aria-label="Play next episode" title="Next episode (N)">
-						<Play />
-						<span class="ctrl-next-label">Next</span>
-					</button>
-				{/if}
-				<button
-					type="button"
-					class="ctrl-btn"
-					onclick={toggleFullscreen}
-					aria-label={isFullscreen ? 'Exit fullscreen' : 'Enter fullscreen'}
-					title="Fullscreen (F)"
-				>
-					{#if isFullscreen}
-						<Minimize />
-					{:else}
-						<Maximize />
-					{/if}
-				</button>
-			</div>
-		{/if}
-
 		{#if upNextVisible && next && !nextUnavailable}
 			<div class="upnext-overlay" role="dialog" aria-label="Up next">
 				{#if upNextThumb}
@@ -1121,19 +1042,6 @@
 	.switch-icon { width: 14px; height: 14px; }
 
 	.yt-host { overflow: hidden; }
-	.player-controls { position: absolute; left: 0; right: 0; bottom: 0; z-index: 15; display: flex; align-items: center; gap: 4px; padding: 24px 12px 10px; background: linear-gradient(to top, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.25) 60%, transparent 100%); }
-	.ctrl-btn { display: inline-flex; align-items: center; justify-content: center; gap: 5px; min-width: 38px; min-height: 38px; padding: 0 8px; background: transparent; border: none; border-radius: 8px; color: rgba(255,255,255,0.85); cursor: pointer; }
-	.ctrl-btn:hover { background: rgba(255,255,255,0.12); color: #fff; }
-	.ctrl-btn :global(svg) { width: 18px; height: 18px; }
-	.ctrl-next-label { font-size: 12px; font-weight: 600; }
-	.volume-wrap { display: flex; align-items: center; gap: 2px; }
-	.volume-slider { width: 84px; accent-color: #818cf8; cursor: pointer; }
-	.controls-spacer { flex: 1; }
-	@media (max-width: 560px) {
-		.volume-slider { width: 52px; }
-		.player-controls { padding: 20px 8px 8px; gap: 2px; }
-		.ctrl-btn { min-width: 34px; min-height: 34px; }
-	}
 
 	.tap-overlay { position: absolute; inset: 0; z-index: 25; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,0.75); backdrop-filter: blur(4px); cursor: pointer; }
 	.tap-card { display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 28px 36px; background: rgba(17,17,19,0.95); border: 1px solid #3f3f46; border-radius: 14px; color: #e4e4e7; }
