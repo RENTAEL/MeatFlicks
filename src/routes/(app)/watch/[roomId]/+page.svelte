@@ -3,7 +3,7 @@
 	import { browser } from '$app/environment';
 	import { goto } from '$app/navigation';
 	import Player from '$lib/components/Player.svelte';
-	import { playSoundEffect, SOUND_PRESETS, getSoundVolume, getSoundMuted, setSoundVolume, toggleSoundMute, unlockAudio, isSoundUnlocked } from '$lib/watch-party/sounds';
+	import { playSoundEffect, preloadSounds, SOUND_PRESETS, getSoundVolume, getSoundMuted, setSoundVolume, toggleSoundMute, unlockAudio, isSoundUnlocked } from '$lib/watch-party/sounds';
 	import { Users, Trophy, Copy, Send, Sparkles, LogOut, Skull, MessageCircle } from '@lucide/svelte';
 	import type { RoomState } from '$lib/server/watch-party/types';
 
@@ -24,14 +24,13 @@
 	let lastMessageId = data.initialState.lastMessageId;
 	let lastSoundSeq = data.initialState.sound?.seq ?? 0;
 	let chatInput = '';
-	let polling = false;
 	let copied = false;
 	let error = '';
 	let fxVolume = getSoundVolume();
 	let fxMuted = getSoundMuted();
 	let chatOpen = false;
 
-	let pollTimer: ReturnType<typeof setInterval> | null = null;
+	let eventSource: EventSource | null = null;
 
 	function mergeMessages(next: RoomState['messages']) {
 		if (next.length === 0) return;
@@ -40,6 +39,44 @@
 			byId.set(m.id, m);
 		}
 		messages = [...byId.values()].sort((a, b) => a.id - b.id);
+	}
+
+	function handleState(s: RoomState) {
+		if (s.closed) {
+			closed = true;
+			lastSoundSeq = s.sound?.seq ?? lastSoundSeq;
+			return;
+		}
+		if (s.sound && s.sound.seq !== lastSoundSeq) {
+			lastSoundSeq = s.sound.seq;
+			playSoundEffect(s.sound.effect);
+		}
+		if (s.messages.length > 0) {
+			mergeMessages(s.messages);
+			lastMessageId = Math.max(lastMessageId, s.lastMessageId);
+		}
+		state = s;
+	}
+
+	function connectStream() {
+		if (eventSource) eventSource.close();
+		eventSource = new EventSource(`/api/watch-party/rooms/${roomId}/stream`);
+		eventSource.addEventListener('state', (e) => {
+			if (!e.data) return;
+			try {
+				handleState(JSON.parse(e.data));
+			} catch {
+				// ignore malformed frames
+			}
+		});
+		eventSource.onopen = () => {
+			api<RoomState>(`/watch-party/rooms/${roomId}?since=${lastMessageId}`).then((s) => {
+				if (s) handleState(s);
+			});
+		};
+		eventSource.onerror = () => {
+			// EventSource reconnects automatically; onopen catches us up
+		};
 	}
 
 	async function api<T = unknown>(path: string, init?: RequestInit): Promise<T | null> {
@@ -62,15 +99,15 @@
 
 	onMount(async () => {
 		await api(`/watch-party/join`, { method: 'POST', body: JSON.stringify({ roomId }) });
-		poll();
-		pollTimer = setInterval(poll, 2000);
+		connectStream();
+		preloadSounds();
 		window.addEventListener('pointerdown', unlockSound, { once: true });
 		window.addEventListener('keydown', unlockSound, { once: true });
 		window.addEventListener('touchstart', unlockSound, { once: true });
 	});
 
 	onDestroy(() => {
-		if (pollTimer) clearInterval(pollTimer);
+		if (eventSource) eventSource.close();
 		if (browser) {
 			window.removeEventListener('pointerdown', unlockSound);
 			window.removeEventListener('keydown', unlockSound);
@@ -85,31 +122,6 @@
 		soundUnlocked = true;
 	}
 
-	async function poll() {
-		if (polling) return;
-		polling = true;
-		try {
-			const s = await api<RoomState>(`/watch-party/rooms/${roomId}?since=${lastMessageId}`);
-			if (!s) return;
-			if (s.closed) {
-				closed = true;
-				lastSoundSeq = s.sound?.seq ?? lastSoundSeq;
-				return;
-			}
-			if (s.sound && s.sound.seq !== lastSoundSeq) {
-				lastSoundSeq = s.sound.seq;
-				playSoundEffect(s.sound.effect);
-			}
-			if (s.messages.length > 0) {
-				mergeMessages(s.messages);
-				lastMessageId = Math.max(lastMessageId, s.lastMessageId);
-			}
-			state = s;
-		} finally {
-			polling = false;
-		}
-	}
-
 	function getRemoteSync() {
 		return state.isHost
 			? null
@@ -117,11 +129,12 @@
 					seq: state.playback.seq,
 					playing: state.playback.playing,
 					position: state.playback.position,
-					positionAt: state.playback.positionAt
+					positionAt: state.playback.positionAt,
+					provider: state.playback.provider
 				};
 	}
 
-	let lastPlaybackSignal: { playing: boolean; position: number } | null = null;
+	let lastPlaybackSignal: { playing: boolean; position: number; provider: { id: string; name: string } | null } | null = null;
 	let syncPoke = 0;
 	let memberSyncState: { status: 'synced' | 'drifted' | 'syncing'; drift: number } = { status: 'synced', drift: 0 };
 
@@ -129,7 +142,7 @@
 		memberSyncState = s;
 	}
 
-	function onPlaybackChange(signal: { playing: boolean; position: number }) {
+	function onPlaybackChange(signal: { playing: boolean; position: number; provider: { id: string; name: string } | null }) {
 		if (!state.isHost) return;
 		const prev = lastPlaybackSignal;
 		lastPlaybackSignal = signal;
@@ -137,7 +150,7 @@
 		if (prev && prev.playing === signal.playing) action = 'seek';
 		api(`/watch-party/rooms/${roomId}/playback`, {
 			method: 'POST',
-			body: JSON.stringify({ action, position: signal.position })
+			body: JSON.stringify({ action, position: signal.position, provider: signal.provider ?? null })
 		});
 	}
 

@@ -24,9 +24,9 @@
 		onerror,
 		preResolvedSource = null as string | null,
 		readOnly = false as boolean,
-		remoteSync = null as { seq: number; playing: boolean; position: number; positionAt: number } | null,
+		remoteSync = null as { seq: number; playing: boolean; position: number; positionAt: number; provider: { id: string; name: string } | null } | null,
 		syncPoke = 0 as number,
-		onPlaybackChange = undefined as ((signal: { playing: boolean; position: number }) => void) | undefined,
+		onPlaybackChange = undefined as ((signal: { playing: boolean; position: number; provider: { id: string; name: string } | null }) => void) | undefined,
 		onSyncState = undefined as ((state: { status: 'synced' | 'drifted' | 'syncing'; drift: number }) => void) | undefined
 	}: {
 		tmdbId: number;
@@ -42,9 +42,9 @@
 		onerror?: (detail: { message: string }) => void;
 		preResolvedSource?: string | null;
 		readOnly?: boolean;
-		remoteSync?: { seq: number; playing: boolean; position: number; positionAt: number } | null;
+		remoteSync?: { seq: number; playing: boolean; position: number; positionAt: number; provider: { id: string; name: string } | null } | null;
 		syncPoke?: number;
-		onPlaybackChange?: (signal: { playing: boolean; position: number }) => void;
+		onPlaybackChange?: (signal: { playing: boolean; position: number; provider: { id: string; name: string } | null }) => void;
 		onSyncState?: (state: { status: 'synced' | 'drifted' | 'syncing'; drift: number }) => void;
 	} = $props();
 
@@ -119,7 +119,13 @@
 	let remoteAppliedSeq = -1;
 	let remotePokedSeq = -1;
 
-	interface RemoteSync { seq: number; playing: boolean; position: number; positionAt: number }
+	interface RemoteSync {
+		seq: number;
+		playing: boolean;
+		position: number;
+		positionAt: number;
+		provider: { id: string; name: string } | null;
+	}
 	type SyncStatus = { status: 'synced' | 'drifted' | 'syncing'; drift: number };
 
 	let embedEvent: { playing: boolean; position: number; at: number } | null = null;
@@ -130,6 +136,7 @@
 	let syncReloadStreak = 0;
 	let latestRemote: RemoteSync | null = null;
 	let lastHostReported = -1;
+	let lastHostPost = 0;
 	let hostTick: ReturnType<typeof setInterval> | null = null;
 	let driftTick: ReturnType<typeof setInterval> | null = null;
 	let isCoarse = $state(false);
@@ -151,6 +158,16 @@
 	});
 
 	$effect(() => {
+		let pendingPause: { position: number } | null = null;
+		let pendingPauseTimer: ReturnType<typeof setTimeout> | null = null;
+	function reportHostSignal(sig: { playing: boolean; position: number }) {
+			if (readOnly) return;
+			const now = Date.now();
+			if (now - lastHostPost < 1500) return;
+			lastHostPost = now;
+			playing = sig.playing;
+			onPlaybackChange?.({ ...sig, provider: currentProviderInfo() });
+		}
 		function onMessage(e: MessageEvent) {
 			if (e.origin !== 'https://vidlink.pro') return;
 			const d = e.data as { type?: string; data?: { event?: string; currentTime?: number } };
@@ -161,22 +178,39 @@
 			embedEvent = { playing: ev.event !== 'pause', position: pos, at: Date.now() };
 			elapsedSeconds = pos;
 			if (ev.event === 'play') {
-				playing = true;
 				needsTapToContinue = false;
-				if (!readOnly) onPlaybackChange?.({ playing: true, position: pos });
+				if (!readOnly) {
+					if (pendingPauseTimer) { clearTimeout(pendingPauseTimer); pendingPauseTimer = null; pendingPause = null; }
+					reportHostSignal({ playing: true, position: pos });
+				}
 			} else if (ev.event === 'pause') {
-				playing = false;
 				needsTapToContinue = false;
-				if (!readOnly) onPlaybackChange?.({ playing: false, position: pos });
+				if (!readOnly) {
+					if (pendingPauseTimer) clearTimeout(pendingPauseTimer);
+					pendingPause = { position: pos };
+					pendingPauseTimer = setTimeout(() => {
+						pendingPauseTimer = null;
+						const p = pendingPause;
+						pendingPause = null;
+						if (p) reportHostSignal({ playing: false, position: p.position });
+					}, 1500);
+				}
 			} else if (ev.event === 'seeked') {
-				if (!readOnly) onPlaybackChange?.({ playing, position: pos });
+				if (!readOnly) reportHostSignal({ playing, position: pos });
 			} else if (ev.event === 'timeupdate') {
 				if (!readOnly) maybeReportHost(pos);
 			}
 		}
 		window.addEventListener('message', onMessage);
-		return () => window.removeEventListener('message', onMessage);
+		return () => {
+			if (pendingPauseTimer) clearTimeout(pendingPauseTimer);
+			window.removeEventListener('message', onMessage);
+		};
 	});
+
+	function currentProviderInfo(): { id: string; name: string } | null {
+		return currentProvider ? { id: currentProvider.id, name: currentProvider.name } : null;
+	}
 
 	function currentPosition(): number {
 		if (ytPlayer && ytReady) return ytPlayer.getCurrentTime?.() ?? elapsedSeconds;
@@ -208,7 +242,7 @@
 		const now = Date.now();
 		if (now - lastHostReported < 8000) return;
 		lastHostReported = pos;
-		onPlaybackChange?.({ playing, position: pos });
+		onPlaybackChange?.({ playing, position: pos, provider: currentProviderInfo() });
 	}
 
 	function reloadSync(position: number, playing: boolean): boolean {
@@ -232,7 +266,22 @@
 		return true;
 	}
 
+	function switchToRemoteProvider(rs: RemoteSync): boolean {
+		const rp = rs.provider;
+		if (!rp || !currentProvider) return false;
+		if (currentProvider.id === rp.id) return false;
+		const idx = workingProviders.findIndex((p) => p.id === rp.id || p.name === rp.name);
+		if (idx < 0) return false;
+		if (idx !== currentIndex) {
+			switchTo(idx);
+			remoteAppliedSeq = -1;
+			remotePokedSeq = -1;
+		}
+		return true;
+	}
+
 	function applyRemote(rs: RemoteSync) {
+		if (switchToRemoteProvider(rs)) return;
 		const target = targetOf(rs);
 		const current = currentPosition();
 		const needSeek = Math.abs(target - current) > 2;
@@ -242,12 +291,14 @@
 			playing = rs.playing;
 			elapsedSeconds = target;
 			updateSyncState(current, target);
+			markSyncApplied(rs);
 			return;
 		}
 		if (currentProvider?.id === 'vidlink') {
 			const stateDiffers = embedEvent ? embedEvent.playing !== rs.playing : true;
 			if (needSeek || stateDiffers) reloadSync(target, rs.playing);
 			else updateSyncState(current, target);
+			markSyncApplied(rs);
 			return;
 		}
 		if (needSeek) sendEmbedCommand(frameRef, 'seekto', target);
@@ -255,6 +306,21 @@
 		playing = rs.playing;
 		elapsedSeconds = target;
 		updateSyncState(current, target);
+		markSyncApplied(rs);
+	}
+
+	function markSyncApplied(rs: RemoteSync) {
+		try {
+			(window as any).__swLastSyncApplied = {
+				at: Date.now(),
+				seq: rs.seq,
+				playing: rs.playing,
+				position: rs.position,
+				provider: currentProvider?.id ?? null
+			};
+		} catch {
+			// instrumentation only
+		}
 	}
 
 	function maybeShowTapPrompt() {
@@ -287,7 +353,7 @@
 			const pos = currentPosition();
 			if (Math.abs(pos - lastHostReported) < 1) return;
 			lastHostReported = pos;
-			onPlaybackChange?.({ playing, position: pos });
+			onPlaybackChange?.({ playing, position: pos, provider: currentProviderInfo() });
 		}, 8000);
 	}
 
@@ -444,11 +510,11 @@
 			} else {
 				ytPlayer.playVideo();
 			}
-			onPlaybackChange?.({ playing: !playing, position: ytPlayer.getCurrentTime?.() ?? elapsedSeconds });
+			onPlaybackChange?.({ playing: !playing, position: ytPlayer.getCurrentTime?.() ?? elapsedSeconds, provider: currentProviderInfo() });
 		} else {
 			playing = !playing;
 			sendEmbedCommand(frameRef, playing ? 'play' : 'pause');
-			onPlaybackChange?.({ playing, position: elapsedSeconds });
+			onPlaybackChange?.({ playing, position: elapsedSeconds, provider: currentProviderInfo() });
 		}
 		showControlsTemporarily();
 	}
@@ -459,11 +525,11 @@
 			const target = Math.max(0, (ytPlayer.getCurrentTime?.() ?? elapsedSeconds) + deltaSeconds);
 			ytPlayer.seekTo(target, true);
 			elapsedSeconds = target;
-			onPlaybackChange?.({ playing, position: target });
+			onPlaybackChange?.({ playing, position: target, provider: currentProviderInfo() });
 		} else {
 			elapsedSeconds = Math.max(0, elapsedSeconds + deltaSeconds);
 			sendEmbedCommand(frameRef, 'seekto', elapsedSeconds);
-			onPlaybackChange?.({ playing, position: elapsedSeconds });
+			onPlaybackChange?.({ playing, position: elapsedSeconds, provider: currentProviderInfo() });
 		}
 		showControlsTemporarily();
 	}
@@ -662,6 +728,7 @@
 		hasError = false;
 		syncReloadStreak = 0;
 		lastHostReported = -1;
+		lastHostPost = 0;
 
 		try {
 			const params = new URLSearchParams({
@@ -713,7 +780,11 @@
 		currentIndex = index;
 		syncReloadStreak = 0;
 		lastHostReported = -1;
+		lastHostPost = 0;
 		startAutoSwitch();
+		if (!readOnly) {
+			onPlaybackChange?.({ playing, position: currentPosition(), provider: currentProviderInfo() });
+		}
 	}
 
 	function switchToNext() {
@@ -731,6 +802,7 @@
 		syncingToHost = false;
 		needsTapToContinue = false;
 		lastHostReported = -1;
+		lastHostPost = 0;
 		maybeShowTapPrompt();
 	}
 

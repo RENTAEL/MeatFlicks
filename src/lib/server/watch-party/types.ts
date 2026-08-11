@@ -14,6 +14,7 @@ export type MediaTarget = {
 export interface PlaybackCommand {
 	action: 'play' | 'pause' | 'seek' | 'heartbeat';
 	position?: number;
+	provider?: { id: string; name: string } | null;
 }
 
 export type SoundEffect = 'suspense' | 'jump' | 'applause' | 'boo';
@@ -47,6 +48,7 @@ export interface RoomPlayback {
 	position: number;
 	positionAt: number;
 	seq: number;
+	provider: { id: string; name: string } | null;
 }
 
 export interface RoomState {

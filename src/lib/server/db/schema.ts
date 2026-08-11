@@ -661,7 +661,9 @@ export const watchPartyRooms = sqliteTable(
 		lastMessageId: integer('last_message_id').notNull().default(0),
 		lastActivityAt: integer('last_activity_at').notNull().$defaultFn(() => Date.now()),
 		closedAt: integer('closed_at'),
-		createdAt: integer('created_at').notNull().$defaultFn(() => Date.now())
+		createdAt: integer('created_at').notNull().$defaultFn(() => Date.now()),
+		provider: text('provider'),
+		providerName: text('provider_name')
 	},
 	(table) => [
 		index('idx_wp_rooms_host').on(table.hostUserId),

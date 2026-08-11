@@ -239,8 +239,12 @@ const runInitSql = async (client: Client) => {
 			"last_message_id" INTEGER NOT NULL DEFAULT 0,
 			"last_activity_at" INTEGER NOT NULL DEFAULT ${Date.now()},
 			"closed_at" INTEGER,
-			"created_at" INTEGER NOT NULL DEFAULT ${Date.now()}
+			"created_at" INTEGER NOT NULL DEFAULT ${Date.now()},
+			"provider" TEXT,
+			"provider_name" TEXT
 		)`);
+		try { await client.execute('ALTER TABLE watch_party_rooms ADD COLUMN "provider" TEXT'); } catch {}
+		try { await client.execute('ALTER TABLE watch_party_rooms ADD COLUMN "provider_name" TEXT'); } catch {}
 		try { await client.execute('CREATE INDEX IF NOT EXISTS idx_wp_rooms_host ON watch_party_rooms("host_user_id")'); } catch {}
 		try { await client.execute('CREATE INDEX IF NOT EXISTS idx_wp_rooms_activity ON watch_party_rooms("last_activity_at")'); } catch {}
 		try { await client.execute('CREATE INDEX IF NOT EXISTS idx_wp_rooms_closed ON watch_party_rooms("closed_at")'); } catch {}

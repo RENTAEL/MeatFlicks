@@ -8,7 +8,11 @@ import { z } from 'zod';
 
 const playbackSchema = z.object({
 	action: z.enum(['play', 'pause', 'seek']),
-	position: z.coerce.number().finite().min(0).optional()
+	position: z.coerce.number().finite().min(0).optional(),
+	provider: z
+		.object({ id: z.string().min(1).max(100), name: z.string().min(1).max(100) })
+		.nullable()
+		.optional()
 });
 
 export const POST: RequestHandler = async ({ params, request, locals }) => {
