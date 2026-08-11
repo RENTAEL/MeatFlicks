@@ -1,14 +1,9 @@
 <script lang="ts">
 	import { onDestroy } from 'svelte';
 	import { browser } from '$app/environment';
-	import { Play, Pause, RotateCcw, RotateCw, Volume2, VolumeX, Maximize, Minimize, HelpCircle } from '@lucide/svelte';
+	import { Play, Pause, RotateCcw, RotateCw, Volume2, VolumeX, Maximize, Minimize } from '@lucide/svelte';
 	import { playerPreferences } from '$lib/state/stores/playerPreferences.svelte';
-	import {
-		sendEmbedCommand,
-		extractYoutubeId,
-		loadYoutubeApi,
-		PLAYER_SHORTCUTS
-	} from '$lib/utils/embedCommands';
+	import { sendEmbedCommand, extractYoutubeId, loadYoutubeApi } from '$lib/utils/embedCommands';
 
 	let {
 		tmdbId,
@@ -89,7 +84,6 @@
 	let ytReady = $state(false);
 	let controlsVisible = $state(true);
 	let controlsTimer: ReturnType<typeof setTimeout> | null = null;
-	let showShortcuts = $state(false);
 	let isFullscreen = $state(false);
 	let playing = $state(false);
 	let elapsedSeconds = $state(0);
@@ -592,10 +586,6 @@
 			}
 			if (event.ctrlKey || event.metaKey || event.altKey) return;
 			switch (event.key.toLowerCase()) {
-				case '?':
-					event.preventDefault();
-					showShortcuts = !showShortcuts;
-					break;
 				case ' ':
 				case 'k':
 					event.preventDefault();
@@ -630,7 +620,6 @@
 					if (next && !nextUnavailable) onnext?.();
 					break;
 				case 'escape':
-					if (showShortcuts) showShortcuts = false;
 					if (showServerList) showServerList = false;
 					break;
 			}
@@ -970,15 +959,6 @@
 				<button
 					type="button"
 					class="ctrl-btn"
-					onclick={() => (showShortcuts = !showShortcuts)}
-					aria-label="Keyboard shortcuts"
-					title="Keyboard shortcuts (?)"
-				>
-					<HelpCircle />
-				</button>
-				<button
-					type="button"
-					class="ctrl-btn"
 					onclick={toggleFullscreen}
 					aria-label={isFullscreen ? 'Exit fullscreen' : 'Enter fullscreen'}
 					title="Fullscreen (F)"
@@ -989,35 +969,6 @@
 						<Maximize />
 					{/if}
 				</button>
-			</div>
-		{/if}
-
-		{#if showShortcuts}
-			<div
-				class="shortcuts-overlay"
-				onclick={(e) => { if (e.target === e.currentTarget) showShortcuts = false; }}
-				onkeydown={(e) => { if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); showShortcuts = false; } }}
-				role="dialog"
-				tabindex="-1"
-				aria-label="Keyboard shortcuts"
-			>
-				<div class="shortcuts-panel">
-					<div class="shortcuts-head">
-						<span>Keyboard Shortcuts</span>
-						<button type="button" class="shortcuts-close" onclick={() => (showShortcuts = false)} aria-label="Close keyboard shortcuts">&times;</button>
-					</div>
-					<div class="shortcuts-grid">
-						{#each PLAYER_SHORTCUTS as shortcut (shortcut.key)}
-							<div class="shortcut-row">
-								<kbd class="shortcut-key">{shortcut.key}</kbd>
-								<span class="shortcut-action">{shortcut.action}</span>
-							</div>
-						{/each}
-					</div>
-					<p class="shortcuts-note">
-						Shortcuts apply when the player is focused. Full playback control is available on sources that support it (e.g. YouTube); other sources receive best-effort commands.
-					</p>
-				</div>
 			</div>
 		{/if}
 
@@ -1218,23 +1169,11 @@
 		.ctrl-btn { min-width: 34px; min-height: 34px; }
 	}
 
-	.shortcuts-overlay { position: absolute; inset: 0; z-index: 30; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,0.7); backdrop-filter: blur(4px); }
-
 	.tap-overlay { position: absolute; inset: 0; z-index: 25; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,0.75); backdrop-filter: blur(4px); cursor: pointer; }
 	.tap-card { display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 28px 36px; background: rgba(17,17,19,0.95); border: 1px solid #3f3f46; border-radius: 14px; color: #e4e4e7; }
 	.tap-card :global(svg) { color: #818cf8; }
 	.tap-title { font-size: 15px; font-weight: 600; }
 	.tap-sub { font-size: 12px; color: #71717a; }
-	.shortcuts-panel { width: min(420px, calc(100% - 32px)); background: #111113; border: 1px solid #1f1f23; border-radius: 12px; padding: 16px; max-height: 80%; overflow-y: auto; }
-	.shortcuts-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; font-size: 14px; font-weight: 700; color: #e4e4e7; }
-	.shortcuts-close { background: none; border: none; color: #71717a; font-size: 20px; cursor: pointer; line-height: 1; }
-	.shortcuts-close:hover { color: #e4e4e7; }
-	.shortcuts-grid { display: flex; flex-direction: column; gap: 6px; }
-	.shortcut-row { display: flex; align-items: center; gap: 12px; padding: 5px 8px; border-radius: 6px; }
-	.shortcut-row:nth-child(odd) { background: rgba(255,255,255,0.03); }
-	.shortcut-key { min-width: 92px; padding: 3px 8px; background: #1f1f23; border: 1px solid #3f3f46; border-radius: 5px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11px; color: #c4b5fd; text-align: center; }
-	.shortcut-action { font-size: 13px; color: #d4d4d8; }
-	.shortcuts-note { margin-top: 12px; font-size: 11px; line-height: 1.5; color: #71717a; }
 
 	.server-list { border-top: 1px solid #1f1f23; background: #0c0c0e; max-height: 360px; overflow-y: auto; }
 	.server-list-header { display: flex; align-items: center; justify-content: space-between; padding: 12px 14px 10px; position: sticky; top: 0; background: #0c0c0e; border-bottom: 1px solid #1f1f23; font-size: 13px; font-weight: 600; color: #e4e4e7; }

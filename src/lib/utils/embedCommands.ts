@@ -1,15 +1,5 @@
 export type EmbedCommand = 'play' | 'pause' | 'seekto' | 'setvolume' | 'mute' | 'unmute';
 
-export const PLAYER_SHORTCUTS = [
-	{ key: 'Space / K', action: 'Play / Pause' },
-	{ key: '← / →', action: 'Seek 10 seconds' },
-	{ key: '↑ / ↓', action: 'Volume' },
-	{ key: 'M', action: 'Mute / Unmute' },
-	{ key: 'F', action: 'Fullscreen' },
-	{ key: 'N', action: 'Next episode (TV)' },
-	{ key: '?', action: 'Show this help' }
-] as const;
-
 export function sendEmbedCommand(
 	frame: HTMLIFrameElement | null,
 	command: EmbedCommand,
