@@ -42,8 +42,8 @@ export const GET: RequestHandler = async ({ params, locals, request }) => {
 				const push = async () => {
 					if (settled) return;
 					try {
-						const tick = await getRoomTick(roomId);
-						const version = tick ? `${tick.seq}:${tick.closedAt ?? ''}:${tick.lastMessageId}` : 'gone';
+					const tick = await getRoomTick(roomId);
+					const version = tick ? `${tick.seq}:${tick.closedAt ?? ''}:${tick.lastMessageId}:${tick.soundSeq}` : 'gone';
 						if (version === lastVersion) return;
 						console.log(`[stream] ${roomId} version ${version} (was ${lastVersion || '(initial)'}, since ${since})`);
 						lastVersion = version;

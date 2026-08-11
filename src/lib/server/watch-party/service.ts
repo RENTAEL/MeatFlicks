@@ -120,6 +120,7 @@ export async function getRoomTick(roomId: string) {
 	const row = await db
 		.select({
 			seq: watchPartyRooms.seq,
+			soundSeq: watchPartyRooms.soundSeq,
 			closedAt: watchPartyRooms.closedAt,
 			lastMessageId: watchPartyRooms.lastMessageId
 		})
