@@ -66,14 +66,17 @@ const snap = (p) => p.evaluate(() => ({
 	volume: document.querySelector('.fx-slider')?.value ?? null
 }));
 
+const unlock = (p) => p.evaluate(() => window.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, cancelable: true })));
+
 console.log('fresh member:', JSON.stringify(await snap(member.page)));
 console.log('muted member hint:', JSON.stringify(await snap(muted.page)));
 
-await member.page.mouse.click(400, 300);
+await unlock(member.page);
 await member.page.waitForTimeout(500);
-console.log('after member click:', JSON.stringify(await snap(member.page)));
+console.log('after member unlock:', JSON.stringify(await snap(member.page)));
 
-await muted.page.mouse.click(400, 300);
+await muted.page.evaluate(() => localStorage.setItem('wp-fx-mute', '1'));
+await unlock(muted.page);
 await muted.page.waitForTimeout(500);
 const mutedState = await muted.page.evaluate(() => ({ muted: localStorage.getItem('wp-fx-mute'), vol: localStorage.getItem('wp-fx-volume'), slider: document.querySelector('.fx-slider')?.value }));
 
@@ -84,7 +87,8 @@ const trigger = async (n) => {
 		body: JSON.stringify({ effect: n % 2 ? 'boo' : 'applause' })
 	});
 };
-await host.page.mouse.click(400, 300);
+await host.page.evaluate(() => localStorage.setItem('wp-fx-volume', '0.3'));
+await unlock(host.page);
 for (let i = 0; i < 3; i++) { await trigger(i); await host.page.waitForTimeout(2500); }
 
 console.log('host after triggers:', JSON.stringify(await snap(host.page)));

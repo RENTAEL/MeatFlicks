@@ -26,7 +26,8 @@
 		readOnly = false as boolean,
 		remoteSync = null as { seq: number; playing: boolean; position: number; positionAt: number } | null,
 		syncPoke = 0 as number,
-		onPlaybackChange = undefined as ((signal: { playing: boolean; position: number }) => void) | undefined
+		onPlaybackChange = undefined as ((signal: { playing: boolean; position: number }) => void) | undefined,
+		onSyncState = undefined as ((state: { status: 'synced' | 'drifted' | 'syncing'; drift: number }) => void) | undefined
 	}: {
 		tmdbId: number;
 		type?: 'movie' | 'tv';
@@ -44,6 +45,7 @@
 		remoteSync?: { seq: number; playing: boolean; position: number; positionAt: number } | null;
 		syncPoke?: number;
 		onPlaybackChange?: (signal: { playing: boolean; position: number }) => void;
+		onSyncState?: (state: { status: 'synced' | 'drifted' | 'syncing'; drift: number }) => void;
 	} = $props();
 
 	interface ScanResult {
@@ -117,32 +119,237 @@
 	let remoteAppliedSeq = 0;
 	let remotePokedSeq = 0;
 
+	interface RemoteSync { seq: number; playing: boolean; position: number; positionAt: number }
+	type SyncStatus = { status: 'synced' | 'drifted' | 'syncing'; drift: number };
+
+	let embedEvent: { playing: boolean; position: number; at: number } | null = null;
+	let frameSrc = $state('');
+	let syncingToHost = $state(false);
+	let needsTapToContinue = $state(false);
+	let lastSyncReloadAt = 0;
+	let syncReloadStreak = 0;
+	let latestRemote: RemoteSync | null = null;
+	let lastHostReported = -1;
+	let hostTick: ReturnType<typeof setInterval> | null = null;
+	let driftTick: ReturnType<typeof setInterval> | null = null;
+	let isCoarse = $state(false);
+	let lastSyncState: SyncStatus = { status: 'synced', drift: 0 };
+
+	$effect(() => {
+		frameSrc = currentUrl;
+		syncReloadStreak = 0;
+	});
+
+	$effect(() => {
+		if (browser) {
+			try {
+				isCoarse = window.matchMedia?.('(pointer: coarse)').matches ?? false;
+			} catch {
+				isCoarse = false;
+			}
+		}
+	});
+
+	$effect(() => {
+		function onMessage(e: MessageEvent) {
+			if (e.origin !== 'https://vidlink.pro') return;
+			const d = e.data as { type?: string; data?: { event?: string; currentTime?: number } };
+			if (!d || typeof d !== 'object' || d.type !== 'PLAYER_EVENT') return;
+			const ev = d.data;
+			if (!ev || typeof ev.event !== 'string') return;
+			const pos = typeof ev.currentTime === 'number' ? ev.currentTime : 0;
+			embedEvent = { playing: ev.event !== 'pause', position: pos, at: Date.now() };
+			elapsedSeconds = pos;
+			if (ev.event === 'play') {
+				playing = true;
+				needsTapToContinue = false;
+				if (!readOnly) onPlaybackChange?.({ playing: true, position: pos });
+			} else if (ev.event === 'pause') {
+				playing = false;
+				needsTapToContinue = false;
+				if (!readOnly) onPlaybackChange?.({ playing: false, position: pos });
+			} else if (ev.event === 'seeked') {
+				if (!readOnly) onPlaybackChange?.({ playing, position: pos });
+			} else if (ev.event === 'timeupdate') {
+				if (!readOnly) maybeReportHost(pos);
+			}
+		}
+		window.addEventListener('message', onMessage);
+		return () => window.removeEventListener('message', onMessage);
+	});
+
+	function currentPosition(): number {
+		if (ytPlayer && ytReady) return ytPlayer.getCurrentTime?.() ?? elapsedSeconds;
+		if (embedEvent && Date.now() - embedEvent.at < 6000) return embedEvent.position;
+		return elapsedSeconds;
+	}
+
+	function targetOf(rs: RemoteSync): number {
+		return Math.max(0, rs.playing ? rs.position + (Date.now() - rs.positionAt) / 1000 : rs.position);
+	}
+
+	function setSyncState(status: SyncStatus) {
+		lastSyncState = status;
+		onSyncState?.(status);
+	}
+
+	function updateSyncState(current: number, target: number) {
+		const drift = target - current;
+		if (Math.abs(drift) <= 2) {
+			setSyncState({ status: 'synced', drift: 0 });
+			if (syncReloadStreak > 0) syncReloadStreak = 0;
+		} else {
+			setSyncState({ status: 'drifted', drift: Math.round(drift) });
+		}
+	}
+
+	function maybeReportHost(pos: number) {
+		if (readOnly) return;
+		const now = Date.now();
+		if (now - lastHostReported < 8000) return;
+		lastHostReported = pos;
+		onPlaybackChange?.({ playing, position: pos });
+	}
+
+	function reloadSync(position: number, playing: boolean): boolean {
+		const now = Date.now();
+		if (now - lastSyncReloadAt < 25000 || syncReloadStreak >= 3) {
+			const rs = latestRemote;
+			updateSyncState(currentPosition(), rs ? targetOf(rs) : position);
+			return false;
+		}
+		lastSyncReloadAt = now;
+		syncReloadStreak++;
+		syncingToHost = true;
+		needsTapToContinue = false;
+		setSyncState({ status: 'syncing', drift: 0 });
+		const url = new URL(currentUrl);
+		url.searchParams.set('startAt', String(Math.max(0, Math.round(position))));
+		url.searchParams.set('autoplay', playing ? 'true' : 'false');
+		url.searchParams.set('_', String(now));
+		frameSrc = url.toString();
+		iframeLoaded = false;
+		return true;
+	}
+
+	function applyRemote(rs: RemoteSync) {
+		const target = targetOf(rs);
+		const current = currentPosition();
+		const needSeek = Math.abs(target - current) > 2;
+		if (ytPlayer && ytReady) {
+			if (needSeek) ytPlayer.seekTo(target, true);
+			if (rs.playing) ytPlayer.playVideo(); else ytPlayer.pauseVideo();
+			playing = rs.playing;
+			elapsedSeconds = target;
+			updateSyncState(current, target);
+			return;
+		}
+		if (currentProvider?.id === 'vidlink') {
+			const stateDiffers = embedEvent ? embedEvent.playing !== rs.playing : true;
+			if (needSeek || stateDiffers) reloadSync(target, rs.playing);
+			else updateSyncState(current, target);
+			return;
+		}
+		if (needSeek) sendEmbedCommand(frameRef, 'seekto', target);
+		sendEmbedCommand(frameRef, rs.playing ? 'play' : 'pause');
+		playing = rs.playing;
+		elapsedSeconds = target;
+		updateSyncState(current, target);
+	}
+
+	function maybeShowTapPrompt() {
+		if (!readOnly || !isCoarse || !latestRemote?.playing) {
+			needsTapToContinue = false;
+			return;
+		}
+		const fresh = !!embedEvent && Date.now() - embedEvent.at < 15000;
+		const isPlaying = embedEvent?.playing ?? false;
+		needsTapToContinue = !fresh || !isPlaying;
+	}
+
+	function tapToContinue() {
+		needsTapToContinue = false;
+		if (!latestRemote) return;
+		const target = targetOf(latestRemote);
+		if (currentProvider?.id === 'vidlink') {
+			reloadSync(target, true);
+		} else if (ytPlayer && ytReady) {
+			ytPlayer.playVideo();
+		} else {
+			sendEmbedCommand(frameRef, 'play');
+		}
+	}
+
+	function startHostTick() {
+		stopHostTick();
+		hostTick = setInterval(() => {
+			if (!iframeLoaded) return;
+			const pos = currentPosition();
+			if (Math.abs(pos - lastHostReported) < 1) return;
+			lastHostReported = pos;
+			onPlaybackChange?.({ playing, position: pos });
+		}, 8000);
+	}
+
+	function stopHostTick() {
+		if (hostTick) { clearInterval(hostTick); hostTick = null; }
+	}
+
+	function startDriftTick() {
+		stopDriftTick();
+		driftTick = setInterval(() => {
+			if (!iframeLoaded || !latestRemote) return;
+			const target = targetOf(latestRemote);
+			const current = currentPosition();
+			updateSyncState(current, target);
+			if (Math.abs(target - current) > 2) {
+				if (ytPlayer && ytReady) {
+					ytPlayer.seekTo(target, true);
+					if (latestRemote.playing) ytPlayer.playVideo(); else ytPlayer.pauseVideo();
+					elapsedSeconds = target;
+				} else if (currentProvider?.id === 'vidlink') {
+					reloadSync(target, latestRemote.playing);
+				} else {
+					sendEmbedCommand(frameRef, 'seekto', target);
+					sendEmbedCommand(frameRef, latestRemote.playing ? 'play' : 'pause');
+					elapsedSeconds = target;
+				}
+			} else if (currentProvider?.id === 'vidlink') {
+				const stateDiffers = embedEvent ? embedEvent.playing !== latestRemote.playing : true;
+				if (stateDiffers) reloadSync(target, latestRemote.playing);
+			}
+			maybeShowTapPrompt();
+		}, 10000);
+	}
+
+	function stopDriftTick() {
+		if (driftTick) { clearInterval(driftTick); driftTick = null; }
+	}
+
+	$effect(() => {
+		if (readOnly && iframeLoaded) {
+			startDriftTick();
+		}
+		return stopDriftTick;
+	});
+
+	$effect(() => {
+		if (!readOnly && iframeLoaded) {
+			startHostTick();
+		}
+		return stopHostTick;
+	});
+
 	$effect(() => {
 		const rs = remoteSync;
 		const poke = syncPoke;
 		if (!rs) return;
+		latestRemote = rs;
 		if (rs.seq === remoteAppliedSeq && poke === remotePokedSeq) return;
 		if (!iframeLoaded) return;
 		remoteAppliedSeq = rs.seq;
 		remotePokedSeq = poke;
-		const target = Math.max(0, rs.playing ? rs.position + (Date.now() - rs.positionAt) / 1000 : rs.position);
-		const current = ytPlayer?.getCurrentTime?.() ?? elapsedSeconds;
-		if (Math.abs(current - target) > 2) {
-			if (ytPlayer && ytReady) {
-				ytPlayer.seekTo(target, true);
-			} else {
-				sendEmbedCommand(frameRef, 'seekto', target);
-			}
-		}
-		if (ytPlayer && ytReady) {
-			if (rs.playing) ytPlayer.playVideo();
-			else ytPlayer.pauseVideo();
-			playing = rs.playing;
-		} else {
-			sendEmbedCommand(frameRef, rs.playing ? 'play' : 'pause');
-			playing = rs.playing;
-		}
-		elapsedSeconds = target;
+		applyRemote(rs);
 	});
 
 	function formatAirDate(iso: string | null) {
@@ -453,6 +660,8 @@
 		loadedProviders = new Set();
 		iframeLoaded = false;
 		hasError = false;
+		syncReloadStreak = 0;
+		lastHostReported = -1;
 
 		try {
 			const params = new URLSearchParams({
@@ -502,6 +711,8 @@
 		iframeLoaded = false;
 		hasError = false;
 		currentIndex = index;
+		syncReloadStreak = 0;
+		lastHostReported = -1;
 		startAutoSwitch();
 	}
 
@@ -517,6 +728,10 @@
 		stopAutoSwitch();
 		remoteAppliedSeq = 0;
 		remotePokedSeq = 0;
+		syncingToHost = false;
+		needsTapToContinue = false;
+		lastHostReported = -1;
+		maybeShowTapPrompt();
 	}
 
 	function onIframeError() {
@@ -546,6 +761,8 @@
 		stopAutoTick();
 		stopUpNextTick();
 		stopElapsed();
+		stopDriftTick();
+		stopHostTick();
 		try { ytPlayer?.destroy?.(); } catch {}
 	});</script>
 
@@ -572,7 +789,9 @@
 			<div class="overlay loading-overlay">
 				<div class="spinner"></div>
 				<p class="overlay-text">Loading via {currentProvider.name}...</p>
-				{#if isAutoSwitching}
+				{#if syncingToHost}
+					<p class="overlay-sub">Syncing to host...</p>
+				{:else if isAutoSwitching}
 					<p class="overlay-sub">Auto-switching to next provider...</p>
 				{/if}
 			</div>
@@ -584,7 +803,7 @@
 			{:else}
 				<iframe
 					bind:this={frameRef}
-					src={currentUrl}
+					src={frameSrc}
 					class="player-iframe"
 					allow="autoplay; fullscreen; encrypted-media; picture-in-picture; accelerometer; gyroscope"
 					referrerpolicy="origin"
@@ -593,6 +812,23 @@
 					onerror={onIframeError}
 				></iframe>
 			{/if}
+		{/if}
+
+		{#if needsTapToContinue}
+			<div
+				class="tap-overlay"
+				onclick={tapToContinue}
+				onkeydown={(e) => { if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); tapToContinue(); } }}
+				role="button"
+				tabindex="-1"
+				aria-label="Tap to continue watching"
+			>
+				<div class="tap-card">
+					<Play size={28} />
+					<p class="tap-title">Tap to continue watching</p>
+					<p class="tap-sub">Playback resumes in sync with the host</p>
+				</div>
+			</div>
 		{/if}
 
 		{#if iframeLoaded && !isScanning && !scanError && currentProvider}
@@ -903,6 +1139,12 @@
 	}
 
 	.shortcuts-overlay { position: absolute; inset: 0; z-index: 30; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,0.7); backdrop-filter: blur(4px); }
+
+	.tap-overlay { position: absolute; inset: 0; z-index: 25; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,0.75); backdrop-filter: blur(4px); cursor: pointer; }
+	.tap-card { display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 28px 36px; background: rgba(17,17,19,0.95); border: 1px solid #3f3f46; border-radius: 14px; color: #e4e4e7; }
+	.tap-card :global(svg) { color: #818cf8; }
+	.tap-title { font-size: 15px; font-weight: 600; }
+	.tap-sub { font-size: 12px; color: #71717a; }
 	.shortcuts-panel { width: min(420px, calc(100% - 32px)); background: #111113; border: 1px solid #1f1f23; border-radius: 12px; padding: 16px; max-height: 80%; overflow-y: auto; }
 	.shortcuts-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; font-size: 14px; font-weight: 700; color: #e4e4e7; }
 	.shortcuts-close { background: none; border: none; color: #71717a; font-size: 20px; cursor: pointer; line-height: 1; }

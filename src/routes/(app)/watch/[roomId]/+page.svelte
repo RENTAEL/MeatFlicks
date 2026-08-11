@@ -123,6 +123,11 @@
 
 	let lastPlaybackSignal: { playing: boolean; position: number } | null = null;
 	let syncPoke = 0;
+	let memberSyncState: { status: 'synced' | 'drifted' | 'syncing'; drift: number } = { status: 'synced', drift: 0 };
+
+	function onMemberSyncState(s: { status: 'synced' | 'drifted' | 'syncing'; drift: number }) {
+		memberSyncState = s;
+	}
 
 	function onPlaybackChange(signal: { playing: boolean; position: number }) {
 		if (!state.isHost) return;
@@ -239,6 +244,7 @@
 				remoteSync={getRemoteSync()}
 				syncPoke={syncPoke}
 				onPlaybackChange={onPlaybackChange}
+				onSyncState={onMemberSyncState}
 			/>
 		{:else}
 			<div class="no-media">Nothing is playing yet.</div>
@@ -249,6 +255,20 @@
 				<button class="sync-btn" onclick={() => syncPoke++} title="Jump back to the host's playback position">
 					Sync to host
 				</button>
+				<span
+					class="sync-status"
+					class:sync-ok={memberSyncState.status === 'synced'}
+					class:sync-bad={memberSyncState.status === 'drifted'}
+					class:sync-syncing={memberSyncState.status === 'syncing'}
+				>
+					{#if memberSyncState.status === 'synced'}
+						Synced to host
+					{:else if memberSyncState.status === 'syncing'}
+						Syncing to host...
+					{:else}
+						Out of sync ({memberSyncState.drift}s)
+					{/if}
+				</span>
 			</div>
 		{/if}
 
@@ -488,9 +508,17 @@
 
 	.no-media { color: #71717a; padding: 40px; text-align: center; }
 
-	.sync-row { margin-top: 10px; display: flex; }
+	.sync-row { margin-top: 10px; display: flex; align-items: center; gap: 10px; }
 	.sync-btn { display: inline-flex; align-items: center; gap: 8px; padding: 7px 14px; background: #18181b; color: #c4b5fd; border: 1px solid #3f3f46; border-radius: 8px; font-size: 12px; font-weight: 600; cursor: pointer; }
 	.sync-btn:hover { background: #27272a; border-color: #818cf8; }
+	.sync-status { display: inline-flex; align-items: center; gap: 6px; padding: 5px 10px; border-radius: 999px; font-size: 11px; font-weight: 600; }
+	.sync-status::before { content: ''; width: 7px; height: 7px; border-radius: 50%; }
+	.sync-ok { background: rgba(34,197,94,0.12); color: #4ade80; }
+	.sync-ok::before { background: #22c55e; }
+	.sync-bad { background: rgba(251,191,36,0.12); color: #fbbf24; }
+	.sync-bad::before { background: #f59e0b; }
+	.sync-syncing { background: rgba(129,140,248,0.12); color: #a5b4fc; }
+	.sync-syncing::before { background: #818cf8; animation: pulse 1.5s ease-in-out infinite; }
 
 	.chat-fab { display: none; }
 
