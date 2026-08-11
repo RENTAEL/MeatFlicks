@@ -3,7 +3,7 @@
 	import { browser } from '$app/environment';
 	import { goto } from '$app/navigation';
 	import Player from '$lib/components/Player.svelte';
-	import { playSoundEffect, SOUND_PRESETS, getSoundVolume, getSoundMuted, setSoundVolume, toggleSoundMute } from '$lib/watch-party/sounds';
+	import { playSoundEffect, SOUND_PRESETS, getSoundVolume, getSoundMuted, setSoundVolume, toggleSoundMute, unlockAudio, isSoundUnlocked } from '$lib/watch-party/sounds';
 	import { Users, Trophy, Copy, Send, Sparkles, LogOut, Skull, MessageCircle } from '@lucide/svelte';
 	import type { RoomState } from '$lib/server/watch-party/types';
 
@@ -64,11 +64,24 @@
 		await api(`/watch-party/join`, { method: 'POST', body: JSON.stringify({ roomId }) });
 		poll();
 		pollTimer = setInterval(poll, 2000);
+		window.addEventListener('pointerdown', unlockSound, { once: true });
+		window.addEventListener('keydown', unlockSound, { once: true });
+		window.addEventListener('touchstart', unlockSound, { once: true });
 	});
 
 	onDestroy(() => {
 		if (pollTimer) clearInterval(pollTimer);
+		window.removeEventListener('pointerdown', unlockSound);
+		window.removeEventListener('keydown', unlockSound);
+		window.removeEventListener('touchstart', unlockSound);
 	});
+
+	let soundUnlocked = isSoundUnlocked();
+
+	function unlockSound() {
+		unlockAudio();
+		soundUnlocked = true;
+	}
 
 	async function poll() {
 		if (polling) return;
@@ -208,6 +221,10 @@
 				<span class="room-copied">{copied ? 'Copied!' : ''}</span>
 			</div>
 		</div>
+
+		{#if !soundUnlocked}
+			<div class="sound-hint" role="status">Click anywhere to enable sound effects</div>
+		{/if}
 
 		{#if state.media}
 			<Player
@@ -411,6 +428,8 @@
 	.room-code { display: flex; align-items: center; gap: 8px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 14px; font-weight: 700; color: #c4b5fd; background: #18181b; border: 1px solid #3f3f46; padding: 6px 12px; border-radius: 8px; cursor: pointer; letter-spacing: 1px; }
 	.room-code:hover { border-color: #52525b; }
 	.room-copied { font-size: 11px; color: #6ee7b7; min-height: 14px; }
+	.sound-hint { display: inline-flex; align-items: center; gap: 8px; padding: 8px 14px; margin-bottom: 14px; background: rgba(124, 92, 252, 0.12); border: 1px solid rgba(124, 92, 252, 0.35); color: #c4b5fd; border-radius: 999px; font-size: 13px; font-weight: 600; animation: sound-hint-in 0.3s ease; }
+	@keyframes sound-hint-in { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }
 
 	.panel { background: #111113; border: 1px solid #1f1f23; border-radius: 12px; overflow: hidden; }
 	.panel-head { display: flex; align-items: center; gap: 8px; padding: 12px 14px; border-bottom: 1px solid #1f1f23; }

@@ -2,8 +2,12 @@ import { browser } from '$app/environment';
 
 let ctx: AudioContext | null = null;
 let masterGain: GainNode | null = null;
-let volume = 1;
+let volume = 0.7;
 let muted = false;
+let unlocked = false;
+let noiseBuffer: AudioBuffer | null = null;
+
+const pending: { kind: string; at: number }[] = [];
 
 const VOLUME_KEY = 'wp-fx-volume';
 const MUTE_KEY = 'wp-fx-mute';
@@ -38,10 +42,45 @@ function getContext(): AudioContext | null {
 			} catch {}
 			applyVolume();
 		}
-		if (ctx.state === 'suspended') ctx.resume();
+		if (ctx.state === 'suspended') ctx.resume().catch(() => {});
 		return ctx;
 	} catch {
 		return null;
+	}
+}
+
+export function isSoundUnlocked() {
+	return browser && unlocked;
+}
+
+function prebuildNoise(ac: AudioContext) {
+	if (noiseBuffer) return noiseBuffer;
+	noiseBuffer = ac.createBuffer(1, Math.floor(ac.sampleRate * 1.6), ac.sampleRate);
+	const data = noiseBuffer.getChannelData(0);
+	for (let i = 0; i < data.length; i++) data[i] = Math.random() * 2 - 1;
+	return noiseBuffer;
+}
+
+export function unlockAudio() {
+	if (!browser || unlocked) return;
+	const ac = getContext();
+	if (!ac) return;
+	try {
+		if (ac.state !== 'running') ac.resume().catch(() => {});
+		const src = ac.createBufferSource();
+		src.buffer = ac.createBuffer(1, Math.floor(ac.sampleRate * 0.01), ac.sampleRate);
+		const gain = ac.createGain();
+		gain.gain.value = 0;
+		src.connect(gain).connect(ac.destination);
+		src.start();
+	} catch {
+		return;
+	}
+	unlocked = true;
+	const now = Date.now();
+	while (pending.length) {
+		const p = pending.shift()!;
+		if (now - p.at <= 2000) playUnlocked(p.kind);
 	}
 }
 
@@ -66,22 +105,13 @@ export function toggleSoundMute(): boolean {
 	return muted;
 }
 
-function whiteNoiseBuffer(ac: AudioContext, seconds: number) {
-	const buffer = ac.createBuffer(1, Math.floor(ac.sampleRate * seconds), ac.sampleRate);
-	const data = buffer.getChannelData(0);
-	for (let i = 0; i < data.length; i++) {
-		data[i] = Math.random() * 2 - 1;
-	}
-	return buffer;
-}
-
 const effects: Record<
 	string,
 	(ac: AudioContext) => { stop: () => void }
 > = {
 	applause: (ac) => {
 		const src = ac.createBufferSource();
-		src.buffer = whiteNoiseBuffer(ac, 1.6);
+		src.buffer = prebuildNoise(ac);
 		src.playbackRate.value = 0.55;
 		const gain = ac.createGain();
 		gain.gain.setValueAtTime(0.0001, ac.currentTime);
@@ -153,6 +183,15 @@ const effects: Record<
 const activeByKind = new Map<string, { stop: () => void }>();
 
 export function playSoundEffect(kind: string) {
+	if (!browser) return;
+	if (!unlocked) {
+		pending.push({ kind, at: Date.now() });
+		return;
+	}
+	playUnlocked(kind);
+}
+
+function playUnlocked(kind: string) {
 	const ac = getContext();
 	if (!ac) return;
 	const builder = effects[kind];
