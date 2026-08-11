@@ -60,8 +60,6 @@ await host.page.waitForSelector('iframe.player-iframe', { timeout: 30000 });
 await member.page.waitForSelector('iframe.player-iframe', { timeout: 30000 });
 await host.page.waitForTimeout(6000);
 
-console.log('initial roomState:', await roomState());
-
 const lastEvent = (p) => p.evaluate(() => {
 	const v = window.__vl;
 	return v.length ? v[v.length - 1] : null;
@@ -79,12 +77,22 @@ const roomState = async () => {
 	const j = await r.json();
 	return j.playback ? `${j.playback.playing ? 'PLAY' : 'PAUSE'} pos=${Math.round(j.playback.position)} seq=${j.playback.seq}` : 'n/a';
 };
-const memberInternals = () => member.page.evaluate(() => {
-	const f = document.querySelector('iframe.player-iframe');
-	return { src: f?.src?.split('_=')[0] ?? null, events: (window.__vl ?? []).slice(-3) };
-});
 
+let hostEv = await lastEvent(host.page);
+if (!hostEv || hostEv.ev !== 'play') {
+	console.log('host not playing yet, clicking iframe video to start playback');
+	try {
+		const video = host.page.locator('iframe.player-iframe').contentFrame().locator('video').first();
+		await video.click({ timeout: 8000, position: { x: 400, y: 200 } });
+	} catch {
+		console.log('video click failed, clicking iframe center');
+		const box = await host.page.locator('iframe.player-iframe').boundingBox();
+		if (box) await host.page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
+	}
+	await host.page.waitForTimeout(5000);
+}
 console.log('host src:', await iframeSrc(host.page));
+console.log('initial roomState:', await roomState());
 console.log('member src after settle:', await iframeSrc(member.page));
 console.log('member first sync:', (await iframeSrc(member.page))?.includes('startAt') ? 'OK (startAt present)' : 'FAIL (no startAt)');
 

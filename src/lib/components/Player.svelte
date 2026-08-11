@@ -116,8 +116,8 @@
 	let upNextEndsAt = 0;
 	let suppressedKey: string | null = null;
 	let currentKey = $derived(`${season}:${episode}`);
-	let remoteAppliedSeq = 0;
-	let remotePokedSeq = 0;
+	let remoteAppliedSeq = -1;
+	let remotePokedSeq = -1;
 
 	interface RemoteSync { seq: number; playing: boolean; position: number; positionAt: number }
 	type SyncStatus = { status: 'synced' | 'drifted' | 'syncing'; drift: number };
@@ -726,8 +726,8 @@
 		hasError = false;
 		loadedProviders.add(currentProvider?.id || '');
 		stopAutoSwitch();
-		remoteAppliedSeq = 0;
-		remotePokedSeq = 0;
+		remoteAppliedSeq = -1;
+		remotePokedSeq = -1;
 		syncingToHost = false;
 		needsTapToContinue = false;
 		lastHostReported = -1;
