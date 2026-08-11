@@ -385,7 +385,7 @@
 				if (stateDiffers) reloadSync(target, latestRemote.playing);
 			}
 			maybeShowTapPrompt();
-		}, 10000);
+		}, 5000);
 	}
 
 	function stopDriftTick() {

@@ -247,7 +247,8 @@ export async function getRoomState(
 			userId: watchPartyMembers.userId,
 			username: watchPartyMembers.username,
 			lastSeenAt: watchPartyMembers.lastSeenAt,
-			joinedAt: watchPartyMembers.joinedAt
+			joinedAt: watchPartyMembers.joinedAt,
+			canControlSounds: watchPartyMembers.canControlSounds
 		})
 		.from(watchPartyMembers)
 		.where(eq(watchPartyMembers.roomId, roomId))
@@ -398,10 +399,39 @@ export async function leaveRoom(roomId: string, user: RoomUser) {
 	return { closedRoom: false };
 }
 
+export async function setSoundControl(roomId: string, host: RoomUser, targetUserId: string, granted: boolean) {
+	const room = await getRoomOrThrow(roomId);
+	if (room.hostUserId !== host.id) {
+		throw new ForbiddenError('Only the host can grant sound control');
+	}
+	if (targetUserId === host.id) return;
+	const target = await db
+		.select({ userId: watchPartyMembers.userId })
+		.from(watchPartyMembers)
+		.where(and(eq(watchPartyMembers.roomId, roomId), eq(watchPartyMembers.userId, targetUserId)))
+		.get();
+	if (!target) return;
+	await db
+		.update(watchPartyMembers)
+		.set({ canControlSounds: granted })
+		.where(and(eq(watchPartyMembers.roomId, roomId), eq(watchPartyMembers.userId, targetUserId)))
+		.run();
+	await db.update(watchPartyRooms).set({ seq: room.seq + 1 }).where(eq(watchPartyRooms.id, roomId)).run();
+	publishRoom(roomId);
+}
+
 export async function playSound(roomId: string, user: RoomUser, effect: SoundEffect) {
 	const room = await getRoomOrThrow(roomId);
+	if (room.closedAt) return;
 	if (room.hostUserId !== user.id) {
-		throw new ForbiddenError('Only the host can trigger sound effects');
+		const membership = await db
+			.select({ canControlSounds: watchPartyMembers.canControlSounds })
+			.from(watchPartyMembers)
+			.where(and(eq(watchPartyMembers.roomId, roomId), eq(watchPartyMembers.userId, user.id)))
+			.get();
+		if (!membership?.canControlSounds) {
+			throw new ForbiddenError('Only the host or granted members can trigger sound effects');
+		}
 	}
 	await db
 		.update(watchPartyRooms)

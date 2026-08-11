@@ -175,6 +175,17 @@
 		});
 	}
 
+	async function grantSoundControl(userId: string, granted: boolean) {
+		await api(`/watch-party/rooms/${roomId}/sound-control`, {
+			method: 'POST',
+			body: JSON.stringify({ userId, granted })
+		});
+	}
+
+	function canTriggerSounds() {
+		return state.isHost || (state.participants.find((p) => p.userId === user.id)?.canControlSounds ?? false);
+	}
+
 	async function playSound(effect: string) {
 		await api(`/watch-party/rooms/${roomId}/sound`, {
 			method: 'POST',
@@ -309,6 +320,14 @@
 							{/if}
 						</span>
 						{#if state.isHost && p.userId !== user.id}
+							<button
+								class="grant-btn"
+								class:granted={p.canControlSounds}
+								onclick={() => grantSoundControl(p.userId, !p.canControlSounds)}
+								title={p.canControlSounds ? 'Revoke sound control' : 'Grant sound control'}
+							>
+								{p.canControlSounds ? 'Sound: On' : 'Sound: Off'}
+							</button>
 							<button class="kick-btn" onclick={() => kickMember(p.userId)} title="Remove from room">kick</button>
 						{/if}
 					</div>
@@ -320,14 +339,21 @@
 			<div class="panel-head">
 				<span class="panel-title"><Sparkles size={16} /> Sound effects</span>
 			</div>
-			{#if state.isHost}
-				<div class="fx-row">
-					{#each SOUND_PRESETS as preset}
-						<button class="fx-btn" onclick={() => playSound(preset.id)} title={preset.description}>
-							{preset.label}
-						</button>
-					{/each}
-				</div>
+			<div class="fx-row">
+				{#each SOUND_PRESETS as preset}
+					{@const allowed = canTriggerSounds()}
+					<button
+						class="fx-btn"
+						disabled={!allowed}
+						onclick={() => playSound(preset.id)}
+						title={allowed ? preset.description : "Host hasn't granted you sound control"}
+					>
+						{preset.label}
+					</button>
+				{/each}
+			</div>
+			{#if !canTriggerSounds()}
+				<p class="fx-hint">The host hasn't granted you sound control yet.</p>
 			{/if}
 			<div class="fx-ctrl-row">
 				<button
@@ -477,12 +503,18 @@
 	.member-row:hover { background: #18181b; }
 	.member-avatar { width: 26px; height: 26px; border-radius: 50%; background: #27272a; color: #c4b5fd; display: inline-flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; flex-shrink: 0; }
 	.member-name { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: #d4d4d8; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+	.grant-btn { background: #18181b; color: #a1a1aa; border: 1px solid #3f3f46; border-radius: 6px; font-size: 11px; padding: 3px 8px; cursor: pointer; }
+	.grant-btn:hover { background: #3f3f46; }
+	.grant-btn.granted { color: #6ee7b7; border-color: #065f46; background: #022c22; }
 	.kick-btn { background: #18181b; color: #f87171; border: 1px solid #3f3f46; border-radius: 6px; font-size: 11px; padding: 3px 8px; cursor: pointer; }
 	.kick-btn:hover { background: #3f3f46; }
 
 	.fx-row { display: flex; gap: 8px; padding: 12px 14px; flex-wrap: wrap; }
 	.fx-btn { flex: 1; min-width: 100px; padding: 8px 10px; background: #18181b; color: #d4d4d8; border: 1px solid #3f3f46; border-radius: 8px; font-size: 12px; cursor: pointer; }
 	.fx-btn:hover { background: #27272a; border-color: #52525b; }
+	.fx-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+	.fx-btn:disabled:hover { background: #18181b; border-color: #3f3f46; }
+	.fx-hint { padding: 0 14px 10px; font-size: 11px; color: #71717a; }
 
 	.fx-ctrl-row { display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-top: 1px solid #1f1f23; }
 	.fx-mute { background: none; border: none; font-size: 15px; cursor: pointer; padding: 2px; }

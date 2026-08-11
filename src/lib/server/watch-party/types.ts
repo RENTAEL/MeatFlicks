@@ -32,6 +32,7 @@ export interface RoomParticipant {
 	username: string;
 	lastSeenAt: number;
 	joinedAt: number;
+	canControlSounds: boolean;
 }
 
 export interface RoomMessage {

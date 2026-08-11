@@ -255,6 +255,7 @@ const runInitSql = async (client: Client) => {
 			"username" TEXT NOT NULL,
 			"last_seen_at" INTEGER NOT NULL DEFAULT ${Date.now()},
 			"joined_at" INTEGER NOT NULL DEFAULT ${Date.now()},
+			"can_control_sounds" INTEGER NOT NULL DEFAULT 0,
 			PRIMARY KEY ("room_id", "user_id")
 		)`);
 		try { await client.execute('CREATE INDEX IF NOT EXISTS idx_wp_members_user ON watch_party_members("user_id")'); } catch {}
@@ -295,6 +296,10 @@ const runInitSql = async (client: Client) => {
 					await client.execute('DROP TABLE IF EXISTS watch_party_members_v2');
 				}
 			}
+		} catch {}
+
+		try {
+			await client.execute('ALTER TABLE watch_party_members ADD COLUMN "can_control_sounds" INTEGER NOT NULL DEFAULT 0');
 		} catch {}
 
 		await client.execute(`CREATE TABLE IF NOT EXISTS watch_party_messages (
