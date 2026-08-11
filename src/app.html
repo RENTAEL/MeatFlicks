@@ -23,6 +23,10 @@
 							}
 						});
 					}
+				}).then(function() {
+					navigator.serviceWorker.register('/service-worker.js', { scope: '/' }).catch(function(err) {
+						console.warn('Service worker registration failed:', err);
+					});
 				});
 			}
 		</script>

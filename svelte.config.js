@@ -15,6 +15,9 @@ const config = {
 		},
 		csrf: {
 			checkOrigin: false
+		},
+		paths: {
+			relative: false
 		}
 	}
 };
