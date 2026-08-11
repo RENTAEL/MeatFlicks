@@ -302,6 +302,7 @@
 
 	function markSyncApplied(rs: RemoteSync) {
 		try {
+			(window as any).__wpDiag = ((window as any).__wpDiag || []).concat([{ t: 'applied', at: Date.now(), seq: rs.seq, playing: rs.playing, pos: rs.position }]).slice(-30);
 			(window as any).__swLastSyncApplied = {
 				at: Date.now(),
 				seq: rs.seq,
@@ -402,6 +403,9 @@
 		const poke = syncPoke;
 		if (!rs) return;
 		latestRemote = rs;
+		try {
+			(window as any).__wpDiag = ((window as any).__wpDiag || []).concat([{ t: 'effect', at: Date.now(), seq: rs.seq, appliedSeq: remoteAppliedSeq, iframeLoaded, poke, pokedSeq: remotePokedSeq }]).slice(-30);
+		} catch {}
 		if (rs.seq === remoteAppliedSeq && poke === remotePokedSeq) return;
 		if (!iframeLoaded) return;
 		remoteAppliedSeq = rs.seq;
