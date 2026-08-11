@@ -886,6 +886,13 @@
 			{/if}
 		{/if}
 
+		<div
+			class="player-hover-strip"
+			onmousemove={showControlsTemporarily}
+			onpointerenter={showControlsTemporarily}
+			aria-hidden="true"
+		></div>
+
 		{#if needsTapToContinue}
 			<div
 				class="tap-overlay"
@@ -1158,6 +1165,7 @@
 <style>
 	.player-root { display: flex; flex-direction: column; width: 100%; background: #0a0a0b; border-radius: 12px; overflow: hidden; border: 1px solid #1f1f23; }
 	.iframe-container { position: relative; width: 100%; aspect-ratio: 16 / 9; background: #000; }
+	.player-hover-strip { position: absolute; left: 0; right: 0; bottom: 0; height: 64px; z-index: 14; }
 	.player-iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: none; }
 	.overlay { position: absolute; inset: 0; z-index: 10; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; background: rgba(0,0,0,0.9); backdrop-filter: blur(8px); }
 	.loading-overlay { background: rgba(0,0,0,0.75); pointer-events: none; }

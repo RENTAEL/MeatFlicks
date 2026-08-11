@@ -20,6 +20,9 @@
 
 	let state: RoomState = data.initialState;
 	let closed = false;
+	let fxAllowed =
+		data.initialState.isHost ||
+		(data.initialState.participants.find((p) => p.userId === data.user.id)?.canControlSounds ?? false);
 	let messages: RoomState['messages'] = data.initialState.messages;
 	let lastMessageId = data.initialState.lastMessageId;
 	let lastSoundSeq = data.initialState.sound?.seq ?? 0;
@@ -56,6 +59,7 @@
 			lastMessageId = Math.max(lastMessageId, s.lastMessageId);
 		}
 		state = s;
+		fxAllowed = s.isHost || (s.participants.find((p) => p.userId === user.id)?.canControlSounds ?? false);
 	}
 
 	function connectStream() {
@@ -180,10 +184,6 @@
 			method: 'POST',
 			body: JSON.stringify({ userId, granted })
 		});
-	}
-
-	function canTriggerSounds() {
-		return state.isHost || (state.participants.find((p) => p.userId === user.id)?.canControlSounds ?? false);
 	}
 
 	async function playSound(effect: string) {
@@ -341,7 +341,7 @@
 			</div>
 			<div class="fx-row">
 				{#each SOUND_PRESETS as preset}
-					{@const allowed = canTriggerSounds()}
+					{@const allowed = fxAllowed}
 					<button
 						class="fx-btn"
 						disabled={!allowed}
@@ -352,7 +352,7 @@
 					</button>
 				{/each}
 			</div>
-			{#if !canTriggerSounds()}
+			{#if !fxAllowed}
 				<p class="fx-hint">The host hasn't granted you sound control yet.</p>
 			{/if}
 			<div class="fx-ctrl-row">

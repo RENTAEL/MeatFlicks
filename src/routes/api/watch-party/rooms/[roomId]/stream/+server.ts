@@ -45,12 +45,13 @@ export const GET: RequestHandler = async ({ params, locals, request }) => {
 						const tick = await getRoomTick(roomId);
 						const version = tick ? `${tick.seq}:${tick.closedAt ?? ''}:${tick.lastMessageId}` : 'gone';
 						if (version === lastVersion) return;
+						console.log(`[stream] ${roomId} version ${version} (was ${lastVersion || '(initial)'}, since ${since})`);
 						lastVersion = version;
 						const state = await getRoomState(roomId, user, { sinceMessageId: since });
 						since = state.lastMessageId;
 						send(`event: state\ndata: ${JSON.stringify(state)}\n\n`);
-					} catch {
-						// transient; retried on next tick
+					} catch (error) {
+						console.error(`[stream] ${roomId} push failed:`, error instanceof Error ? error.message : String(error));
 					}
 				};
 
