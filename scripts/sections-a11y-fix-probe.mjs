@@ -31,13 +31,32 @@ for (const route of ROUTES) {
     const a = [...document.querySelectorAll('a[data-slot="button"]')].find((x) => x.textContent.trim().startsWith("Play")) ?? null;
     if (!a) return null;
     const s = getComputedStyle(a);
-    return { bg: s.backgroundColor, fg: s.color };
+    const to01 = (c) =>
+      Math.max(...c) > 1.01
+        ? c.map((v) => v / 255)
+        : c;
+    const toRgb = (spec) => {
+      const e = document.createElement("span");
+      e.style.setProperty("background", `color-mix(in srgb, ${spec} 100%, transparent)`);
+      document.body.appendChild(e);
+      const m = getComputedStyle(e).backgroundColor.match(/[\d.]+/g).slice(0, 3).map(Number);
+      e.remove();
+      return to01(m);
+    };
+    const lum = (c) => {
+      const f = (v) => (v <= 0.04045 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4));
+      return 0.2126 * f(c[0]) + 0.7152 * f(c[1]) + 0.0722 * f(c[2]);
+    };
+    const bg = toRgb(s.backgroundColor);
+    const fg = toRgb(s.color);
+    const ratio = (Math.max(lum(bg), lum(fg)) + 0.05) / (Math.min(lum(bg), lum(fg)) + 0.05);
+    return { bg: s.backgroundColor, fg: s.color, ratio };
   });
-  const bgOk = play && String(play.bg).includes("oklch(0.47 0.15 310)");
+  const bgOk = play && play.ratio >= 4.5;
   const vpOk = !/maximum-scale|user-scalable/.test(vp ?? "");
   console.log(
-    `${route.padEnd(10)} viewport ${vpOk ? "PASS" : "FAIL"} | play CTA bg ${play ? play.bg : "N/A"} ${
-      bgOk ? "PASS (oklch 0.47 .15 310)" : "FAIL"
+    `${route.padEnd(10)} viewport ${vpOk ? "PASS" : "FAIL"} | play CTA ${play ? play.bg + " / " + play.fg + " = " + play.ratio.toFixed(2) + ":1" : "N/A"} ${
+      bgOk ? "PASS" : play === null ? "N/A" : "FAIL"
     }`
   );
 }

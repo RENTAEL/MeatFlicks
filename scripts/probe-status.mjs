@@ -1,0 +1,10 @@
+import { chromium } from "playwright";
+const browser = await chromium.launch();
+const page = await browser.newPage({ viewport: { width: 1280, height: 800 } });
+await page.goto("https://streamium-cosmic.vercel.app/afrikaans", { waitUntil: "domcontentloaded", timeout: 90000 });
+await page.getByLabel("Soek / Search").fill("brug");
+await page.waitForTimeout(2500);
+const status = page.locator('[role="status"]');
+console.log("status count:", await status.count());
+if (await status.count()) console.log("status text:", JSON.stringify((await status.first().innerText()).slice(0, 200)));
+await browser.close();

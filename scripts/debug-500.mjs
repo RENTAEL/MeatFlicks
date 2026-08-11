@@ -1,0 +1,10 @@
+import { chromium } from "playwright";
+const browser = await chromium.launch();
+const page = await browser.newPage({ viewport: { width: 1280, height: 800 } });
+const fails = new Map();
+page.on("response", (r) => { if (r.status() >= 400) { const k = r.url().split("?")[0]; fails.set(k, (fails.get(k) ?? 0) + 1); } });
+await page.goto("https://streamium-cosmic.vercel.app/afrikaans", { waitUntil: "networkidle", timeout: 120000 }).catch(() => {});
+await page.waitForTimeout(8000);
+console.log("failed resources:");
+for (const [u, n] of fails) console.log(`${n}x ${u}`);
+await browser.close();

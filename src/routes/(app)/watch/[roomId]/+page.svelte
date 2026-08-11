@@ -71,9 +71,11 @@
 
 	onDestroy(() => {
 		if (pollTimer) clearInterval(pollTimer);
-		window.removeEventListener('pointerdown', unlockSound);
-		window.removeEventListener('keydown', unlockSound);
-		window.removeEventListener('touchstart', unlockSound);
+		if (browser) {
+			window.removeEventListener('pointerdown', unlockSound);
+			window.removeEventListener('keydown', unlockSound);
+			window.removeEventListener('touchstart', unlockSound);
+		}
 	});
 
 	let soundUnlocked = isSoundUnlocked();

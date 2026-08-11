@@ -1,0 +1,1309 @@
+Vercel CLI 56.5.0 (Node.js 24.16.0)
+Retrieving projectΓÇª
+Deploying pubgmobilegab-5992s-projects/streamium-cosmic
+Uploading [--------------------] (0.0B/2.1MB)
+Uploading [=====---------------] (533.7KB/2.1MB)
+Uploading [==========----------] (1.0MB/2.1MB)
+Uploading [===============-----] (1.6MB/2.1MB)
+Uploading [====================] (2.1MB/2.1MB)
+  Inspect         https://vercel.com/pubgmobilegab-5992s-projects/streamium-cosmic/3W51Pd74L4L8hGzRy1hSimLHyr1U
+  Production      https://streamium-cosmic-p16kzzktd-pubgmobilegab-5992s-projects.vercel.app
+BuildingΓÇª
+BuildingΓÇª
+Running build in Washington, D.C., USA (East) ΓÇô iad1
+Build machine configuration: 2 cores, 8 GB
+Retrieving list of deployment files...
+Downloading 1261 deployment files...
+Restored build cache from previous deployment (F12xpRZfxvJu9JfrYCcehzwuYJKu)
+Running "vercel build"
+Vercel CLI 58.1.0
+Installing dependencies...
+> streamium@0.0.1 prepare
+> svelte-kit sync || echo ''
+`config.kit.csrf.checkOrigin` has been deprecated in favour of `csrf.trustedOrigins`. It will be removed in a future version
+The following Vite config options will be overridden by SvelteKit:
+- build.cssCodeSplit
+up to date in 3s
+119 packages are looking for funding
+run `npm fund` for details
+Running "npm run build"
+> streamium@0.0.1 build
+> vite build
+`config.kit.csrf.checkOrigin` has been deprecated in favour of `csrf.trustedOrigins`. It will be removed in a future version
+The following Vite config options will be overridden by SvelteKit:
+- build.cssCodeSplit
+vite v7.3.6 building ssr environment for production...
+transforming...
+7:09:16 AM [vite-plugin-svelte] src/routes/+layout.svelte:19:0 Using `<slot>` to render parent content is deprecated. Use `{@render ...}` tags instead
+https://svelte.dev/e/slot_element_deprecated
+17: </script>
+18:
+19: <slot />
+^
+20:
+7:09:16 AM [vite-plugin-svelte] src/routes/(app)/search/+page.svelte:13:20 This reference only captures the initial value of `ssrQuery`. Did you mean to reference it inside a closure instead?
+https://svelte.dev/e/state_referenced_locally
+11:   const ssrItems = $derived(data.ssrItems || []);
+12:
+13:   let query = $state(ssrQuery);
+^
+14:   let results = $state<any[]>(ssrItems);
+15:   let isLoading = $state(false);
+7:09:16 AM [vite-plugin-svelte] src/routes/(app)/search/+page.svelte:14:29 This reference only captures the initial value of `ssrItems`. Did you mean to reference it inside a closure instead?
+https://svelte.dev/e/state_referenced_locally
+12:
+13:   let query = $state(ssrQuery);
+14:   let results = $state<any[]>(ssrItems);
+^
+15:   let isLoading = $state(false);
+16:   let hasSearched = $state(ssrQuery.length >= 2);
+7:09:16 AM [vite-plugin-svelte] src/routes/(app)/search/+page.svelte:16:26 This reference only captures the initial value of `ssrQuery`. Did you mean to reference it inside a derived instead?
+https://svelte.dev/e/state_referenced_locally
+14:   let results = $state<any[]>(ssrItems);
+15:   let isLoading = $state(false);
+16:   let hasSearched = $state(ssrQuery.length >= 2);
+^
+17:   let error = $state('');
+18:   let searchTimeout: ReturnType<typeof setTimeout>;
+7:09:16 AM [vite-plugin-svelte] src/routes/(app)/search/+page.svelte:39:19 This reference only captures the initial value of `hasSearched`. Did you mean to reference it inside a closure instead?
+https://svelte.dev/e/state_referenced_locally
+37:     }
+38:     const urlQuery = new URL(window.location.href).searchParams.get('q');
+39:     if (urlQuery && !hasSearched) {
+^
+40:       query = urlQuery;
+41:       performSearch(urlQuery);
+7:09:16 AM [vite-plugin-svelte] src/routes/(app)/search/+page.svelte:157:4 Avoid using autofocus
+https://svelte.dev/e/a11y_autofocus
+155:         onkeydown={handleKeydown}
+156:         placeholder="Search movies and TV shows..."
+157:         autofocus
+^
+158:         class="w-full rounded-2xl border border-zinc-700/50 bg-zinc-900/80 py-4 pl-12 pr-12 text-lg text-white placeholder-zinc-500 transition-all focus:border-indigo-500/50 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+159:       />
+Found 1 warning while optimizing generated CSS:
+Γöé   padding-right: var(--safe-area-right);
+Γöé }
+Γöé @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+Γöå        ^-- @import rules must precede all rules aside from @charset and @layer statements
+Γöå
+Γöé :root {
+Γöé   --radius: 0.75rem;
+7:09:22 AM [vite-plugin-svelte] src/routes/(app)/+layout.svelte:119:1 Visible, non-interactive element `<div>` with a click event must be accompanied by a keyboard event handler. Consider whether an interactive element such as `<button type="button">` or `<a>` might be more appropriate
+https://svelte.dev/e/a11y_click_events_have_key_events
+117:
+118: {#if $menuOpen}
+119:   <div class="menu-backdrop" onclick={() => menuOpen.set(false)} role="button" tabindex="-1" aria-label="Close menu" transition:fade={{ duration: 150 }}></div>
+^
+120:
+121:   <aside class="menu-drawer" transition:fly={{ x: -280, duration: 250 }}>
+7:09:22 AM [vite-plugin-svelte] src/routes/(app)/admin/features/+page.svelte:66:12 Self-closing HTML tags for non-void elements are ambiguous ΓÇö use `<span ...></span>` rather than `<span ... />`
+https://svelte.dev/e/element_invalid_self_closing_tag
+64:             aria-label="Toggle {key}"
+65:           >
+66:             <span class="toggle-knob" />
+^
+67:           </button>
+68:         </div>
+7:09:22 AM [vite-plugin-svelte] src/routes/(app)/afrikaans/+page.svelte:11:21 This reference only captures the initial value of `data`. Did you mean to reference it inside a derived instead?
+https://svelte.dev/e/state_referenced_locally
+9:   let { data }: { data: PageData } = $props();
+10:
+11:   let movies = $state(data.movies || []);
+^
+12:   let currentPage = $state(data.page || 1);
+13:   let hasMore = $state(data.hasMore ?? false);
+7:09:22 AM [vite-plugin-svelte] src/routes/(app)/afrikaans/+page.svelte:12:26 This reference only captures the initial value of `data`. Did you mean to reference it inside a derived instead?
+https://svelte.dev/e/state_referenced_locally
+10:
+11:   let movies = $state(data.movies || []);
+12:   let currentPage = $state(data.page || 1);
+^
+13:   let hasMore = $state(data.hasMore ?? false);
+14:   let loadingMore = $state(false);
+7:09:22 AM [vite-plugin-svelte] src/routes/(app)/afrikaans/+page.svelte:13:22 This reference only captures the initial value of `data`. Did you mean to reference it inside a derived instead?
+https://svelte.dev/e/state_referenced_locally
+11:   let movies = $state(data.movies || []);
+12:   let currentPage = $state(data.page || 1);
+13:   let hasMore = $state(data.hasMore ?? false);
+^
+14:   let loadingMore = $state(false);
+15:   let searchQuery = $state('');
+7:09:22 AM [vite-plugin-svelte] src/routes/(app)/explore/[slug]/+page.svelte:63:40 This reference only captures the initial value of `tmdbPopularMovies`. Did you mean to reference it inside a closure instead?
+https://svelte.dev/e/state_referenced_locally
+61:   const numberFormatter = new Intl.NumberFormat('en-US');
+62:
+63:   let allMovies = $state<LibraryMovie[]>(tmdbPopularMovies as LibraryMovie[]);
+^
+64:   let currentPage = $state(1);
+65:   let isLoadingMore = $state(false);
+7:09:22 AM [vite-plugin-svelte] src/routes/(app)/explore/[slug]/+page.svelte:593:1 Unused CSS selector ".trending-divider"
+https://svelte.dev/e/css_unused_selector
+591:   }
+592:
+593:   .trending-divider {
+^
+594:     margin: 2.5rem 5% 0;
+595:     width: auto;
+7:09:22 AM [vite-plugin-svelte] src/routes/(app)/genre/movies/+page.svelte:24:38 This reference only captures the initial value of `allMovies`. Did you mean to reference it inside a closure instead?
+https://svelte.dev/e/state_referenced_locally
+22:
+23:   let currentPage = $state(1);
+24:   let movies = $state<LibraryMovie[]>(allMovies);
+^
+25:   let isLoadingMore = $state(false);
+26:   let loadError = $state('');
+7:09:22 AM [vite-plugin-svelte] src/routes/(app)/movies/+page.svelte:18:30 This reference only captures the initial value of `data`. Did you mean to reference it inside a derived instead?
+https://svelte.dev/e/state_referenced_locally
+16:   ];
+17:
+18:   let currentCategory = $state(data.category || 'popular');
+^
+19:   let currentPage = $state(data.page || 1);
+20:   let allMovies = $state(data.movies || []);
+7:09:22 AM [vite-plugin-svelte] src/routes/(app)/movies/+page.svelte:19:26 This reference only captures the initial value of `data`. Did you mean to reference it inside a derived instead?
+https://svelte.dev/e/state_referenced_locally
+17:
+18:   let currentCategory = $state(data.category || 'popular');
+19:   let currentPage = $state(data.page || 1);
+^
+20:   let allMovies = $state(data.movies || []);
+21:   let isLoadingMore = $state(false);
+7:09:22 AM [vite-plugin-svelte] src/routes/(app)/movies/+page.svelte:20:24 This reference only captures the initial value of `data`. Did you mean to reference it inside a derived instead?
+https://svelte.dev/e/state_referenced_locally
+18:   let currentCategory = $state(data.category || 'popular');
+19:   let currentPage = $state(data.page || 1);
+20:   let allMovies = $state(data.movies || []);
+^
+21:   let isLoadingMore = $state(false);
+22:   let hasMore = $state((data.page || 1) < (data.totalPages || 0));
+7:09:22 AM [vite-plugin-svelte] src/routes/(app)/movies/+page.svelte:22:23 This reference only captures the initial value of `data`. Did you mean to reference it inside a derived instead?
+https://svelte.dev/e/state_referenced_locally
+20:   let allMovies = $state(data.movies || []);
+21:   let isLoadingMore = $state(false);
+22:   let hasMore = $state((data.page || 1) < (data.totalPages || 0));
+^
+23:
+24:   let filteredMovies = $derived.by(() => {
+7:09:22 AM [vite-plugin-svelte] src/routes/(app)/movies/+page.svelte:22:42 This reference only captures the initial value of `data`. Did you mean to reference it inside a derived instead?
+https://svelte.dev/e/state_referenced_locally
+20:   let allMovies = $state(data.movies || []);
+21:   let isLoadingMore = $state(false);
+22:   let hasMore = $state((data.page || 1) < (data.totalPages || 0));
+^
+23:
+24:   let filteredMovies = $derived.by(() => {
+7:09:22 AM [vite-plugin-svelte] src/routes/(app)/profile/+page.svelte:12:38 This reference only captures the initial value of `stats`. Did you mean to reference it inside a closure instead?
+https://svelte.dev/e/state_referenced_locally
+10:   const tabs = [
+11:     { id: 'overview', label: 'Overview' },
+12:     { id: 'history', label: `History (${stats.historyCount})` },
+^
+13:     { id: 'watchlist', label: `Watchlist (${stats.watchlistCount})` },
+14:   ];
+7:09:22 AM [vite-plugin-svelte] src/routes/(app)/profile/+page.svelte:13:42 This reference only captures the initial value of `stats`. Did you mean to reference it inside a closure instead?
+https://svelte.dev/e/state_referenced_locally
+11:     { id: 'overview', label: 'Overview' },
+12:     { id: 'history', label: `History (${stats.historyCount})` },
+13:     { id: 'watchlist', label: `Watchlist (${stats.watchlistCount})` },
+^
+14:   ];
+15:
+7:09:22 AM [vite-plugin-svelte] src/routes/(app)/tv/[id]/+page.svelte:217:4 Buttons and links should either contain text or have an `aria-label`, `aria-labelledby` or `title` attribute
+https://svelte.dev/e/a11y_consider_explicit_label
+215:           <div class="detail-poster-placeholder"></div>
+216:         {/if}
+217:         <button class="save-btn" class:saved={isSaved} onclick={toggleWatchlist}>
+^
+218:           <svg viewBox="0 0 24 24" fill={isSaved ? 'currentColor' : 'none'} stroke="currentColor" stroke-width="2">
+219:             <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/>
+7:09:22 AM [vite-plugin-svelte] src/routes/(app)/tv/[id]/+page.svelte:343:7 Buttons and links should either contain text or have an `aria-label`, `aria-labelledby` or `title` attribute
+https://svelte.dev/e/a11y_consider_explicit_label
+341:               {/if}
+342:
+343:               <button
+^
+344:                 class="episode-play-overlay"
+345:                 disabled={isUnaired}
+7:09:22 AM [vite-plugin-svelte] src/lib/components/ScrollRow.svelte:60:0 `<div>` with a keydown handler must have an ARIA role
+https://svelte.dev/e/a11y_no_static_element_interactions
+58: </script>
+59:
+60: <div class="scroll-row" tabindex="-1" onkeydown={handleKeydown}>
+^
+61:   <div
+62:     bind:this={scrollContainer}
+7:09:26 AM [vite-plugin-svelte] src/lib/components/home/Hero.svelte:254:1 noninteractive element cannot have nonnegative tabIndex value
+https://svelte.dev/e/a11y_no_noninteractive_tabindex
+252:
+253: {#if hasSlides && activeMovie}
+254:   <section
+^
+255:     class="relative min-h-[60vh] overflow-hidden rounded-2xl border-0 p-0 outline-none md:min-h-[65vh] lg:min-h-[70vh]"
+256:     aria-label="Featured content spotlight"
+7:09:26 AM [vite-plugin-svelte] src/lib/components/home/Hero.svelte:254:1 Non-interactive element `<section>` should not be assigned mouse or keyboard event listeners
+https://svelte.dev/e/a11y_no_noninteractive_element_interactions
+252:
+253: {#if hasSlides && activeMovie}
+254:   <section
+^
+255:     class="relative min-h-[60vh] overflow-hidden rounded-2xl border-0 p-0 outline-none md:min-h-[65vh] lg:min-h-[70vh]"
+256:     aria-label="Featured content spotlight"
+7:09:26 AM [vite-plugin-svelte] src/lib/components/mobile/BottomNav.svelte:17:24 Redundant role 'navigation'
+https://svelte.dev/e/a11y_no_redundant_roles
+15:   }
+16: </script>
+17: <nav class="bottom-nav" role="navigation" aria-label="Main navigation">
+^
+18:   {#each navItems as item}
+19:     {@const active = isActive(item.href)}
+7:09:26 AM [vite-plugin-svelte] src/lib/components/mobile/MobileHeader.svelte:24:56 Redundant role 'banner'
+https://svelte.dev/e/a11y_no_redundant_roles
+22:   }
+23: </script>
+24: <header class="mobile-header" class:hidden={!isVisible} role="banner">
+^
+25:   <div class="mobile-header-inner">
+26:     <button type="button" class="mobile-header-btn" onclick={() => menuOpen.set(true)} aria-label="Menu">
+7:09:26 AM [vite-plugin-svelte] src/lib/components/SearchOverlay.svelte:67:1 Visible, non-interactive element `<div>` with a click event must be accompanied by a keyboard event handler. Consider whether an interactive element such as `<button type="button">` or `<a>` might be more appropriate
+https://svelte.dev/e/a11y_click_events_have_key_events
+65:
+66: {#if $searchOpen}
+67:   <div class="search-backdrop" onclick={close} transition:fade={{ duration: 150 }}></div>
+^
+68:
+69:   <div class="search-panel" transition:fly={{ y: -20, duration: 250 }}>
+7:09:26 AM [vite-plugin-svelte] src/lib/components/SearchOverlay.svelte:67:1 `<div>` with a click handler must have an ARIA role
+https://svelte.dev/e/a11y_no_static_element_interactions
+65:
+66: {#if $searchOpen}
+67:   <div class="search-backdrop" onclick={close} transition:fade={{ duration: 150 }}></div>
+^
+68:
+69:   <div class="search-panel" transition:fly={{ y: -20, duration: 250 }}>
+7:09:26 AM [vite-plugin-svelte] src/lib/components/SearchOverlay.svelte:10:5 `inputEl` is updated, but is not declared with `$state(...)`. Changing its value will not correctly trigger updates
+https://svelte.dev/e/non_reactive_update
+8:   let isLoading = $state(false);
+9:   let debounceTimer: ReturnType<typeof setTimeout> | undefined;
+10:   let inputEl: HTMLInputElement | undefined;
+^
+11:
+12:   async function search(q: string) {
+7:09:26 AM [vite-plugin-svelte] src/lib/components/DiscoveryEngine.svelte:58:10 Self-closing HTML tags for non-void elements are ambiguous ΓÇö use `<div ...></div>` rather than `<div ... />`
+https://svelte.dev/e/element_invalid_self_closing_tag
+56:       <div class="loading-skeleton">
+57:         {#each Array(6) as _}
+58:           <div class="skeleton-card" />
+^
+59:         {/each}
+60:       </div>
+7:09:28 AM [vite-plugin-svelte] src/lib/components/ui/tabs/tabs-trigger.svelte:9:24 This reference only captures the initial value of `restProps`. Did you mean to reference it inside a closure instead?
+https://svelte.dev/e/state_referenced_locally
+7:
+8:   let { value, class: className = undefined, ...restProps } = $props();
+9:   const forwardedProps = restProps as Omit<TriggerProps, 'value' | 'class'>;
+^
+10: </script>
+11:
+7:09:28 AM [vite-plugin-svelte] src/lib/components/ui/tabs/tabs-content.svelte:9:24 This reference only captures the initial value of `restProps`. Did you mean to reference it inside a closure instead?
+https://svelte.dev/e/state_referenced_locally
+7:
+8:   let { value, class: className = undefined, ...restProps } = $props();
+9:   const forwardedProps = restProps as Omit<ContentProps, 'value' | 'class'>;
+^
+10: </script>
+11:
+7:09:28 AM [vite-plugin-svelte] src/lib/components/media/MediaDetailsPage.svelte:885:5 Buttons and links should either contain text or have an `aria-label`, `aria-labelledby` or `title` attribute
+https://svelte.dev/e/a11y_consider_explicit_label
+883:             <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+884:           </button>
+885:           <button
+^
+886:             class="rounded-full bg-black/60 p-2 text-white hover:bg-black/80 transition"
+887:             onclick={() => closePlayer('user')}
+7:09:28 AM [vite-plugin-svelte] src/lib/components/media/MediaDetailsPage.svelte:907:7 Buttons and links should either contain text or have an `aria-label`, `aria-labelledby` or `title` attribute
+https://svelte.dev/e/a11y_consider_explicit_label
+905:             <div class="mb-4 flex items-center justify-between">
+906:               <h3 class="text-lg font-bold text-white">Keyboard Shortcuts</h3>
+907:               <button class="text-white/50 hover:text-white" onclick={() => (showShortcutsHelp = false)}>
+^
+908:                 <svg class="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+909:               </button>
+7:09:28 AM [vite-plugin-svelte] src/lib/components/media/ProviderSelector.svelte:171:1 Visible, non-interactive element `<div>` with a click event must be accompanied by a keyboard event handler. Consider whether an interactive element such as `<button type="button">` or `<a>` might be more appropriate
+https://svelte.dev/e/a11y_click_events_have_key_events
+169: {#if open}
+170:   <!-- Backdrop -->
+171:   <div
+^
+172:     class="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm"
+173:     role="button"
+7:09:28 AM [vite-plugin-svelte] src/lib/components/media/ProviderSelector.svelte:206:4 Buttons and links should either contain text or have an `aria-label`, `aria-labelledby` or `title` attribute
+https://svelte.dev/e/a11y_consider_explicit_label
+204:           </button>
+205:         {/if}
+206:         <button
+^
+207:           class="rounded-full p-1 text-zinc-400 hover:bg-zinc-800 hover:text-white transition"
+208:           onclick={close}
+7:09:28 AM [vite-plugin-svelte] src/lib/components/media/ProviderSelector.svelte:222:5 Buttons and links should either contain text or have an `aria-label`, `aria-labelledby` or `title` attribute
+https://svelte.dev/e/a11y_consider_explicit_label
+220:         <div class="flex items-center justify-between rounded-lg bg-zinc-800/50 px-4 py-3">
+221:           <span class="text-sm text-zinc-300">Auto-select best provider</span>
+222:           <button
+^
+223:             class="relative h-6 w-11 rounded-full transition {autoSelect ? 'bg-indigo-600' : 'bg-zinc-600'}"
+224:             onclick={() => providerSettings.setAutoSelect(!autoSelect)}
+7:09:28 AM [vite-plugin-svelte] src/lib/components/media/ProviderSelector.svelte:226:6 Self-closing HTML tags for non-void elements are ambiguous ΓÇö use `<div ...></div>` rather than `<div ... />`
+https://svelte.dev/e/element_invalid_self_closing_tag
+224:             onclick={() => providerSettings.setAutoSelect(!autoSelect)}
+225:           >
+226:             <div class="absolute top-0.5 left-0.5 h-5 w-5 rounded-full bg-white shadow transition {autoSelect ? 'translate-x-5' : 'translate-x-0'}" />
+^
+227:           </button>
+228:         </div>
+7:09:28 AM [vite-plugin-svelte] src/lib/components/media/ProviderSelector.svelte:241:8 Buttons and links should either contain text or have an `aria-label`, `aria-labelledby` or `title` attribute
+https://svelte.dev/e/a11y_consider_explicit_label
+239:             >
+240:               <div class="flex flex-col gap-0.5">
+241:                 <button class="text-zinc-500 hover:text-white disabled:opacity-20" onclick={() => moveProvider(i, -1)} disabled={i === 0}>
+^
+242:                   <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7" /></svg>
+243:                 </button>
+7:09:28 AM [vite-plugin-svelte] src/lib/components/media/ProviderSelector.svelte:244:8 Buttons and links should either contain text or have an `aria-label`, `aria-labelledby` or `title` attribute
+https://svelte.dev/e/a11y_consider_explicit_label
+242:                   <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7" /></svg>
+243:                 </button>
+244:                 <button class="text-zinc-500 hover:text-white disabled:opacity-20" onclick={() => moveProvider(i, 1)} disabled={i === providerSettings.settings.providerOrder.length - 1}>
+^
+245:                   <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>
+246:                 </button>
+7:09:28 AM [vite-plugin-svelte] src/lib/components/media/ProviderSelector.svelte:280:4 Buttons and links should either contain text or have an `aria-label`, `aria-labelledby` or `title` attribute
+https://svelte.dev/e/a11y_consider_explicit_label
+278:       <div class="mb-3 flex items-center justify-between rounded-lg bg-zinc-800/30 px-3 py-2">
+279:         <span class="text-xs text-zinc-400">Auto-select</span>
+280:         <button
+^
+281:           class="relative h-5 w-9 rounded-full transition {autoSelect ? 'bg-indigo-600' : 'bg-zinc-600'}"
+282:           onclick={() => providerSettings.setAutoSelect(!autoSelect)}
+7:09:28 AM [vite-plugin-svelte] src/lib/components/media/ProviderSelector.svelte:284:5 Self-closing HTML tags for non-void elements are ambiguous ΓÇö use `<div ...></div>` rather than `<div ... />`
+https://svelte.dev/e/element_invalid_self_closing_tag
+282:           onclick={() => providerSettings.setAutoSelect(!autoSelect)}
+283:         >
+284:           <div class="absolute top-0.5 left-0.5 h-4 w-4 rounded-full bg-white shadow transition {autoSelect ? 'translate-x-4' : 'translate-x-0'}" />
+^
+285:         </button>
+286:       </div>
+7:09:28 AM [vite-plugin-svelte] src/lib/components/media/ProviderSelector.svelte:341:9 `<button>` cannot be a descendant of `<button>`. When rendering this component on the server, the resulting HTML will be modified by the browser (by moving, removing, or inserting elements), likely resulting in a `hydration_mismatch` warning
+https://svelte.dev/e/node_invalid_placement_ssr
+339:                   <span class="text-green-500">Γ£à</span>
+340:                 {:else if autoScanResults[provider.id] === false}
+341:                   <button
+^
+342:                     class="rounded p-0.5 text-red-400 hover:bg-red-500/20 hover:text-red-300 transition"
+343:                     onclick={(e) => { e.stopPropagation(); reportBroken(provider.id); }}
+7:09:28 AM [vite-plugin-svelte] src/lib/components/player/InlinePlayer.svelte:334:0 Visible, non-interactive element `<div>` with a click event must be accompanied by a keyboard event handler. Consider whether an interactive element such as `<button type="button">` or `<a>` might be more appropriate
+https://svelte.dev/e/a11y_click_events_have_key_events
+332: </script>
+333:
+334: <div
+^
+335:   bind:this={wrapperRef}
+336:   class={compact
+7:09:28 AM [vite-plugin-svelte] src/lib/components/player/InlinePlayer.svelte:334:0 `<div>` with a click handler must have an ARIA role
+https://svelte.dev/e/a11y_no_static_element_interactions
+332: </script>
+333:
+334: <div
+^
+335:   bind:this={wrapperRef}
+336:   class={compact
+7:09:28 AM [vite-plugin-svelte] src/lib/components/player/InlinePlayer.svelte:351:2 Visible, non-interactive element `<div>` with a click event must be accompanied by a keyboard event handler. Consider whether an interactive element such as `<button type="button">` or `<a>` might be more appropriate
+https://svelte.dev/e/a11y_click_events_have_key_events
+349:   >
+350:     <!-- Top controls bar -->
+351:     <div
+^
+352:       class="absolute top-0 left-0 right-0 z-20 flex items-center justify-between px-3 pt-3 pb-8 bg-gradient-to-b from-black/60 to-transparent transition-opacity duration-300"
+353:       class:opacity-0={isFakeFs && !controlsVisible}
+7:09:28 AM [vite-plugin-svelte] src/lib/components/player/InlinePlayer.svelte:351:2 `<div>` with a click handler must have an ARIA role
+https://svelte.dev/e/a11y_no_static_element_interactions
+349:   >
+350:     <!-- Top controls bar -->
+351:     <div
+^
+352:       class="absolute top-0 left-0 right-0 z-20 flex items-center justify-between px-3 pt-3 pb-8 bg-gradient-to-b from-black/60 to-transparent transition-opacity duration-300"
+353:       class:opacity-0={isFakeFs && !controlsVisible}
+7:09:28 AM [vite-plugin-svelte] src/lib/components/player/InlinePlayer.svelte:410:3 Visible, non-interactive element `<div>` with a click event must be accompanied by a keyboard event handler. Consider whether an interactive element such as `<button type="button">` or `<a>` might be more appropriate
+https://svelte.dev/e/a11y_click_events_have_key_events
+408:     <!-- Tap overlay to show controls when hidden in fake FS -->
+409:     {#if isFakeFs && !controlsVisible}
+410:       <div
+^
+411:         class="absolute inset-0 z-10"
+412:         onclick={(e) => { e.stopPropagation(); showControls(); }}
+"SQL" is imported from external module "drizzle-orm" but never used in "src/lib/server/services/search.service.ts".
+"query" and "where" are imported from external module "firebase/firestore" but never used in "src/lib/state/stores/authStore.svelte.ts".
+Γ£ô 4932 modules transformed.
+rendering chunks...
+`config.kit.csrf.checkOrigin` has been deprecated in favour of `csrf.trustedOrigins`. It will be removed in a future version
+The following Vite config options will be overridden by SvelteKit:
+- build.cssCodeSplit
+{"level":30,"time":1785740985285,"pid":150,"hostname":"100.64.43.247","msg":"Database initialization completed successfully"}
+`config.kit.csrf.checkOrigin` has been deprecated in favour of `csrf.trustedOrigins`. It will be removed in a future version
+The following Vite config options will be overridden by SvelteKit:
+- build.cssCodeSplit
+vite v7.3.6 building client environment for production...
+transforming...
+7:09:45 AM [vite-plugin-svelte] src/routes/+layout.svelte:19:0 Using `<slot>` to render parent content is deprecated. Use `{@render ...}` tags instead
+https://svelte.dev/e/slot_element_deprecated
+17: </script>
+18:
+19: <slot />
+^
+20:
+7:09:45 AM [vite-plugin-svelte] src/routes/(app)/search/+page.svelte:13:20 This reference only captures the initial value of `ssrQuery`. Did you mean to reference it inside a closure instead?
+https://svelte.dev/e/state_referenced_locally
+11:   const ssrItems = $derived(data.ssrItems || []);
+12:
+13:   let query = $state(ssrQuery);
+^
+14:   let results = $state<any[]>(ssrItems);
+15:   let isLoading = $state(false);
+7:09:45 AM [vite-plugin-svelte] src/routes/(app)/search/+page.svelte:14:29 This reference only captures the initial value of `ssrItems`. Did you mean to reference it inside a closure instead?
+https://svelte.dev/e/state_referenced_locally
+12:
+13:   let query = $state(ssrQuery);
+14:   let results = $state<any[]>(ssrItems);
+^
+15:   let isLoading = $state(false);
+16:   let hasSearched = $state(ssrQuery.length >= 2);
+7:09:45 AM [vite-plugin-svelte] src/routes/(app)/search/+page.svelte:16:26 This reference only captures the initial value of `ssrQuery`. Did you mean to reference it inside a derived instead?
+https://svelte.dev/e/state_referenced_locally
+14:   let results = $state<any[]>(ssrItems);
+15:   let isLoading = $state(false);
+16:   let hasSearched = $state(ssrQuery.length >= 2);
+^
+17:   let error = $state('');
+18:   let searchTimeout: ReturnType<typeof setTimeout>;
+7:09:45 AM [vite-plugin-svelte] src/routes/(app)/search/+page.svelte:39:19 This reference only captures the initial value of `hasSearched`. Did you mean to reference it inside a closure instead?
+https://svelte.dev/e/state_referenced_locally
+37:     }
+38:     const urlQuery = new URL(window.location.href).searchParams.get('q');
+39:     if (urlQuery && !hasSearched) {
+^
+40:       query = urlQuery;
+41:       performSearch(urlQuery);
+7:09:45 AM [vite-plugin-svelte] src/routes/(app)/search/+page.svelte:157:4 Avoid using autofocus
+https://svelte.dev/e/a11y_autofocus
+155:         onkeydown={handleKeydown}
+156:         placeholder="Search movies and TV shows..."
+157:         autofocus
+^
+158:         class="w-full rounded-2xl border border-zinc-700/50 bg-zinc-900/80 py-4 pl-12 pr-12 text-lg text-white placeholder-zinc-500 transition-all focus:border-indigo-500/50 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+159:       />
+Found 1 warning while optimizing generated CSS:
+Γöé   padding-right: var(--safe-area-right);
+Γöé }
+Γöé @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+Γöå        ^-- @import rules must precede all rules aside from @charset and @layer statements
+Γöå
+Γöé :root {
+Γöé   --radius: 0.75rem;
+7:09:47 AM [vite-plugin-svelte] src/routes/(app)/+layout.svelte:119:1 Visible, non-interactive element `<div>` with a click event must be accompanied by a keyboard event handler. Consider whether an interactive element such as `<button type="button">` or `<a>` might be more appropriate
+https://svelte.dev/e/a11y_click_events_have_key_events
+117:
+118: {#if $menuOpen}
+119:   <div class="menu-backdrop" onclick={() => menuOpen.set(false)} role="button" tabindex="-1" aria-label="Close menu" transition:fade={{ duration: 150 }}></div>
+^
+120:
+121:   <aside class="menu-drawer" transition:fly={{ x: -280, duration: 250 }}>
+7:09:47 AM [vite-plugin-svelte] src/routes/(app)/admin/features/+page.svelte:66:12 Self-closing HTML tags for non-void elements are ambiguous ΓÇö use `<span ...></span>` rather than `<span ... />`
+https://svelte.dev/e/element_invalid_self_closing_tag
+64:             aria-label="Toggle {key}"
+65:           >
+66:             <span class="toggle-knob" />
+^
+67:           </button>
+68:         </div>
+7:09:47 AM [vite-plugin-svelte] src/routes/(app)/afrikaans/+page.svelte:11:21 This reference only captures the initial value of `data`. Did you mean to reference it inside a derived instead?
+https://svelte.dev/e/state_referenced_locally
+9:   let { data }: { data: PageData } = $props();
+10:
+11:   let movies = $state(data.movies || []);
+^
+12:   let currentPage = $state(data.page || 1);
+13:   let hasMore = $state(data.hasMore ?? false);
+7:09:47 AM [vite-plugin-svelte] src/routes/(app)/afrikaans/+page.svelte:12:26 This reference only captures the initial value of `data`. Did you mean to reference it inside a derived instead?
+https://svelte.dev/e/state_referenced_locally
+10:
+11:   let movies = $state(data.movies || []);
+12:   let currentPage = $state(data.page || 1);
+^
+13:   let hasMore = $state(data.hasMore ?? false);
+14:   let loadingMore = $state(false);
+7:09:47 AM [vite-plugin-svelte] src/routes/(app)/afrikaans/+page.svelte:13:22 This reference only captures the initial value of `data`. Did you mean to reference it inside a derived instead?
+https://svelte.dev/e/state_referenced_locally
+11:   let movies = $state(data.movies || []);
+12:   let currentPage = $state(data.page || 1);
+13:   let hasMore = $state(data.hasMore ?? false);
+^
+14:   let loadingMore = $state(false);
+15:   let searchQuery = $state('');
+7:09:47 AM [vite-plugin-svelte] src/routes/(app)/genre/movies/+page.svelte:24:38 This reference only captures the initial value of `allMovies`. Did you mean to reference it inside a closure instead?
+https://svelte.dev/e/state_referenced_locally
+22:
+23:   let currentPage = $state(1);
+24:   let movies = $state<LibraryMovie[]>(allMovies);
+^
+25:   let isLoadingMore = $state(false);
+26:   let loadError = $state('');
+7:09:47 AM [vite-plugin-svelte] src/routes/(app)/movies/+page.svelte:18:30 This reference only captures the initial value of `data`. Did you mean to reference it inside a derived instead?
+https://svelte.dev/e/state_referenced_locally
+16:   ];
+17:
+18:   let currentCategory = $state(data.category || 'popular');
+^
+19:   let currentPage = $state(data.page || 1);
+20:   let allMovies = $state(data.movies || []);
+7:09:47 AM [vite-plugin-svelte] src/routes/(app)/movies/+page.svelte:19:26 This reference only captures the initial value of `data`. Did you mean to reference it inside a derived instead?
+https://svelte.dev/e/state_referenced_locally
+17:
+18:   let currentCategory = $state(data.category || 'popular');
+19:   let currentPage = $state(data.page || 1);
+^
+20:   let allMovies = $state(data.movies || []);
+21:   let isLoadingMore = $state(false);
+7:09:47 AM [vite-plugin-svelte] src/routes/(app)/movies/+page.svelte:20:24 This reference only captures the initial value of `data`. Did you mean to reference it inside a derived instead?
+https://svelte.dev/e/state_referenced_locally
+18:   let currentCategory = $state(data.category || 'popular');
+19:   let currentPage = $state(data.page || 1);
+20:   let allMovies = $state(data.movies || []);
+^
+21:   let isLoadingMore = $state(false);
+22:   let hasMore = $state((data.page || 1) < (data.totalPages || 0));
+7:09:47 AM [vite-plugin-svelte] src/routes/(app)/movies/+page.svelte:22:23 This reference only captures the initial value of `data`. Did you mean to reference it inside a derived instead?
+https://svelte.dev/e/state_referenced_locally
+20:   let allMovies = $state(data.movies || []);
+21:   let isLoadingMore = $state(false);
+22:   let hasMore = $state((data.page || 1) < (data.totalPages || 0));
+^
+23:
+24:   let filteredMovies = $derived.by(() => {
+7:09:47 AM [vite-plugin-svelte] src/routes/(app)/movies/+page.svelte:22:42 This reference only captures the initial value of `data`. Did you mean to reference it inside a derived instead?
+https://svelte.dev/e/state_referenced_locally
+20:   let allMovies = $state(data.movies || []);
+21:   let isLoadingMore = $state(false);
+22:   let hasMore = $state((data.page || 1) < (data.totalPages || 0));
+^
+23:
+24:   let filteredMovies = $derived.by(() => {
+7:09:47 AM [vite-plugin-svelte] src/routes/(app)/profile/+page.svelte:12:38 This reference only captures the initial value of `stats`. Did you mean to reference it inside a closure instead?
+https://svelte.dev/e/state_referenced_locally
+10:   const tabs = [
+11:     { id: 'overview', label: 'Overview' },
+12:     { id: 'history', label: `History (${stats.historyCount})` },
+^
+13:     { id: 'watchlist', label: `Watchlist (${stats.watchlistCount})` },
+14:   ];
+7:09:47 AM [vite-plugin-svelte] src/routes/(app)/profile/+page.svelte:13:42 This reference only captures the initial value of `stats`. Did you mean to reference it inside a closure instead?
+https://svelte.dev/e/state_referenced_locally
+11:     { id: 'overview', label: 'Overview' },
+12:     { id: 'history', label: `History (${stats.historyCount})` },
+13:     { id: 'watchlist', label: `Watchlist (${stats.watchlistCount})` },
+^
+14:   ];
+15:
+7:09:47 AM [vite-plugin-svelte] src/routes/(app)/explore/[slug]/+page.svelte:63:40 This reference only captures the initial value of `tmdbPopularMovies`. Did you mean to reference it inside a closure instead?
+https://svelte.dev/e/state_referenced_locally
+61:   const numberFormatter = new Intl.NumberFormat('en-US');
+62:
+63:   let allMovies = $state<LibraryMovie[]>(tmdbPopularMovies as LibraryMovie[]);
+^
+64:   let currentPage = $state(1);
+65:   let isLoadingMore = $state(false);
+7:09:47 AM [vite-plugin-svelte] src/routes/(app)/explore/[slug]/+page.svelte:593:1 Unused CSS selector ".trending-divider"
+https://svelte.dev/e/css_unused_selector
+591:   }
+592:
+593:   .trending-divider {
+^
+594:     margin: 2.5rem 5% 0;
+595:     width: auto;
+7:09:47 AM [vite-plugin-svelte] src/routes/(app)/tv/[id]/+page.svelte:217:4 Buttons and links should either contain text or have an `aria-label`, `aria-labelledby` or `title` attribute
+https://svelte.dev/e/a11y_consider_explicit_label
+215:           <div class="detail-poster-placeholder"></div>
+216:         {/if}
+217:         <button class="save-btn" class:saved={isSaved} onclick={toggleWatchlist}>
+^
+218:           <svg viewBox="0 0 24 24" fill={isSaved ? 'currentColor' : 'none'} stroke="currentColor" stroke-width="2">
+219:             <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/>
+7:09:47 AM [vite-plugin-svelte] src/routes/(app)/tv/[id]/+page.svelte:343:7 Buttons and links should either contain text or have an `aria-label`, `aria-labelledby` or `title` attribute
+https://svelte.dev/e/a11y_consider_explicit_label
+341:               {/if}
+342:
+343:               <button
+^
+344:                 class="episode-play-overlay"
+345:                 disabled={isUnaired}
+7:09:47 AM [vite-plugin-svelte] src/lib/components/ScrollRow.svelte:60:0 `<div>` with a keydown handler must have an ARIA role
+https://svelte.dev/e/a11y_no_static_element_interactions
+58: </script>
+59:
+60: <div class="scroll-row" tabindex="-1" onkeydown={handleKeydown}>
+^
+61:   <div
+62:     bind:this={scrollContainer}
+7:09:52 AM [vite-plugin-svelte] src/lib/components/mobile/BottomNav.svelte:17:24 Redundant role 'navigation'
+https://svelte.dev/e/a11y_no_redundant_roles
+15:   }
+16: </script>
+17: <nav class="bottom-nav" role="navigation" aria-label="Main navigation">
+^
+18:   {#each navItems as item}
+19:     {@const active = isActive(item.href)}
+7:09:52 AM [vite-plugin-svelte] src/lib/components/mobile/MobileHeader.svelte:24:56 Redundant role 'banner'
+https://svelte.dev/e/a11y_no_redundant_roles
+22:   }
+23: </script>
+24: <header class="mobile-header" class:hidden={!isVisible} role="banner">
+^
+25:   <div class="mobile-header-inner">
+26:     <button type="button" class="mobile-header-btn" onclick={() => menuOpen.set(true)} aria-label="Menu">
+7:09:52 AM [vite-plugin-svelte] src/lib/components/SearchOverlay.svelte:67:1 Visible, non-interactive element `<div>` with a click event must be accompanied by a keyboard event handler. Consider whether an interactive element such as `<button type="button">` or `<a>` might be more appropriate
+https://svelte.dev/e/a11y_click_events_have_key_events
+65:
+66: {#if $searchOpen}
+67:   <div class="search-backdrop" onclick={close} transition:fade={{ duration: 150 }}></div>
+^
+68:
+69:   <div class="search-panel" transition:fly={{ y: -20, duration: 250 }}>
+7:09:52 AM [vite-plugin-svelte] src/lib/components/SearchOverlay.svelte:67:1 `<div>` with a click handler must have an ARIA role
+https://svelte.dev/e/a11y_no_static_element_interactions
+65:
+66: {#if $searchOpen}
+67:   <div class="search-backdrop" onclick={close} transition:fade={{ duration: 150 }}></div>
+^
+68:
+69:   <div class="search-panel" transition:fly={{ y: -20, duration: 250 }}>
+7:09:52 AM [vite-plugin-svelte] src/lib/components/SearchOverlay.svelte:10:5 `inputEl` is updated, but is not declared with `$state(...)`. Changing its value will not correctly trigger updates
+https://svelte.dev/e/non_reactive_update
+8:   let isLoading = $state(false);
+9:   let debounceTimer: ReturnType<typeof setTimeout> | undefined;
+10:   let inputEl: HTMLInputElement | undefined;
+^
+11:
+12:   async function search(q: string) {
+7:09:52 AM [vite-plugin-svelte] src/lib/components/home/Hero.svelte:254:1 noninteractive element cannot have nonnegative tabIndex value
+https://svelte.dev/e/a11y_no_noninteractive_tabindex
+252:
+253: {#if hasSlides && activeMovie}
+254:   <section
+^
+255:     class="relative min-h-[60vh] overflow-hidden rounded-2xl border-0 p-0 outline-none md:min-h-[65vh] lg:min-h-[70vh]"
+256:     aria-label="Featured content spotlight"
+7:09:52 AM [vite-plugin-svelte] src/lib/components/home/Hero.svelte:254:1 Non-interactive element `<section>` should not be assigned mouse or keyboard event listeners
+https://svelte.dev/e/a11y_no_noninteractive_element_interactions
+252:
+253: {#if hasSlides && activeMovie}
+254:   <section
+^
+255:     class="relative min-h-[60vh] overflow-hidden rounded-2xl border-0 p-0 outline-none md:min-h-[65vh] lg:min-h-[70vh]"
+256:     aria-label="Featured content spotlight"
+7:09:52 AM [vite-plugin-svelte] src/lib/components/DiscoveryEngine.svelte:58:10 Self-closing HTML tags for non-void elements are ambiguous ΓÇö use `<div ...></div>` rather than `<div ... />`
+https://svelte.dev/e/element_invalid_self_closing_tag
+56:       <div class="loading-skeleton">
+57:         {#each Array(6) as _}
+58:           <div class="skeleton-card" />
+^
+59:         {/each}
+60:       </div>
+7:09:54 AM [vite-plugin-svelte] src/lib/components/media/MediaDetailsPage.svelte:885:5 Buttons and links should either contain text or have an `aria-label`, `aria-labelledby` or `title` attribute
+https://svelte.dev/e/a11y_consider_explicit_label
+883:             <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+884:           </button>
+885:           <button
+^
+886:             class="rounded-full bg-black/60 p-2 text-white hover:bg-black/80 transition"
+887:             onclick={() => closePlayer('user')}
+7:09:54 AM [vite-plugin-svelte] src/lib/components/media/MediaDetailsPage.svelte:907:7 Buttons and links should either contain text or have an `aria-label`, `aria-labelledby` or `title` attribute
+https://svelte.dev/e/a11y_consider_explicit_label
+905:             <div class="mb-4 flex items-center justify-between">
+906:               <h3 class="text-lg font-bold text-white">Keyboard Shortcuts</h3>
+907:               <button class="text-white/50 hover:text-white" onclick={() => (showShortcutsHelp = false)}>
+^
+908:                 <svg class="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+909:               </button>
+7:09:55 AM [vite-plugin-svelte] src/lib/components/ui/tabs/tabs-trigger.svelte:9:24 This reference only captures the initial value of `restProps`. Did you mean to reference it inside a closure instead?
+https://svelte.dev/e/state_referenced_locally
+7:
+8:   let { value, class: className = undefined, ...restProps } = $props();
+9:   const forwardedProps = restProps as Omit<TriggerProps, 'value' | 'class'>;
+^
+10: </script>
+11:
+7:09:55 AM [vite-plugin-svelte] src/lib/components/ui/tabs/tabs-content.svelte:9:24 This reference only captures the initial value of `restProps`. Did you mean to reference it inside a closure instead?
+https://svelte.dev/e/state_referenced_locally
+7:
+8:   let { value, class: className = undefined, ...restProps } = $props();
+9:   const forwardedProps = restProps as Omit<ContentProps, 'value' | 'class'>;
+^
+10: </script>
+11:
+7:09:55 AM [vite-plugin-svelte] src/lib/components/media/ProviderSelector.svelte:171:1 Visible, non-interactive element `<div>` with a click event must be accompanied by a keyboard event handler. Consider whether an interactive element such as `<button type="button">` or `<a>` might be more appropriate
+https://svelte.dev/e/a11y_click_events_have_key_events
+169: {#if open}
+170:   <!-- Backdrop -->
+171:   <div
+^
+172:     class="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm"
+173:     role="button"
+7:09:55 AM [vite-plugin-svelte] src/lib/components/media/ProviderSelector.svelte:206:4 Buttons and links should either contain text or have an `aria-label`, `aria-labelledby` or `title` attribute
+https://svelte.dev/e/a11y_consider_explicit_label
+204:           </button>
+205:         {/if}
+206:         <button
+^
+207:           class="rounded-full p-1 text-zinc-400 hover:bg-zinc-800 hover:text-white transition"
+208:           onclick={close}
+7:09:55 AM [vite-plugin-svelte] src/lib/components/media/ProviderSelector.svelte:222:5 Buttons and links should either contain text or have an `aria-label`, `aria-labelledby` or `title` attribute
+https://svelte.dev/e/a11y_consider_explicit_label
+220:         <div class="flex items-center justify-between rounded-lg bg-zinc-800/50 px-4 py-3">
+221:           <span class="text-sm text-zinc-300">Auto-select best provider</span>
+222:           <button
+^
+223:             class="relative h-6 w-11 rounded-full transition {autoSelect ? 'bg-indigo-600' : 'bg-zinc-600'}"
+224:             onclick={() => providerSettings.setAutoSelect(!autoSelect)}
+7:09:55 AM [vite-plugin-svelte] src/lib/components/media/ProviderSelector.svelte:226:6 Self-closing HTML tags for non-void elements are ambiguous ΓÇö use `<div ...></div>` rather than `<div ... />`
+https://svelte.dev/e/element_invalid_self_closing_tag
+224:             onclick={() => providerSettings.setAutoSelect(!autoSelect)}
+225:           >
+226:             <div class="absolute top-0.5 left-0.5 h-5 w-5 rounded-full bg-white shadow transition {autoSelect ? 'translate-x-5' : 'translate-x-0'}" />
+^
+227:           </button>
+228:         </div>
+7:09:55 AM [vite-plugin-svelte] src/lib/components/media/ProviderSelector.svelte:241:8 Buttons and links should either contain text or have an `aria-label`, `aria-labelledby` or `title` attribute
+https://svelte.dev/e/a11y_consider_explicit_label
+239:             >
+240:               <div class="flex flex-col gap-0.5">
+241:                 <button class="text-zinc-500 hover:text-white disabled:opacity-20" onclick={() => moveProvider(i, -1)} disabled={i === 0}>
+^
+242:                   <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7" /></svg>
+243:                 </button>
+7:09:55 AM [vite-plugin-svelte] src/lib/components/media/ProviderSelector.svelte:244:8 Buttons and links should either contain text or have an `aria-label`, `aria-labelledby` or `title` attribute
+https://svelte.dev/e/a11y_consider_explicit_label
+242:                   <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7" /></svg>
+243:                 </button>
+244:                 <button class="text-zinc-500 hover:text-white disabled:opacity-20" onclick={() => moveProvider(i, 1)} disabled={i === providerSettings.settings.providerOrder.length - 1}>
+^
+245:                   <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>
+246:                 </button>
+7:09:55 AM [vite-plugin-svelte] src/lib/components/media/ProviderSelector.svelte:280:4 Buttons and links should either contain text or have an `aria-label`, `aria-labelledby` or `title` attribute
+https://svelte.dev/e/a11y_consider_explicit_label
+278:       <div class="mb-3 flex items-center justify-between rounded-lg bg-zinc-800/30 px-3 py-2">
+279:         <span class="text-xs text-zinc-400">Auto-select</span>
+280:         <button
+^
+281:           class="relative h-5 w-9 rounded-full transition {autoSelect ? 'bg-indigo-600' : 'bg-zinc-600'}"
+282:           onclick={() => providerSettings.setAutoSelect(!autoSelect)}
+7:09:55 AM [vite-plugin-svelte] src/lib/components/media/ProviderSelector.svelte:284:5 Self-closing HTML tags for non-void elements are ambiguous ΓÇö use `<div ...></div>` rather than `<div ... />`
+https://svelte.dev/e/element_invalid_self_closing_tag
+282:           onclick={() => providerSettings.setAutoSelect(!autoSelect)}
+283:         >
+284:           <div class="absolute top-0.5 left-0.5 h-4 w-4 rounded-full bg-white shadow transition {autoSelect ? 'translate-x-4' : 'translate-x-0'}" />
+^
+285:         </button>
+286:       </div>
+7:09:55 AM [vite-plugin-svelte] src/lib/components/media/ProviderSelector.svelte:341:9 `<button>` cannot be a descendant of `<button>`. When rendering this component on the server, the resulting HTML will be modified by the browser (by moving, removing, or inserting elements), likely resulting in a `hydration_mismatch` warning
+https://svelte.dev/e/node_invalid_placement_ssr
+339:                   <span class="text-green-500">Γ£à</span>
+340:                 {:else if autoScanResults[provider.id] === false}
+341:                   <button
+^
+342:                     class="rounded p-0.5 text-red-400 hover:bg-red-500/20 hover:text-red-300 transition"
+343:                     onclick={(e) => { e.stopPropagation(); reportBroken(provider.id); }}
+7:09:55 AM [vite-plugin-svelte] src/lib/components/player/InlinePlayer.svelte:334:0 Visible, non-interactive element `<div>` with a click event must be accompanied by a keyboard event handler. Consider whether an interactive element such as `<button type="button">` or `<a>` might be more appropriate
+https://svelte.dev/e/a11y_click_events_have_key_events
+332: </script>
+333:
+334: <div
+^
+335:   bind:this={wrapperRef}
+336:   class={compact
+7:09:55 AM [vite-plugin-svelte] src/lib/components/player/InlinePlayer.svelte:334:0 `<div>` with a click handler must have an ARIA role
+https://svelte.dev/e/a11y_no_static_element_interactions
+332: </script>
+333:
+334: <div
+^
+335:   bind:this={wrapperRef}
+336:   class={compact
+7:09:55 AM [vite-plugin-svelte] src/lib/components/player/InlinePlayer.svelte:351:2 Visible, non-interactive element `<div>` with a click event must be accompanied by a keyboard event handler. Consider whether an interactive element such as `<button type="button">` or `<a>` might be more appropriate
+https://svelte.dev/e/a11y_click_events_have_key_events
+349:   >
+350:     <!-- Top controls bar -->
+351:     <div
+^
+352:       class="absolute top-0 left-0 right-0 z-20 flex items-center justify-between px-3 pt-3 pb-8 bg-gradient-to-b from-black/60 to-transparent transition-opacity duration-300"
+353:       class:opacity-0={isFakeFs && !controlsVisible}
+7:09:55 AM [vite-plugin-svelte] src/lib/components/player/InlinePlayer.svelte:351:2 `<div>` with a click handler must have an ARIA role
+https://svelte.dev/e/a11y_no_static_element_interactions
+349:   >
+350:     <!-- Top controls bar -->
+351:     <div
+^
+352:       class="absolute top-0 left-0 right-0 z-20 flex items-center justify-between px-3 pt-3 pb-8 bg-gradient-to-b from-black/60 to-transparent transition-opacity duration-300"
+353:       class:opacity-0={isFakeFs && !controlsVisible}
+7:09:55 AM [vite-plugin-svelte] src/lib/components/player/InlinePlayer.svelte:410:3 Visible, non-interactive element `<div>` with a click event must be accompanied by a keyboard event handler. Consider whether an interactive element such as `<button type="button">` or `<a>` might be more appropriate
+https://svelte.dev/e/a11y_click_events_have_key_events
+408:     <!-- Tap overlay to show controls when hidden in fake FS -->
+409:     {#if isFakeFs && !controlsVisible}
+410:       <div
+^
+411:         class="absolute inset-0 z-10"
+412:         onclick={(e) => { e.stopPropagation(); showControls(); }}
+Γ£ô 4929 modules transformed.
+rendering chunks...
+computing gzip size...
+.svelte-kit/output/client/_app/version.json                                          0.03 kB Γöé gzip:   0.05 kB
+.svelte-kit/output/client/.vite/manifest.json                                       40.69 kB Γöé gzip:   4.60 kB
+.svelte-kit/output/client/_app/immutable/assets/11.DsoLRDfi.css                      0.03 kB Γöé gzip:   0.05 kB
+.svelte-kit/output/client/_app/immutable/assets/17.BknN3za3.css                      0.14 kB Γöé gzip:   0.11 kB
+.svelte-kit/output/client/_app/immutable/assets/empty-state.Z4e_ypW6.css             0.18 kB Γöé gzip:   0.14 kB
+.svelte-kit/output/client/_app/immutable/assets/MediaCard.D6k4YTaE.css               0.22 kB Γöé gzip:   0.16 kB
+.svelte-kit/output/client/_app/immutable/assets/SortDropdown.C_-QEdX3.css            0.27 kB Γöé gzip:   0.19 kB
+.svelte-kit/output/client/_app/immutable/assets/select-trigger.CV-KWLNP.css          0.29 kB Γöé gzip:   0.15 kB
+.svelte-kit/output/client/_app/immutable/assets/AggregatedRating.CKFWtqsG.css        0.34 kB Γöé gzip:   0.22 kB
+.svelte-kit/output/client/_app/immutable/assets/ThemeToggle.CvjcEmJG.css             0.64 kB Γöé gzip:   0.32 kB
+.svelte-kit/output/client/_app/immutable/assets/1.Bqe1HW-m.css                       1.27 kB Γöé gzip:   0.56 kB
+.svelte-kit/output/client/_app/immutable/assets/preferencesStore.DkT2713t.css        1.40 kB Γöé gzip:   0.45 kB
+.svelte-kit/output/client/_app/immutable/assets/MediaScrollContainer.BTlR-6T0.css    1.44 kB Γöé gzip:   0.56 kB
+.svelte-kit/output/client/_app/immutable/assets/20.CmRlf_HS.css                      1.55 kB Γöé gzip:   0.52 kB
+.svelte-kit/output/client/_app/immutable/assets/6.D4Z7pgep.css                       2.13 kB Γöé gzip:   0.78 kB
+.svelte-kit/output/client/_app/immutable/assets/14.Cm4_BPc-.css                      2.23 kB Γöé gzip:   0.81 kB
+.svelte-kit/output/client/_app/immutable/assets/28.B43mDOQZ.css                      2.33 kB Γöé gzip:   0.73 kB
+.svelte-kit/output/client/_app/immutable/assets/30.DpnAtt7n.css                      2.33 kB Γöé gzip:   0.73 kB
+.svelte-kit/output/client/_app/immutable/assets/7.CkrKOrJB.css                       2.34 kB Γöé gzip:   0.83 kB
+.svelte-kit/output/client/_app/immutable/assets/MediaCard.BgXNf5jp.css               2.41 kB Γöé gzip:   0.77 kB
+.svelte-kit/output/client/_app/immutable/assets/25.B7J7ye9S.css                      2.94 kB Γöé gzip:   0.96 kB
+.svelte-kit/output/client/_app/immutable/assets/19.CoKrmJQ6.css                      3.62 kB Γöé gzip:   1.06 kB
+.svelte-kit/output/client/_app/immutable/assets/23.TnsqTikw.css                      3.82 kB Γöé gzip:   1.22 kB
+.svelte-kit/output/client/_app/immutable/assets/12.PP1hTHq0.css                      4.27 kB Γöé gzip:   1.33 kB
+.svelte-kit/output/client/_app/immutable/assets/4.D3Ot04xr.css                       4.33 kB Γöé gzip:   1.36 kB
+.svelte-kit/output/client/_app/immutable/assets/22.CRj6oqTw.css                      4.39 kB Γöé gzip:   1.12 kB
+.svelte-kit/output/client/_app/immutable/assets/Player.Df4bBk2q.css                  8.05 kB Γöé gzip:   1.96 kB
+.svelte-kit/output/client/_app/immutable/assets/24.DQ2yp26j.css                     12.67 kB Γöé gzip:   2.87 kB
+.svelte-kit/output/client/_app/immutable/assets/2.BJqsRmLS.css                      15.89 kB Γöé gzip:   3.57 kB
+.svelte-kit/output/client/_app/immutable/assets/app.B8TjWJvE.css                   153.96 kB Γöé gzip:  25.98 kB
+.svelte-kit/output/client/_app/immutable/chunks/CPwLOqZt.js                          0.03 kB Γöé gzip:   0.05 kB
+.svelte-kit/output/client/_app/immutable/chunks/DX585g-5.js                          0.04 kB Γöé gzip:   0.06 kB
+.svelte-kit/output/client/_app/immutable/chunks/DsnmJJEf.js                          0.07 kB Γöé gzip:   0.08 kB
+.svelte-kit/output/client/_app/immutable/entry/start.CyUvDCnZ.js                     0.08 kB Γöé gzip:   0.09 kB
+.svelte-kit/output/client/_app/immutable/chunks/BLJxWjko.js                          0.14 kB Γöé gzip:   0.14 kB
+.svelte-kit/output/client/_app/immutable/chunks/CtZIrdnP.js                          0.17 kB Γöé gzip:   0.17 kB
+.svelte-kit/output/client/_app/immutable/chunks/D3ky4Okv.js                          0.19 kB Γöé gzip:   0.17 kB
+.svelte-kit/output/client/_app/immutable/nodes/3.BGhjAbGg.js                         0.21 kB Γöé gzip:   0.17 kB
+.svelte-kit/output/client/_app/immutable/chunks/qu-peSnV.js                          0.23 kB Γöé gzip:   0.16 kB
+.svelte-kit/output/client/_app/immutable/nodes/31.D47JSy8_.js                        0.27 kB Γöé gzip:   0.16 kB
+.svelte-kit/output/client/_app/immutable/chunks/BrddNB2U.js                          0.31 kB Γöé gzip:   0.17 kB
+.svelte-kit/output/client/_app/immutable/nodes/5.DyuSWxA0.js                         0.33 kB Γöé gzip:   0.26 kB
+.svelte-kit/output/client/_app/immutable/chunks/BBtOEJVG.js                          0.37 kB Γöé gzip:   0.26 kB
+.svelte-kit/output/client/_app/immutable/chunks/0D8vFurz.js                          0.39 kB Γöé gzip:   0.29 kB
+.svelte-kit/output/client/_app/immutable/chunks/DKwQV2ti.js                          0.39 kB Γöé gzip:   0.29 kB
+.svelte-kit/output/client/_app/immutable/chunks/DziM0Hk7.js                          0.40 kB Γöé gzip:   0.29 kB
+.svelte-kit/output/client/_app/immutable/chunks/Dm1tckHW.js                          0.44 kB Γöé gzip:   0.29 kB
+.svelte-kit/output/client/_app/immutable/chunks/D3fHBGih.js                          0.49 kB Γöé gzip:   0.36 kB
+.svelte-kit/output/client/_app/immutable/chunks/DbVca5Ui.js                          0.50 kB Γöé gzip:   0.32 kB
+.svelte-kit/output/client/_app/immutable/chunks/CBL1K4h3.js                          0.50 kB Γöé gzip:   0.29 kB
+.svelte-kit/output/client/_app/immutable/chunks/B6PULNlQ.js                          0.51 kB Γöé gzip:   0.36 kB
+.svelte-kit/output/client/_app/immutable/chunks/DHHd-1kK.js                          0.51 kB Γöé gzip:   0.33 kB
+.svelte-kit/output/client/_app/immutable/chunks/C6RbARfk.js                          0.53 kB Γöé gzip:   0.38 kB
+.svelte-kit/output/client/_app/immutable/chunks/Dqp37nxl.js                          0.53 kB Γöé gzip:   0.26 kB
+.svelte-kit/output/client/_app/immutable/chunks/CibP-TU8.js                          0.55 kB Γöé gzip:   0.40 kB
+.svelte-kit/output/client/_app/immutable/chunks/pQZpqVq9.js                          0.57 kB Γöé gzip:   0.40 kB
+.svelte-kit/output/client/_app/immutable/chunks/ClsgEYD3.js                          0.57 kB Γöé gzip:   0.34 kB
+.svelte-kit/output/client/_app/immutable/chunks/CJssivnq.js                          0.58 kB Γöé gzip:   0.39 kB
+.svelte-kit/output/client/_app/immutable/chunks/B_wI2bfP.js                          0.62 kB Γöé gzip:   0.43 kB
+.svelte-kit/output/client/_app/immutable/chunks/FwyCXYxV.js                          0.64 kB Γöé gzip:   0.42 kB
+.svelte-kit/output/client/_app/immutable/chunks/CqGeqMuF.js                          0.65 kB Γöé gzip:   0.43 kB
+.svelte-kit/output/client/_app/immutable/chunks/Bb6EW6IE.js                          0.67 kB Γöé gzip:   0.46 kB
+.svelte-kit/output/client/_app/immutable/chunks/DT9UcAwb.js                          0.68 kB Γöé gzip:   0.46 kB
+.svelte-kit/output/client/_app/immutable/chunks/ChoIHOmv.js                          0.72 kB Γöé gzip:   0.48 kB
+.svelte-kit/output/client/_app/immutable/chunks/CikwCxjM.js                          0.73 kB Γöé gzip:   0.45 kB
+.svelte-kit/output/client/_app/immutable/chunks/YAHEmHN8.js                          0.76 kB Γöé gzip:   0.42 kB
+.svelte-kit/output/client/_app/immutable/chunks/1jfg3vI5.js                          0.82 kB Γöé gzip:   0.48 kB
+.svelte-kit/output/client/_app/immutable/nodes/13.BhsArJ6j.js                        0.82 kB Γöé gzip:   0.50 kB
+.svelte-kit/output/client/_app/immutable/nodes/9.BbceZuzW.js                         0.83 kB Γöé gzip:   0.51 kB
+.svelte-kit/output/client/_app/immutable/chunks/AQ6neAjL.js                          0.89 kB Γöé gzip:   0.55 kB
+.svelte-kit/output/client/_app/immutable/chunks/CdHHf5m1.js                          0.91 kB Γöé gzip:   0.49 kB
+.svelte-kit/output/client/_app/immutable/chunks/DkWdW2MU.js                          0.97 kB Γöé gzip:   0.46 kB
+.svelte-kit/output/client/_app/immutable/nodes/0.Crbi5r-d.js                         1.11 kB Γöé gzip:   0.63 kB
+.svelte-kit/output/client/_app/immutable/chunks/DsRtvcgY.js                          1.17 kB Γöé gzip:   0.64 kB
+.svelte-kit/output/client/_app/immutable/chunks/BEnlWemw.js                          1.25 kB Γöé gzip:   0.60 kB
+.svelte-kit/output/client/_app/immutable/chunks/DSoCKAmb.js                          1.27 kB Γöé gzip:   0.64 kB
+.svelte-kit/output/client/_app/immutable/chunks/BK6QhqPC.js                          1.30 kB Γöé gzip:   0.66 kB
+.svelte-kit/output/client/_app/immutable/chunks/wbPk3Yxo.js                          1.37 kB Γöé gzip:   0.66 kB
+.svelte-kit/output/client/_app/immutable/chunks/CZPeboo-.js                          1.43 kB Γöé gzip:   0.79 kB
+.svelte-kit/output/client/_app/immutable/chunks/BpU9vjDm.js                          1.48 kB Γöé gzip:   0.77 kB
+.svelte-kit/output/client/_app/immutable/chunks/1NSIhtd2.js                          1.50 kB Γöé gzip:   0.62 kB
+.svelte-kit/output/client/_app/immutable/chunks/B9yKacdu.js                          1.50 kB Γöé gzip:   0.67 kB
+.svelte-kit/output/client/_app/immutable/chunks/FQTr5wti.js                          1.58 kB Γöé gzip:   0.82 kB
+.svelte-kit/output/client/_app/immutable/chunks/CA089kkz.js                          1.61 kB Γöé gzip:   0.87 kB
+.svelte-kit/output/client/_app/immutable/chunks/X3EBOBK6.js                          1.77 kB Γöé gzip:   0.86 kB
+.svelte-kit/output/client/_app/immutable/chunks/B6bJB2I6.js                          1.79 kB Γöé gzip:   0.64 kB
+.svelte-kit/output/client/_app/immutable/chunks/CwXMps0h.js                          1.95 kB Γöé gzip:   0.76 kB
+.svelte-kit/output/client/_app/immutable/chunks/DD29eQFl.js                          1.96 kB Γöé gzip:   0.99 kB
+.svelte-kit/output/client/_app/immutable/chunks/BG1llSX-.js                          2.04 kB Γöé gzip:   1.01 kB
+.svelte-kit/output/client/_app/immutable/chunks/B3gDYj8o.js                          2.17 kB Γöé gzip:   1.01 kB
+.svelte-kit/output/client/_app/immutable/nodes/28.DqFCWt0Y.js                        2.27 kB Γöé gzip:   1.03 kB
+.svelte-kit/output/client/_app/immutable/chunks/yyyQxyvq.js                          2.44 kB Γöé gzip:   1.13 kB
+.svelte-kit/output/client/_app/immutable/nodes/30.Bsc_4CT5.js                        2.45 kB Γöé gzip:   1.05 kB
+.svelte-kit/output/client/_app/immutable/chunks/gSvByDBV.js                          2.86 kB Γöé gzip:   1.42 kB
+.svelte-kit/output/client/_app/immutable/nodes/1.dOXm_eS8.js                         2.91 kB Γöé gzip:   1.39 kB
+.svelte-kit/output/client/_app/immutable/chunks/JXnopLv7.js                          2.93 kB Γöé gzip:   1.50 kB
+.svelte-kit/output/client/_app/immutable/nodes/6.D8x6I4ld.js                         3.16 kB Γöé gzip:   1.59 kB
+.svelte-kit/output/client/_app/immutable/nodes/10.C98YSELX.js                        3.27 kB Γöé gzip:   1.46 kB
+.svelte-kit/output/client/_app/immutable/nodes/20.EL9OU8G3.js                        3.28 kB Γöé gzip:   1.28 kB
+.svelte-kit/output/client/_app/immutable/chunks/BDG3ggDM.js                          3.40 kB Γöé gzip:   1.33 kB
+.svelte-kit/output/client/_app/immutable/chunks/BoIrQWBH.js                          3.72 kB Γöé gzip:   1.83 kB
+.svelte-kit/output/client/_app/immutable/chunks/DiY17PnA.js                          3.95 kB Γöé gzip:   1.68 kB
+.svelte-kit/output/client/_app/immutable/chunks/Bm3SL2Ft.js                          4.07 kB Γöé gzip:   1.91 kB
+.svelte-kit/output/client/_app/immutable/chunks/DKxqRqGa.js                          4.08 kB Γöé gzip:   1.64 kB
+.svelte-kit/output/client/_app/immutable/nodes/16.Ba8iXD52.js                        4.09 kB Γöé gzip:   1.92 kB
+.svelte-kit/output/client/_app/immutable/nodes/18.DPys_B0D.js                        4.18 kB Γöé gzip:   1.71 kB
+.svelte-kit/output/client/_app/immutable/chunks/DANZn6qn.js                          4.26 kB Γöé gzip:   2.00 kB
+.svelte-kit/output/client/_app/immutable/nodes/8.D8nQkyrb.js                         4.89 kB Γöé gzip:   2.35 kB
+.svelte-kit/output/client/_app/immutable/nodes/23.rKQXHUl8.js                        5.00 kB Γöé gzip:   2.13 kB
+.svelte-kit/output/client/_app/immutable/nodes/25.BwpXurqt.js                        5.12 kB Γöé gzip:   2.02 kB
+.svelte-kit/output/client/_app/immutable/nodes/22.BkusqmlE.js                        5.21 kB Γöé gzip:   2.25 kB
+.svelte-kit/output/client/_app/immutable/chunks/Dpa3qQAy.js                          5.60 kB Γöé gzip:   2.07 kB
+.svelte-kit/output/client/_app/immutable/nodes/19.BwpLlLpg.js                        5.81 kB Γöé gzip:   2.18 kB
+.svelte-kit/output/client/_app/immutable/nodes/11.D8XHgEqY.js                        5.83 kB Γöé gzip:   2.31 kB
+.svelte-kit/output/client/_app/immutable/nodes/14.D4pkfh2g.js                        6.72 kB Γöé gzip:   2.85 kB
+.svelte-kit/output/client/_app/immutable/chunks/CH4V_AcG.js                          6.76 kB Γöé gzip:   3.15 kB
+.svelte-kit/output/client/_app/immutable/chunks/CXP42qeu.js                          6.88 kB Γöé gzip:   1.79 kB
+.svelte-kit/output/client/_app/immutable/nodes/17.DHa9dgt3.js                        7.01 kB Γöé gzip:   2.92 kB
+.svelte-kit/output/client/_app/immutable/chunks/BZ4g8VIc.js                          7.81 kB Γöé gzip:   3.49 kB
+.svelte-kit/output/client/_app/immutable/chunks/b3CxE042.js                          7.82 kB Γöé gzip:   3.15 kB
+.svelte-kit/output/client/_app/immutable/nodes/7.CU9nMdse.js                         8.51 kB Γöé gzip:   3.60 kB
+.svelte-kit/output/client/_app/immutable/chunks/B6d7Tx0D.js                          8.58 kB Γöé gzip:   3.09 kB
+.svelte-kit/output/client/_app/immutable/nodes/21.1ks8tMDh.js                        8.81 kB Γöé gzip:   3.55 kB
+.svelte-kit/output/client/_app/immutable/nodes/15.BiKkdLa_.js                        9.74 kB Γöé gzip:   3.87 kB
+.svelte-kit/output/client/_app/immutable/chunks/B06enYmO.js                         11.75 kB Γöé gzip:   4.47 kB
+.svelte-kit/output/client/_app/immutable/entry/app.C_NK4eJl.js                      13.47 kB Γöé gzip:   4.52 kB
+.svelte-kit/output/client/_app/immutable/chunks/Bda26Iiy.js                         13.52 kB Γöé gzip:   5.59 kB
+.svelte-kit/output/client/_app/immutable/chunks/MaGFLMSK.js                         16.32 kB Γöé gzip:   6.48 kB
+.svelte-kit/output/client/_app/immutable/nodes/4.CJc0ZUbI.js                        17.91 kB Γöé gzip:   6.76 kB
+.svelte-kit/output/client/_app/immutable/nodes/24.DUGFWB8c.js                       20.77 kB Γöé gzip:   7.06 kB
+.svelte-kit/output/client/_app/immutable/chunks/BCKC2o3S.js                         24.08 kB Γöé gzip:   8.36 kB
+.svelte-kit/output/client/_app/immutable/chunks/BImRWGdZ.js                         31.03 kB Γöé gzip:  12.01 kB
+.svelte-kit/output/client/_app/immutable/chunks/BI5QTh6i.js                         34.70 kB Γöé gzip:  11.35 kB
+.svelte-kit/output/client/_app/immutable/nodes/12.CXOC4pn0.js                       35.45 kB Γöé gzip:  11.70 kB
+.svelte-kit/output/client/_app/immutable/chunks/DtUrw8lp.js                         36.23 kB Γöé gzip:  13.78 kB
+.svelte-kit/output/client/_app/immutable/nodes/2.BbmyDlZm.js                        37.92 kB Γöé gzip:  11.56 kB
+.svelte-kit/output/client/_app/immutable/nodes/27.8sY-vsaD.js                       39.99 kB Γöé gzip:  10.70 kB
+.svelte-kit/output/client/_app/immutable/chunks/Cmgv_53t.js                         69.01 kB Γöé gzip:  18.77 kB
+.svelte-kit/output/client/_app/immutable/chunks/iMJzovcU.js                        104.85 kB Γöé gzip:  30.54 kB
+.svelte-kit/output/client/_app/immutable/chunks/PUo3ngWR.js                        518.96 kB Γöé gzip: 154.58 kB
+Γ£ô built in 18.24s
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+`config.kit.csrf.checkOrigin` has been deprecated in favour of `csrf.trustedOrigins`. It will be removed in a future version
+The following Vite config options will be overridden by SvelteKit:
+- build.cssCodeSplit
+vite v7.3.6 building client environment for production...
+transforming...
+Γ£ô 2 modules transformed.
+rendering chunks...
+computing gzip size...
+.svelte-kit/output/client/service-worker.mjs  7.08 kB Γöé gzip: 2.11 kB
+Γ£ô built in 40ms
+.svelte-kit/output/server/.vite/manifest.json                                                                60.67 kB
+.svelte-kit/output/server/_app/immutable/assets/_page.DsoLRDfi.css                                            0.03 kB
+.svelte-kit/output/server/_app/immutable/assets/_page.BknN3za3.css                                            0.14 kB
+.svelte-kit/output/server/_app/immutable/assets/offline-page.uBKbKZlU.css                                     0.14 kB
+.svelte-kit/output/server/_app/immutable/assets/MediaCard.D6k4YTaE.css                                        0.22 kB
+.svelte-kit/output/server/_app/immutable/assets/FilterPanel.C_-QEdX3.css                                      0.27 kB
+.svelte-kit/output/server/_app/immutable/assets/select-trigger.CV-KWLNP.css                                   0.29 kB
+.svelte-kit/output/server/_app/immutable/assets/AggregatedRating.CKFWtqsG.css                                 0.34 kB
+.svelte-kit/output/server/_app/immutable/assets/ThemeToggle.CvjcEmJG.css                                      0.64 kB
+.svelte-kit/output/server/_app/immutable/assets/_error.Bqe1HW-m.css                                           1.27 kB
+.svelte-kit/output/server/_app/immutable/assets/preferencesStore.DkT2713t.css                                 1.40 kB
+.svelte-kit/output/server/_app/immutable/assets/MediaScrollContainer.C-jO71kK.css                             1.42 kB
+.svelte-kit/output/server/_app/immutable/assets/_page.CmRlf_HS.css                                            1.55 kB
+.svelte-kit/output/server/_app/immutable/assets/_page.D4Z7pgep.css                                            2.13 kB
+.svelte-kit/output/server/_app/immutable/assets/_page.Cm4_BPc-.css                                            2.23 kB
+.svelte-kit/output/server/_app/immutable/assets/_page.B43mDOQZ.css                                            2.33 kB
+.svelte-kit/output/server/_app/immutable/assets/_page.DpnAtt7n.css                                            2.33 kB
+.svelte-kit/output/server/_app/immutable/assets/_page.CkrKOrJB.css                                            2.34 kB
+.svelte-kit/output/server/_app/immutable/assets/MediaCard.B7wMeWYj.css                                        2.38 kB
+.svelte-kit/output/server/_app/immutable/assets/_page.B7J7ye9S.css                                            2.94 kB
+.svelte-kit/output/server/_app/immutable/assets/_page.CoKrmJQ6.css                                            3.62 kB
+.svelte-kit/output/server/_app/immutable/assets/_page.TnsqTikw.css                                            3.82 kB
+.svelte-kit/output/server/_app/immutable/assets/_page.DLCBHo91.css                                            4.24 kB
+.svelte-kit/output/server/_app/immutable/assets/_page.rrF6sAv5.css                                            4.30 kB
+.svelte-kit/output/server/_app/immutable/assets/_page.CRj6oqTw.css                                            4.39 kB
+.svelte-kit/output/server/_app/immutable/assets/Player.BapNAA51.css                                           8.02 kB
+.svelte-kit/output/server/_app/immutable/assets/_page.DOnGnHA_.css                                           10.29 kB
+.svelte-kit/output/server/_app/immutable/assets/_layout.Cc3zWVOU.css                                         15.85 kB
+.svelte-kit/output/server/_app/immutable/assets/_layout.BFyrEkSz.css                                        152.13 kB
+.svelte-kit/output/server/entries/pages/_layout.ts.js                                                         0.00 kB
+.svelte-kit/output/server/entries/pages/(app)/search/_page.ts.js                                              0.07 kB
+.svelte-kit/output/server/chunks/errorStore.js                                                                0.10 kB
+.svelte-kit/output/server/entries/pages/(app)/tv-shows/_page.server.ts.js                                     0.12 kB
+.svelte-kit/output/server/chunks/id.js                                                                        0.16 kB
+.svelte-kit/output/server/entries/fallbacks/layout.svelte.js                                                  0.17 kB
+.svelte-kit/output/server/entries/endpoints/api/discover/_server.ts.js                                        0.19 kB
+.svelte-kit/output/server/env.js                                                                              0.23 kB
+.svelte-kit/output/server/entries/pages/(app)/admin/_page.svelte.js                                           0.24 kB
+.svelte-kit/output/server/entries/pages/_layout.server.ts.js                                                  0.26 kB
+.svelte-kit/output/server/entries/pages/(app)/admin/_layout.server.ts.js                                      0.26 kB
+.svelte-kit/output/server/entries/endpoints/api/track/_server.ts.js                                           0.32 kB
+.svelte-kit/output/server/internal.js                                                                         0.36 kB
+.svelte-kit/output/server/chunks/index-server.js                                                              0.39 kB
+.svelte-kit/output/server/chunks/logger.js                                                                    0.40 kB
+.svelte-kit/output/server/chunks/index-server2.js                                                             0.42 kB
+.svelte-kit/output/server/entries/endpoints/api/subtitles/_server.ts.js                                       0.42 kB
+.svelte-kit/output/server/entries/pages/(auth)/logout/_page.server.ts.js                                      0.42 kB
+.svelte-kit/output/server/entries/pages/(app)/_page.server.ts.js                                              0.44 kB
+.svelte-kit/output/server/chunks/state.svelte.js                                                              0.45 kB
+.svelte-kit/output/server/entries/endpoints/api/history/add/_server.ts.js                                     0.46 kB
+.svelte-kit/output/server/entries/endpoints/api/tmdb/tv/_id_/credits/_server.ts.js                            0.47 kB
+.svelte-kit/output/server/chunks/slug.js                                                                      0.48 kB
+.svelte-kit/output/server/entries/endpoints/api/tmdb/upcoming/_server.ts.js                                   0.49 kB
+.svelte-kit/output/server/entries/endpoints/api/tmdb/tv/_id_/season/_season_/_server.ts.js                    0.49 kB
+.svelte-kit/output/server/chunks/tmdb.js                                                                      0.51 kB
+.svelte-kit/output/server/entries/endpoints/api/tmdb/tv/_id_/similar/_server.ts.js                            0.52 kB
+.svelte-kit/output/server/entries/endpoints/api/tmdb/_type_/_id_/_server.ts.js                                0.52 kB
+.svelte-kit/output/server/entries/endpoints/api/tmdb/_type_/_id_/credits/_server.ts.js                        0.55 kB
+.svelte-kit/output/server/entries/pages/_layout.svelte.js                                                     0.56 kB
+.svelte-kit/output/server/entries/endpoints/api/tmdb/_type_/_id_/similar/_server.ts.js                        0.56 kB
+.svelte-kit/output/server/entries/endpoints/api/sources/submit/_server.ts.js                                  0.59 kB
+.svelte-kit/output/server/entries/endpoints/api/tmdb/popular/_server.ts.js                                    0.59 kB
+.svelte-kit/output/server/entries/endpoints/api/tmdb/top-rated/_server.ts.js                                  0.59 kB
+.svelte-kit/output/server/entries/endpoints/api/tmdb/trending/_server.ts.js                                   0.59 kB
+.svelte-kit/output/server/chunks/alert.config.js                                                              0.60 kB
+.svelte-kit/output/server/chunks/features.js                                                                  0.61 kB
+.svelte-kit/output/server/entries/endpoints/api/ratings/_server.ts.js                                         0.61 kB
+.svelte-kit/output/server/entries/endpoints/api/tmdb/tv/trending/_server.ts.js                                0.61 kB
+.svelte-kit/output/server/entries/endpoints/api/tmdb/tv/popular/_server.ts.js                                 0.62 kB
+.svelte-kit/output/server/entries/endpoints/api/tmdb/tv/top-rated/_server.ts.js                               0.62 kB
+.svelte-kit/output/server/entries/endpoints/api/tmdb/tv/on-the-air/_server.ts.js                              0.62 kB
+.svelte-kit/output/server/chunks/server.js                                                                    0.62 kB
+.svelte-kit/output/server/entries/endpoints/api/home-library/refresh/_server.ts.js                            0.66 kB
+.svelte-kit/output/server/chunks/client2.js                                                                   0.68 kB
+.svelte-kit/output/server/entries/pages/(app)/person/_id_/_page.server.ts.js                                  0.70 kB
+.svelte-kit/output/server/entries/endpoints/api/providers/_id_/_server.ts.js                                  0.71 kB
+.svelte-kit/output/server/chunks/stores.js                                                                    0.71 kB
+.svelte-kit/output/server/chunks/tmdb.lookup.js                                                               0.82 kB
+.svelte-kit/output/server/entries/pages/(app)/tv/_page.server.ts.js                                           0.84 kB
+.svelte-kit/output/server/entries/pages/(app)/search/_page.server.ts.js                                       0.86 kB
+.svelte-kit/output/server/entries/endpoints/api/recommendations/_server.ts.js                                 0.87 kB
+.svelte-kit/output/server/entries/pages/(app)/history/_page.server.ts.js                                      0.88 kB
+.svelte-kit/output/server/chunks/badge.js                                                                     0.89 kB
+.svelte-kit/output/server/entries/pages/(app)/tv/_id_/_season_/_episode_/_page.svelte.js                      0.89 kB
+.svelte-kit/output/server/entries/endpoints/api/hls-proxy/_server.ts.js                                       0.89 kB
+.svelte-kit/output/server/entries/pages/(app)/collection/_slug_/_page.server.ts.js                            0.89 kB
+.svelte-kit/output/server/entries/pages/(app)/explore/_page.server.ts.js                                      0.90 kB
+.svelte-kit/output/server/chunks/mediaFilter.js                                                               0.92 kB
+.svelte-kit/output/server/entries/pages/(app)/genre/_slug_/_page.server.ts.js                                 0.97 kB
+.svelte-kit/output/server/entries/pages/(app)/genre/_slug_/_page.svelte.js                                    0.98 kB
+.svelte-kit/output/server/entries/pages/(app)/collection/_slug_/_page.svelte.js                               1.00 kB
+.svelte-kit/output/server/entries/endpoints/(app)/afrikaans/api/discover/_server.ts.js                        1.03 kB
+.svelte-kit/output/server/entries/endpoints/api/search/autocomplete/_server.ts.js                             1.07 kB
+.svelte-kit/output/server/chunks/utils.js                                                                     1.09 kB
+.svelte-kit/output/server/entries/endpoints/api/media/batch/_server.ts.js                                     1.10 kB
+.svelte-kit/output/server/chunks/ThemeToggle.js                                                               1.17 kB
+.svelte-kit/output/server/entries/endpoints/api/tv/_id_/season/_number_/_server.ts.js                         1.22 kB
+.svelte-kit/output/server/chunks/index.js                                                                     1.25 kB
+.svelte-kit/output/server/entries/pages/(app)/tv/_id_/_page.svelte.js                                         1.31 kB
+.svelte-kit/output/server/entries/endpoints/api/stream/tv/_server.ts.js                                       1.39 kB
+.svelte-kit/output/server/chunks/button.js                                                                    1.45 kB
+.svelte-kit/output/server/chunks/chevron-left.js                                                              1.48 kB
+.svelte-kit/output/server/chunks/MediaCard.js                                                                 1.49 kB
+.svelte-kit/output/server/chunks/x.js                                                                         1.49 kB
+.svelte-kit/output/server/chunks/tmdb.service.js                                                              1.54 kB
+.svelte-kit/output/server/chunks/index3.js                                                                    1.55 kB
+.svelte-kit/output/server/chunks/search.js                                                                    1.56 kB
+.svelte-kit/output/server/chunks/rotate-cw.js                                                                 1.65 kB
+.svelte-kit/output/server/entries/endpoints/api/tmdb/discover/_mediaType_/_server.ts.js                       1.68 kB
+.svelte-kit/output/server/chunks/session-crypto.js                                                            1.72 kB
+.svelte-kit/output/server/chunks/button.config.js                                                             1.73 kB
+.svelte-kit/output/server/entries/endpoints/api/media/top-rated/_server.ts.js                                 1.73 kB
+.svelte-kit/output/server/entries/endpoints/api/media/recently-added/_server.ts.js                            1.75 kB
+.svelte-kit/output/server/chunks/circle-alert.js                                                              1.79 kB
+.svelte-kit/output/server/chunks/funnel.js                                                                    1.81 kB
+.svelte-kit/output/server/entries/pages/(app)/genre/movies/_page.server.ts.js                                 1.84 kB
+.svelte-kit/output/server/chunks/afrikaans-films.js                                                           1.86 kB
+.svelte-kit/output/server/entries/pages/(app)/movie/_id_/_page.ts.js                                          1.86 kB
+.svelte-kit/output/server/chunks/offline-page.svelte_svelte_type_style_lang.js                                1.87 kB
+.svelte-kit/output/server/entries/pages/(auth)/login/_page.server.ts.js                                       1.91 kB
+.svelte-kit/output/server/entries/endpoints/api/streaming/report-broken/_server.ts.js                         1.91 kB
+.svelte-kit/output/server/chunks/refresh-cw.js                                                                1.92 kB
+.svelte-kit/output/server/chunks/pagination.js                                                                2.13 kB
+.svelte-kit/output/server/chunks/input.js                                                                     2.18 kB
+.svelte-kit/output/server/entries/pages/(app)/movies/_page.ts.js                                              2.26 kB
+.svelte-kit/output/server/chunks/sparkles.js                                                                  2.32 kB
+.svelte-kit/output/server/entries/endpoints/api/images/_...path_/_server.ts.js                                2.32 kB
+.svelte-kit/output/server/entries/pages/(app)/afrikaans/_page.ts.js                                           2.34 kB
+.svelte-kit/output/server/chunks/card-title.js                                                                2.36 kB
+.svelte-kit/output/server/chunks/Slider.js                                                                    2.40 kB
+.svelte-kit/output/server/entries/pages/(app)/profile/_page.server.ts.js                                      2.44 kB
+.svelte-kit/output/server/entries/endpoints/api/search/people/_server.ts.js                                   2.48 kB
+.svelte-kit/output/server/entries/endpoints/api/stream-proxy/_...path_/_server.ts.js                          2.49 kB
+.svelte-kit/output/server/entries/endpoints/api/search/enhanced/_server.ts.js                                 2.57 kB
+.svelte-kit/output/server/chunks/index4.js                                                                    2.60 kB
+.svelte-kit/output/server/entries/pages/(app)/tv/_id_/_page.ts.js                                             2.60 kB
+.svelte-kit/output/server/chunks/badge.config.js                                                              2.60 kB
+.svelte-kit/output/server/chunks/CarouselContainer.js                                                         2.64 kB
+.svelte-kit/output/server/entries/endpoints/sitemap.xml/_server.ts.js                                         2.65 kB
+.svelte-kit/output/server/entries/pages/(auth)/login/_page.svelte.js                                          2.68 kB
+.svelte-kit/output/server/entries/endpoints/api/resolve-provider/_server.ts.js                                2.70 kB
+.svelte-kit/output/server/entries/pages/(auth)/signup/_page.server.ts.js                                      2.77 kB
+.svelte-kit/output/server/entries/pages/(auth)/signup/_page.svelte.js                                         2.85 kB
+.svelte-kit/output/server/entries/endpoints/api/history/_server.ts.js                                         2.86 kB
+.svelte-kit/output/server/entries/pages/(app)/movie/_id_/_page.svelte.js                                      2.88 kB
+.svelte-kit/output/server/entries/pages/(app)/admin/features/_page.svelte.js                                  2.94 kB
+.svelte-kit/output/server/entries/endpoints/api/search/unified/_server.ts.js                                  3.04 kB
+.svelte-kit/output/server/entries/endpoints/api/auto-scan/_server.ts.js                                       3.15 kB
+.svelte-kit/output/server/entries/pages/(app)/afrikaans/_id_/_page.svelte.js                                  3.20 kB
+.svelte-kit/output/server/entries/pages/_error.svelte.js                                                      3.24 kB
+.svelte-kit/output/server/entries/pages/(app)/disclaimer/_page.svelte.js                                      3.30 kB
+.svelte-kit/output/server/entries/pages/(app)/afrikaans/_id_/_page.ts.js                                      3.56 kB
+.svelte-kit/output/server/chunks/check.js                                                                     3.56 kB
+.svelte-kit/output/server/entries/pages/(app)/profile/edit/_page.server.ts.js                                 3.57 kB
+.svelte-kit/output/server/entries/pages/(app)/tv/_id_/_page.server.ts.js                                      3.66 kB
+.svelte-kit/output/server/entries/endpoints/api/tv/_id_/_server.ts.js                                         3.69 kB
+.svelte-kit/output/server/entries/endpoints/api/playback/progress/_server.ts.js                               3.71 kB
+.svelte-kit/output/server/entries/pages/(app)/profile/edit/_page.svelte.js                                    3.85 kB
+.svelte-kit/output/server/entries/endpoints/api/search/movies-by-people/_server.ts.js                         3.97 kB
+.svelte-kit/output/server/chunks/playback-progress.repository.js                                              3.98 kB
+.svelte-kit/output/server/chunks/tmdb.lists.js                                                                4.00 kB
+.svelte-kit/output/server/chunks/separator.js                                                                 4.01 kB
+.svelte-kit/output/server/chunks/env.js                                                                       4.12 kB
+.svelte-kit/output/server/chunks/MediaScrollContainer.js                                                      4.18 kB
+.svelte-kit/output/server/entries/endpoints/api/streaming/_server.ts.js                                       4.50 kB
+.svelte-kit/output/server/entries/endpoints/api/search/history/_server.ts.js                                  4.51 kB
+.svelte-kit/output/server/entries/endpoints/api/tv/_tmdbId_/status/_server.ts.js                              4.52 kB
+.svelte-kit/output/server/chunks/SEOHead.js                                                                   4.84 kB
+.svelte-kit/output/server/entries/pages/(app)/movies/_page.svelte.js                                          5.14 kB
+.svelte-kit/output/server/entries/pages/(app)/person/_id_/_page.svelte.js                                     5.16 kB
+.svelte-kit/output/server/entries/endpoints/api/tv/_tmdbId_/episode/_episodeNumber_/progress/_server.ts.js    5.20 kB
+.svelte-kit/output/server/entries/endpoints/api/search/_server.ts.js                                          5.21 kB
+.svelte-kit/output/server/chunks/cache.js                                                                     5.24 kB
+.svelte-kit/output/server/chunks/filterUrl.js                                                                 5.27 kB
+.svelte-kit/output/server/chunks/exports.js                                                                   5.59 kB
+.svelte-kit/output/server/entries/pages/(app)/settings/_page.svelte.js                                        5.59 kB
+.svelte-kit/output/server/entries/endpoints/api/watchlist/_server.ts.js                                       5.69 kB
+.svelte-kit/output/server/entries/pages/(app)/tv/_page.svelte.js                                              5.77 kB
+.svelte-kit/output/server/chunks/person-sync.service.js                                                       5.78 kB
+.svelte-kit/output/server/chunks/tmdb.people.js                                                               6.06 kB
+.svelte-kit/output/server/chunks/mutations.js                                                                 6.24 kB
+.svelte-kit/output/server/entries/hooks.server.js                                                             6.31 kB
+.svelte-kit/output/server/entries/pages/(app)/profile/_page.svelte.js                                         6.44 kB
+.svelte-kit/output/server/entries/pages/(app)/afrikaans/_page.svelte.js                                       6.44 kB
+.svelte-kit/output/server/entries/pages/(app)/genre/movies/_page.svelte.js                                    6.64 kB
+.svelte-kit/output/server/chunks/internal.js                                                                  6.86 kB
+.svelte-kit/output/server/chunks/theme.js                                                                     6.96 kB
+.svelte-kit/output/server/chunks/person.repository.js                                                         7.17 kB
+.svelte-kit/output/server/chunks/historyStore.svelte.js                                                       7.18 kB
+.svelte-kit/output/server/entries/pages/(app)/search/_page.svelte.js                                          7.20 kB
+.svelte-kit/output/server/entries/endpoints/api/providers/scan/_server.ts.js                                  7.72 kB
+.svelte-kit/output/server/entries/pages/offline/_page.svelte.js                                               9.04 kB
+.svelte-kit/output/server/entries/pages/(app)/explore/_slug_/_page.server.ts.js                               9.83 kB
+.svelte-kit/output/server/chunks/MovieInfo.js                                                                 9.91 kB
+.svelte-kit/output/server/chunks/csrf.js                                                                     10.17 kB
+.svelte-kit/output/server/entries/endpoints/api/media/_id_/_server.ts.js                                     10.24 kB
+.svelte-kit/output/server/chunks/watchlistStore.svelte.js                                                    10.38 kB
+.svelte-kit/output/server/chunks/create-id.js                                                                12.15 kB
+.svelte-kit/output/server/chunks/MediaCard2.js                                                               12.16 kB
+.svelte-kit/output/server/chunks/tmdb.details.js                                                             12.74 kB
+.svelte-kit/output/server/chunks/preferencesStore.js                                                         12.80 kB
+.svelte-kit/output/server/chunks/tv-show.repository.js                                                       13.24 kB
+.svelte-kit/output/server/entries/pages/(app)/explore/_page.svelte.js                                        13.72 kB
+.svelte-kit/output/server/chunks/tmdb.client.js                                                              14.11 kB
+.svelte-kit/output/server/entries/pages/(app)/history/_page.svelte.js                                        17.84 kB
+.svelte-kit/output/server/chunks/search.service.js                                                           18.12 kB
+.svelte-kit/output/server/chunks/library.service.js                                                          20.26 kB
+.svelte-kit/output/server/chunks/FilterPanel.svelte_svelte_type_style_lang.js                                21.74 kB
+.svelte-kit/output/server/entries/pages/(app)/_page.svelte.js                                                23.19 kB
+.svelte-kit/output/server/chunks/streaming.service.js                                                        31.53 kB
+.svelte-kit/output/server/chunks/root.js                                                                     31.83 kB
+.svelte-kit/output/server/chunks/utils2.js                                                                   34.21 kB
+.svelte-kit/output/server/chunks/client.js                                                                   34.50 kB
+.svelte-kit/output/server/remote-entry.js                                                                    36.81 kB
+.svelte-kit/output/server/entries/pages/(app)/_layout.svelte.js                                              39.19 kB
+.svelte-kit/output/server/chunks/validation.js                                                               40.83 kB
+.svelte-kit/output/server/entries/pages/(app)/explore/_slug_/_page.svelte.js                                 77.21 kB
+.svelte-kit/output/server/entries/pages/(app)/watchlist/_page.svelte.js                                      79.30 kB
+.svelte-kit/output/server/chunks/index2.js                                                                  102.67 kB
+.svelte-kit/output/server/index.js                                                                          130.96 kB
+.svelte-kit/output/server/chunks/select-trigger.js                                                          139.70 kB
+Γ£ô built in 48.47s
+Run npm run preview to preview your production build locally.
+> Using @sveltejs/adapter-vercel
+Warning: The following modules failed to locate dependencies that may (or may not) be required for your app to work:
+node_modules/@node-rs/argon2/index.js
+- /vercel/path0/node_modules/@node-rs/argon2/argon2.android-arm64.node
+- /vercel/path0/node_modules/@node-rs/argon2/argon2.win32-ia32-msvc.node
+- /vercel/path0/node_modules/@node-rs/argon2/argon2.win32-arm64-msvc.node
+- /vercel/path0/node_modules/@node-rs/argon2/argon2.darwin-universal.node
+- /vercel/path0/node_modules/@node-rs/argon2/argon2.android-arm-eabi.node
+- /vercel/path0/node_modules/@node-rs/argon2/argon2.win32-x64-msvc.node
+- /vercel/path0/node_modules/@node-rs/argon2/argon2.darwin-x64.node
+- /vercel/path0/node_modules/@node-rs/argon2/argon2.darwin-arm64.node
+- /vercel/path0/node_modules/@node-rs/argon2/argon2.freebsd-x64.node
+- /vercel/path0/node_modules/@node-rs/argon2/argon2.freebsd-arm64.node
+- /vercel/path0/node_modules/@node-rs/argon2/argon2.linux-x64-musl.node
+- /vercel/path0/node_modules/@node-rs/argon2/argon2.linux-x64-gnu.node
+- /vercel/path0/node_modules/@node-rs/argon2/argon2.linux-arm64-musl.node
+- /vercel/path0/node_modules/@node-rs/argon2/argon2.linux-arm64-gnu.node
+- /vercel/path0/node_modules/@node-rs/argon2/argon2.linux-arm-musleabihf.node
+- /vercel/path0/node_modules/@node-rs/argon2/argon2.linux-arm-gnueabihf.node
+- /vercel/path0/node_modules/@node-rs/argon2/argon2.linux-riscv64-musl.node
+- /vercel/path0/node_modules/@node-rs/argon2/argon2.linux-riscv64-gnu.node
+- /vercel/path0/node_modules/@node-rs/argon2/argon2.linux-ppc64-gnu.node
+- /vercel/path0/node_modules/@node-rs/argon2/argon2.linux-s390x-gnu.node
+- /vercel/path0/node_modules/@node-rs/argon2/argon2.wasi.cjs
+- @node-rs/argon2-win32-ia32-msvc
+- @node-rs/argon2-win32-arm64-msvc
+- @node-rs/argon2-darwin-universal
+- @node-rs/argon2-win32-x64-msvc
+- @node-rs/argon2-android-arm-eabi
+- @node-rs/argon2-android-arm64
+- @node-rs/argon2-darwin-x64
+- @node-rs/argon2-freebsd-x64
+- @node-rs/argon2-darwin-arm64
+- @node-rs/argon2-freebsd-arm64
+- @node-rs/argon2-linux-arm64-musl
+- @node-rs/argon2-linux-arm64-gnu
+- @node-rs/argon2-linux-arm-musleabihf
+- @node-rs/argon2-linux-arm-gnueabihf
+- @node-rs/argon2-linux-riscv64-musl
+- @node-rs/argon2-linux-riscv64-gnu
+- @node-rs/argon2-linux-ppc64-gnu
+- @node-rs/argon2-linux-s390x-gnu
+- @node-rs/argon2-wasm32-wasi
+- @node-rs/argon2-linux-x64-musl
+node_modules/@neon-rs/load/dist/index.js
+- /index.node
+node_modules/ws/lib/buffer-util.js
+- bufferutil
+node_modules/ws/lib/validation.js
+- utf-8-validate
+Γ£ö done
+Build Completed in /vercel/output [59s]
+Deploying outputs...
+[2K[1A[2K[G  Production      https://streamium-cosmic-p16kzzktd-pubgmobilegab-5992s-projects.vercel.app
+CompletingΓÇª
+Γû▓ Aliased         https://streamium-cosmic.vercel.app
+
+Γ£ô Ready in 2m
+Γò¡ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓò«
+Γöé                                                     Γöé
+Γöé   A newer version of Vercel CLI may be available.   Γöé
+Γöé       Run `npm i -g vercel@latest` to update.       Γöé
+Γöé                                                     Γöé
+Γò░ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓò»
+https://streamium-cosmic-p16kzzktd-pubgmobilegab-5992s-projects.vercel.app
