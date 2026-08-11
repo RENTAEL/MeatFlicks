@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { onMount, onDestroy } from 'svelte';
+	import { onDestroy } from 'svelte';
 	import { browser } from '$app/environment';
 	import { Play, Pause, RotateCcw, RotateCw, Volume2, VolumeX, Maximize, Minimize, HelpCircle } from '@lucide/svelte';
 	import { playerPreferences } from '$lib/state/stores/playerPreferences.svelte';
@@ -533,8 +533,14 @@
 		scan();
 	}
 
-	onMount(() => { if (tmdbId) scan(); });
-	$effect(() => { if (tmdbId) scan(); });
+	let lastScanKey = '';
+	$effect(() => {
+		const key = `${tmdbId}:${type}:${season}:${episode}`;
+		if (tmdbId && key !== lastScanKey) {
+			lastScanKey = key;
+			scan();
+		}
+	});
 	onDestroy(() => {
 		stopAutoSwitch();
 		stopAutoTick();
