@@ -3,8 +3,8 @@
 	import { browser } from '$app/environment';
 	import { goto } from '$app/navigation';
 	import Player from '$lib/components/Player.svelte';
-	import { playSoundEffect, SOUND_LABELS } from '$lib/watch-party/sounds';
-	import { Users, Trophy, Copy, Send, Sparkles, LogOut, Skull } from '@lucide/svelte';
+	import { playSoundEffect, SOUND_PRESETS, getSoundVolume, getSoundMuted, setSoundVolume, toggleSoundMute } from '$lib/watch-party/sounds';
+	import { Users, Trophy, Copy, Send, Sparkles, LogOut, Skull, MessageCircle } from '@lucide/svelte';
 	import type { RoomState } from '$lib/server/watch-party/types';
 
 	interface WatchData {
@@ -27,6 +27,9 @@
 	let polling = false;
 	let copied = false;
 	let error = '';
+	let fxVolume = getSoundVolume();
+	let fxMuted = getSoundMuted();
+	let chatOpen = false;
 
 	let pollTimer: ReturnType<typeof setInterval> | null = null;
 
@@ -104,6 +107,7 @@
 	}
 
 	let lastPlaybackSignal: { playing: boolean; position: number } | null = null;
+	let syncPoke = 0;
 
 	function onPlaybackChange(signal: { playing: boolean; position: number }) {
 		if (!state.isHost) return;
@@ -214,10 +218,19 @@
 				title={state.media.title}
 				readOnly={!state.isHost}
 				remoteSync={getRemoteSync()}
+				syncPoke={syncPoke}
 				onPlaybackChange={onPlaybackChange}
 			/>
 		{:else}
 			<div class="no-media">Nothing is playing yet.</div>
+		{/if}
+
+		{#if !state.isHost}
+			<div class="sync-row">
+				<button class="sync-btn" onclick={() => syncPoke++} title="Jump back to the host's playback position">
+					Sync to host
+				</button>
+			</div>
 		{/if}
 
 		{#if error}
@@ -251,18 +264,44 @@
 			</div>
 		</div>
 
-		{#if state.isHost}
-			<div class="panel fx-panel">
-				<div class="panel-head">
-					<span class="panel-title"><Sparkles size={16} /> Sound effects</span>
-				</div>
+		<div class="panel fx-panel">
+			<div class="panel-head">
+				<span class="panel-title"><Sparkles size={16} /> Sound effects</span>
+			</div>
+			{#if state.isHost}
 				<div class="fx-row">
-					{#each ['applause', 'boo', 'jump', 'suspense'] as fx}
-						<button class="fx-btn" onclick={() => playSound(fx)}>{SOUND_LABELS[fx]}</button>
+					{#each SOUND_PRESETS as preset}
+						<button class="fx-btn" onclick={() => playSound(preset.id)} title={preset.description}>
+							{preset.label}
+						</button>
 					{/each}
 				</div>
+			{/if}
+			<div class="fx-ctrl-row">
+				<button
+					class="fx-mute"
+					onclick={() => (fxMuted = toggleSoundMute())}
+					aria-label={fxMuted ? 'Unmute sound effects' : 'Mute sound effects'}
+					title={fxMuted ? 'Unmute sound effects' : 'Mute sound effects'}
+				>
+					{fxMuted ? '🔇' : '🔊'}
+				</button>
+				<input
+					class="fx-slider"
+					type="range"
+					min="0"
+					max="100"
+					value={Math.round(fxVolume * 100)}
+					oninput={(e) => {
+						const v = Number((e.currentTarget as HTMLInputElement).value) / 100;
+						fxVolume = v;
+						setSoundVolume(v);
+					}}
+					aria-label="Sound effect volume"
+					title="Sound effect volume"
+				/>
 			</div>
-		{/if}
+		</div>
 
 		<div class="panel chat-panel">
 			<div class="panel-head">
@@ -311,6 +350,55 @@
 	</div>
 </div>
 
+{#if chatOpen}
+	<div class="mobile-chat-backdrop" role="dialog" aria-modal="true" aria-label="Room chat" tabindex="-1" onclick={() => (chatOpen = false)}>
+		<div class="mobile-chat-sheet" onclick={(e) => e.stopPropagation()}>
+			<div class="mobile-chat-head">
+				<span class="mobile-chat-title">Room chat</span>
+				<button class="mobile-close" onclick={() => (chatOpen = false)} aria-label="Close chat">×</button>
+			</div>
+			<div class="mobile-member-list">
+				{#each state.participants as p, i (p.userId)}
+					<span class="mobile-member-chip" class:is-me={p.userId === user.id}>
+						{p.username.slice(0, 1).toUpperCase()} {p.username}
+					</span>
+				{/each}
+			</div>
+			<div class="msg-list mobile-msg-list">
+				{#if messages.length === 0}
+					<p class="msg-empty">No messages yet. Say hi!</p>
+				{/if}
+				{#each messages as m, i (m.id)}
+					<div class="msg-row" class:own={m.userId === user.id} class:deleted={m.deleted}>
+						<span class="msg-who">
+							{m.deleted ? '—' : m.username}
+							{#if m.deleted}
+								<span class="msg-del-tag">deleted</span>
+							{/if}
+							<span class="msg-time">{timeAgo(m.createdAt)}</span>
+						</span>
+						<span class="msg-body">{m.deleted ? '' : m.body}</span>
+					</div>
+				{/each}
+			</div>
+			<form class="chat-form" onsubmit={(e) => { e.preventDefault(); sendMessage(); }}>
+				<input
+					class="chat-input"
+					bind:value={chatInput}
+					placeholder="Say something…"
+					maxlength="240"
+					aria-label="Chat message"
+				/>
+				<button class="send-btn" type="submit" aria-label="Send message"><Send size={16} /></button>
+			</form>
+		</div>
+	</div>
+{/if}
+
+<button class="chat-fab" onclick={() => (chatOpen = true)} aria-label="Open room chat">
+	<MessageCircle size={22} />
+</button>
+
 <style>
 	.watch-root { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 20px; padding: 24px; max-width: 1400px; margin: 0 auto; }
 	@media (max-width: 900px) { .watch-root { grid-template-columns: 1fr; } }
@@ -341,6 +429,10 @@
 	.fx-row { display: flex; gap: 8px; padding: 12px 14px; flex-wrap: wrap; }
 	.fx-btn { flex: 1; min-width: 100px; padding: 8px 10px; background: #18181b; color: #d4d4d8; border: 1px solid #3f3f46; border-radius: 8px; font-size: 12px; cursor: pointer; }
 	.fx-btn:hover { background: #27272a; border-color: #52525b; }
+
+	.fx-ctrl-row { display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-top: 1px solid #1f1f23; }
+	.fx-mute { background: none; border: none; font-size: 15px; cursor: pointer; padding: 2px; }
+	.fx-slider { flex: 1; accent-color: #818cf8; }
 
 	.chat-panel { display: flex; flex-direction: column; height: 320px; }
 	.msg-list { flex: 1; overflow-y: auto; padding: 10px; display: flex; flex-direction: column; gap: 6px; }
@@ -374,4 +466,86 @@
 	.primary-btn { margin-top: 12px; padding: 10px 20px; background: #818cf8; color: #fff; border: none; border-radius: 10px; font-weight: 600; cursor: pointer; }
 
 	.no-media { color: #71717a; padding: 40px; text-align: center; }
+
+	.sync-row { margin-top: 10px; display: flex; }
+	.sync-btn { display: inline-flex; align-items: center; gap: 8px; padding: 7px 14px; background: #18181b; color: #c4b5fd; border: 1px solid #3f3f46; border-radius: 8px; font-size: 12px; font-weight: 600; cursor: pointer; }
+	.sync-btn:hover { background: #27272a; border-color: #818cf8; }
+
+	.chat-fab { display: none; }
+
+	.mobile-chat-backdrop {
+		display: none;
+	}
+
+	@media (max-width: 900px) {
+		.chat-fab {
+			display: inline-flex;
+			position: fixed;
+			right: 16px;
+			bottom: 16px;
+			z-index: 60;
+			width: 52px;
+			height: 52px;
+			border-radius: 50%;
+			background: #818cf8;
+			color: #fff;
+			align-items: center;
+			justify-content: center;
+			border: none;
+			box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
+			cursor: pointer;
+		}
+
+		.chat-fab:hover { background: #6d7cf0; }
+
+		.mobile-chat-backdrop {
+			display: flex;
+			position: fixed;
+			inset: 0;
+			z-index: 50;
+			background: rgba(0, 0, 0, 0.55);
+			align-items: flex-end;
+		}
+
+		.mobile-chat-sheet {
+			width: 100%;
+			max-height: 80vh;
+			background: #111113;
+			border-radius: 16px 16px 0 0;
+			display: flex;
+			flex-direction: column;
+			padding: 14px;
+			gap: 12px;
+		}
+
+		.mobile-chat-head {
+			display: flex;
+			align-items: center;
+			justify-content: space-between;
+		}
+
+		.mobile-chat-title { font-size: 15px; font-weight: 700; color: #e4e4e7; }
+
+		.mobile-close {
+			background: none;
+			border: none;
+			color: #a1a1aa;
+			font-size: 22px;
+			line-height: 1;
+			cursor: pointer;
+		}
+
+		.mobile-member-list { display: flex; flex-wrap: wrap; gap: 6px; }
+		.mobile-member-chip {
+			font-size: 11px;
+			padding: 3px 8px;
+			border-radius: 999px;
+			background: #18181b;
+			border: 1px solid #27272a;
+			color: #a1a1aa;
+		}
+		.mobile-member-chip.is-me { color: #c4b5fd; border-color: #3f3f46; }
+
+		.mobile-msg-list { flex: 1; overflow-y: auto; min-height: 120px; }
+	}
 </style>

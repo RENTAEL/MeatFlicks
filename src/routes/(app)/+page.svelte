@@ -13,6 +13,16 @@ import { ErrorState } from '$lib/components/ui';
 import { Loader2, RefreshCw } from '@lucide/svelte';
 import DiscoveryEngine from '$lib/components/DiscoveryEngine.svelte';
 import ContentCalendar from '$lib/components/ContentCalendar.svelte';
+import { goto } from '$app/navigation';
+
+	const WP_CODE_RE = /^[ABCDEFGHJKMNPQRSTUVWXYZ23456789]{6}$/;
+	let wpCode = $state('');
+
+	function joinWatchParty() {
+		const clean = wpCode.trim().toUpperCase();
+		if (!WP_CODE_RE.test(clean)) return;
+		goto(`/watch/${clean}`);
+	}
 
 	let continueWatchingRef = $state({ value: null as HTMLElement | null });
 	let recommendedRef = $state({ value: null as HTMLElement | null });
@@ -126,6 +136,36 @@ import ContentCalendar from '$lib/components/ContentCalendar.svelte';
 				TV Series →
 			</a>
 		</div>
+	</div>
+</section>
+
+<section class="wp-strip">
+	<div class="wp-strip-inner">
+		<div class="wp-strip-text">
+			<span class="wp-strip-title">Watch Party</span>
+			<span class="wp-strip-sub">Got a room code? Jump straight in.</span>
+		</div>
+		<form
+			class="wp-strip-form"
+			onsubmit={(e) => { e.preventDefault(); joinWatchParty(); }}
+		>
+			<input
+				class="wp-strip-input"
+				value={wpCode}
+				oninput={(e) => (wpCode = (e.currentTarget as HTMLInputElement).value.toUpperCase())}
+				placeholder="Room code"
+				maxlength="6"
+				aria-label="Watch party room code"
+			/>
+			<button
+				class="wp-strip-btn"
+				type="submit"
+				disabled={!WP_CODE_RE.test(wpCode.trim().toUpperCase())}
+			>
+				Join
+			</button>
+		</form>
+		<a class="wp-strip-link" href="/watch-party">Start one →</a>
 	</div>
 </section>
 
@@ -414,5 +454,92 @@ import ContentCalendar from '$lib/components/ContentCalendar.svelte';
 		.hero-content {
 			padding: 2rem 0;
 		}
+	}
+
+	.wp-strip {
+		max-width: 1100px;
+		margin: -1rem auto 0;
+		padding: 0 1.5rem;
+	}
+
+	.wp-strip-inner {
+		display: flex;
+		align-items: center;
+		gap: 1.25rem;
+		flex-wrap: wrap;
+		padding: 1rem 1.25rem;
+		border-radius: var(--radius-xl);
+		background: var(--bg-card);
+		border: 1px solid var(--border-stream);
+	}
+
+	.wp-strip-text {
+		display: flex;
+		flex-direction: column;
+		gap: 0.15rem;
+		flex: 1;
+		min-width: 180px;
+	}
+
+	.wp-strip-title {
+		font-weight: var(--font-weight-semibold);
+		color: var(--text-primary);
+	}
+
+	.wp-strip-sub {
+		font-size: 0.8rem;
+		color: var(--text-secondary);
+	}
+
+	.wp-strip-form {
+		display: flex;
+		gap: 0.5rem;
+	}
+
+	.wp-strip-input {
+		width: 150px;
+		padding: 0.55rem 0.75rem;
+		border-radius: var(--radius-md);
+		background: var(--bg-root);
+		border: 1px solid var(--border-stream);
+		color: var(--text-primary);
+		font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+		font-size: 1rem;
+		font-weight: 700;
+		letter-spacing: 0.1em;
+		text-align: center;
+		text-transform: uppercase;
+		outline: none;
+	}
+
+	.wp-strip-input:focus {
+		border-color: var(--accent-color, #818cf8);
+	}
+
+	.wp-strip-btn {
+		padding: 0.55rem 1.25rem;
+		border-radius: var(--radius-md);
+		background: var(--gradient-brand);
+		color: white;
+		border: none;
+		font-weight: var(--font-weight-semibold);
+		cursor: pointer;
+	}
+
+	.wp-strip-btn:disabled {
+		opacity: 0.35;
+		cursor: not-allowed;
+	}
+
+	.wp-strip-link {
+		font-size: 0.85rem;
+		font-weight: var(--font-weight-semibold);
+		color: var(--accent-color, #818cf8);
+		text-decoration: none;
+		white-space: nowrap;
+	}
+
+	.wp-strip-link:hover {
+		text-decoration: underline;
 	}
 </style>

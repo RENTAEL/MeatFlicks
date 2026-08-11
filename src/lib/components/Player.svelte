@@ -25,6 +25,7 @@
 		preResolvedSource = null as string | null,
 		readOnly = false as boolean,
 		remoteSync = null as { seq: number; playing: boolean; position: number; positionAt: number } | null,
+		syncPoke = 0 as number,
 		onPlaybackChange = undefined as ((signal: { playing: boolean; position: number }) => void) | undefined
 	}: {
 		tmdbId: number;
@@ -41,6 +42,7 @@
 		preResolvedSource?: string | null;
 		readOnly?: boolean;
 		remoteSync?: { seq: number; playing: boolean; position: number; positionAt: number } | null;
+		syncPoke?: number;
 		onPlaybackChange?: (signal: { playing: boolean; position: number }) => void;
 	} = $props();
 
@@ -113,13 +115,16 @@
 	let suppressedKey: string | null = null;
 	let currentKey = $derived(`${season}:${episode}`);
 	let remoteAppliedSeq = 0;
+	let remotePokedSeq = 0;
 
 	$effect(() => {
 		const rs = remoteSync;
+		const poke = syncPoke;
 		if (!rs) return;
-		if (rs.seq === remoteAppliedSeq) return;
+		if (rs.seq === remoteAppliedSeq && poke === remotePokedSeq) return;
 		if (!iframeLoaded) return;
 		remoteAppliedSeq = rs.seq;
+		remotePokedSeq = poke;
 		const target = Math.max(0, rs.playing ? rs.position + (Date.now() - rs.positionAt) / 1000 : rs.position);
 		const current = ytPlayer?.getCurrentTime?.() ?? elapsedSeconds;
 		if (Math.abs(current - target) > 2) {
@@ -511,6 +516,7 @@
 		loadedProviders.add(currentProvider?.id || '');
 		stopAutoSwitch();
 		remoteAppliedSeq = 0;
+		remotePokedSeq = 0;
 	}
 
 	function onIframeError() {
