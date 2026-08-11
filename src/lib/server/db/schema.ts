@@ -676,9 +676,7 @@ export const watchPartyMembers = sqliteTable(
 		roomId: text('room_id')
 			.notNull()
 			.references(() => watchPartyRooms.id, { onDelete: 'cascade' }),
-		userId: text('user_id')
-			.notNull()
-			.references(() => users.id, { onDelete: 'cascade' }),
+		userId: text('user_id').notNull(),
 		username: text('username').notNull(),
 		lastSeenAt: integer('last_seen_at').notNull().$defaultFn(() => Date.now()),
 		joinedAt: integer('joined_at').notNull().$defaultFn(() => Date.now())

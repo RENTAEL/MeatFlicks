@@ -255,6 +255,29 @@ const runInitSql = async (client: Client) => {
 		)`);
 		try { await client.execute('CREATE INDEX IF NOT EXISTS idx_wp_members_user ON watch_party_members("user_id")'); } catch {}
 		try { await client.execute('CREATE INDEX IF NOT EXISTS idx_wp_members_seen ON watch_party_members("last_seen_at")'); } catch {}
+		try {
+			await client.execute(`CREATE TABLE IF NOT EXISTS watch_party_members_v2 (
+				"room_id" TEXT NOT NULL REFERENCES watch_party_rooms("id") ON DELETE CASCADE,
+				"user_id" TEXT NOT NULL,
+				"username" TEXT NOT NULL,
+				"last_seen_at" INTEGER NOT NULL DEFAULT ${Date.now()},
+				"joined_at" INTEGER NOT NULL DEFAULT ${Date.now()},
+				PRIMARY KEY ("room_id", "user_id")
+			)`);
+			await client.execute(
+				`INSERT OR IGNORE INTO watch_party_members_v2 ("room_id","user_id","username","last_seen_at","joined_at")
+				SELECT "room_id","user_id","username","last_seen_at","joined_at" FROM watch_party_members`
+			);
+			await client.execute(
+				`ALTER TABLE watch_party_members RENAME TO watch_party_members_old`
+			);
+			await client.execute(
+				`ALTER TABLE watch_party_members_v2 RENAME TO watch_party_members`
+			);
+			await client.execute('DROP TABLE IF EXISTS watch_party_members_old');
+			await client.execute('CREATE INDEX IF NOT EXISTS idx_wp_members_user ON watch_party_members("user_id")');
+			await client.execute('CREATE INDEX IF NOT EXISTS idx_wp_members_seen ON watch_party_members("last_seen_at")');
+		} catch {}
 
 		await client.execute(`CREATE TABLE IF NOT EXISTS watch_party_messages (
 			"id" INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
