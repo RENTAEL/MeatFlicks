@@ -756,6 +756,9 @@
 
 	function onIframeLoad() {
 		iframeLoaded = true;
+		try {
+			(window as any).__wpDiag = ((window as any).__wpDiag || []).concat([{ t: 'iframeload', at: Date.now(), src: (frameRef as HTMLIFrameElement | null)?.src?.slice(0, 80) ?? null }]).slice(-30);
+		} catch {}
 		hasError = false;
 		loadedProviders.add(currentProvider?.id || '');
 		stopAutoSwitch();
