@@ -19,6 +19,7 @@
 	import { setupCloudSync } from '$lib/firebase/sync';
 	import { menuOpen } from '$lib/stores/menu';
 	import { authStore } from '$lib/state/stores/authStore.svelte.ts';
+	import PreviewSwitcher from '$lib/components/branding/PreviewSwitcher.svelte';
 	import UblockPopup from '$lib/components/UblockPopup.svelte';
 	import UserFab from '$lib/components/UserFab.svelte';
 	import DeveloperBadge from '$lib/components/DeveloperBadge.svelte';
@@ -203,6 +204,7 @@
 				>
 				History
 			</a>
+			<PreviewSwitcher variant="mobile" />
 			{#if authStore.state.user}
 				<a href="/profile" class="menu-item" onclick={() => menuOpen.set(false)}>
 					<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"

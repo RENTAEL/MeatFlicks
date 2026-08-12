@@ -3,69 +3,142 @@
 		$props();
 
 	const sizeClasses = {
-		sm: 'h-6 w-auto',
-		md: 'h-8 w-auto',
-		lg: 'h-10 w-auto'
+		sm: 'h-6 w-6',
+		md: 'h-8 w-8',
+		lg: 'h-10 w-10'
 	};
 </script>
 
-<svg
-	class="midnight-logo {sizeClasses[size]} {className}"
-	viewBox="0 0 120 80"
-	fill="none"
-	xmlns="http://www.w3.org/2000/svg"
-	aria-hidden="true"
->
-	<defs>
-		<linearGradient id="midnightGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-			<stop offset="0%" stop-color="#4F46E5" stop-opacity="1" />
-			<stop offset="25%" stop-color="#7C3AED" stop-opacity="1" />
-			<stop offset="50%" stop-color="#EC4899" stop-opacity="1" />
-			<stop offset="75%" stop-color="#06B6D4" stop-opacity="1" />
-			<stop offset="100%" stop-color="#22D3EE" stop-opacity="1" />
-		</linearGradient>
-		<linearGradient id="midnightGradientVertical" x1="0%" y1="0%" x2="0%" y2="100%">
-			<stop offset="0%" stop-color="#4F46E5" stop-opacity="1" />
-			<stop offset="50%" stop-color="#7C3AED" stop-opacity="1" />
-			<stop offset="100%" stop-color="#06B6D4" stop-opacity="1" />
-		</linearGradient>
-		<filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
-			<feGaussianBlur stdDeviation="3" result="blur" />
-			<feMerge>
-				<feMergeNode in="blur" />
-				<feMergeNode in="SourceGraphic" />
-			</feMerge>
-		</filter>
-	</defs>
-
-	<!-- Crescent moon icon -->
-	<g filter="url(#glow)">
-		<path
-			d="M20 12 C20 16.4183 16.4183 20 12 20 C5.37258 20 0.5 15.1274 0.5 8.5 C0.5 6.567 1.5 4.735 3 3.5 C4.5 2.5 6.5 2.5 8 3.5 C10 2.5 11 4 11 6 C11 8.20914 9.20914 10 7 10 C4.79086 10 3 8.20914 3 6 C3 3.79086 4.79086 2 7 2 C10.3137 2 13 4.68629 13 8 C13 9.65685 11.6569 11 10 11 C8.34315 11 7 9.65685 7 8 C7 6.89543 7.89543 6 9 6 C10.1046 6 11 6.89543 11 8 C11 9.65685 9.65685 11 8 11 C6.34315 11 5 9.65685 5 8 C5 6.89543 5.89543 6 7 6 C8.65685 6 10 7.34315 10 9 C10 10.6569 8.65685 12 7 12 C4.23858 12 2 9.76142 2 7 C2 4.23858 4.23858 2 7 2 C9.97056 2 12.5 4.53 12.5 8 C12.5 11.53 9.97056 14 7 14 C3.13401 14 0.5 11.366 0.5 8 C0.5 5.234 2.634 3 5 3 C7.20914 3 9 4.79086 9 7 C9 8.10457 8.10457 9 8 9 C6.89543 9 6 8.10457 6 8 C6 7.44772 6.44772 7 7 7 C8.10457 7 9 7.89543 9 9 C9 9.55228 8.55228 10 8 10 C7.44772 10 7 9.55228 7 9 C6.44772 9 6 8.44772 6 8 C6 7.44772 6.44772 7 7 7 Z"
-			fill="url(#midnightGradient)"
-			transform="translate(10 18) scale(0.65)"
-		/>
-	</g>
-
-	<!-- Midnight wordmark -->
-	<text
-		x="50"
-		y="58"
-		font-family="system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif"
-		font-size="28"
-		font-weight="700"
-		letter-spacing="-0.02em"
-		fill="url(#midnightGradient)"
-		text-anchor="middle"
-		filter="url(#glow)"
-	>
-		Midnight
-	</text>
-</svg>
+<div class="midnight-3d {sizeClasses[size]} {className}">
+	<div class="midnight-tilt">
+		<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+			<defs>
+				<radialGradient id="midnightMoon" cx="38%" cy="32%" r="85%">
+					<stop offset="0%" stop-color="#E0E7FF" />
+					<stop offset="35%" stop-color="#818CF8" />
+					<stop offset="70%" stop-color="#4F46E5" />
+					<stop offset="100%" stop-color="#312E81" />
+				</radialGradient>
+				<linearGradient id="midnightStar" x1="0%" y1="0%" x2="100%" y2="100%">
+					<stop offset="0%" stop-color="#FDE68A" />
+					<stop offset="100%" stop-color="#C7D2FE" />
+				</linearGradient>
+				<filter id="midnightGlow" x="-60%" y="-60%" width="220%" height="220%">
+					<feGaussianBlur stdDeviation="2.2" />
+				</filter>
+			</defs>
+			<circle
+				class="midnight-glow"
+				cx="12"
+				cy="12"
+				r="9"
+				fill="#6366F1"
+				filter="url(#midnightGlow)"
+				opacity="0.55"
+			/>
+			<path
+				d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"
+				fill="url(#midnightMoon)"
+				stroke="#A5B4FC"
+				stroke-width="0.6"
+				stroke-opacity="0.55"
+			/>
+			<path
+				class="midnight-star midnight-star-1"
+				d="M18.6 4.6 L19.15 6.05 L20.6 6.6 L19.15 7.15 L18.6 8.6 L18.05 7.15 L16.6 6.6 L18.05 6.05 Z"
+				fill="url(#midnightStar)"
+			/>
+			<path
+				class="midnight-star midnight-star-2"
+				d="M4.2 15.4 L4.6 16.4 L5.6 16.8 L4.6 17.2 L4.2 18.2 L3.8 17.2 L2.8 16.8 L3.8 16.4 Z"
+				fill="url(#midnightStar)"
+			/>
+			<circle class="midnight-star midnight-star-3" cx="17" cy="16.5" r="0.7" fill="#C7D2FE" />
+		</svg>
+	</div>
+</div>
 
 <style>
-	.midnight-logo {
+	.midnight-3d {
 		display: block;
 		flex-shrink: 0;
+		perspective: 120px;
+		filter: drop-shadow(0 2px 5px rgba(49, 46, 129, 0.55));
+	}
+
+	.midnight-tilt {
+		width: 100%;
+		height: 100%;
+		transform-style: preserve-3d;
+		will-change: transform;
+		animation: midnight-tilt 6s ease-in-out infinite;
+	}
+
+	.midnight-glow {
+		will-change: opacity;
+		animation: midnight-glow 3.6s ease-in-out infinite;
+	}
+
+	.midnight-star {
+		transform-origin: center;
+		animation: midnight-twinkle 2.8s ease-in-out infinite;
+	}
+
+	.midnight-star-2 {
+		animation-delay: 0.9s;
+	}
+
+	.midnight-star-3 {
+		animation-delay: 1.7s;
+	}
+
+	@keyframes midnight-tilt {
+		0%,
+		100% {
+			transform: rotateX(10deg) rotateY(-10deg) translateY(0);
+		}
+		50% {
+			transform: rotateX(-10deg) rotateY(10deg) translateY(-1.5px);
+		}
+	}
+
+	@keyframes midnight-glow {
+		0%,
+		100% {
+			opacity: 0.45;
+		}
+		50% {
+			opacity: 0.85;
+		}
+	}
+
+	@keyframes midnight-twinkle {
+		0%,
+		100% {
+			opacity: 0.35;
+			transform: scale(0.75);
+		}
+		50% {
+			opacity: 1;
+			transform: scale(1.15);
+		}
+	}
+
+	:global(.logo:hover) .midnight-tilt {
+		animation-duration: 2.6s;
+	}
+
+	@media (prefers-reduced-motion: reduce) {
+		.midnight-tilt,
+		.midnight-glow,
+		.midnight-star,
+		.midnight-star-2,
+		.midnight-star-3 {
+			animation: none;
+		}
+
+		:global(.logo:hover) .midnight-tilt {
+			animation: none;
+		}
 	}
 </style>

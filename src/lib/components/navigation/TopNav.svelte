@@ -7,6 +7,7 @@
 	import { getCsrfTokenClient } from '$lib/utils/csrf.client';
 	import ThemeToggle from '$lib/themes/ThemeToggle.svelte';
 	import BrandLogo from '$lib/components/branding/BrandLogo.svelte';
+	import PreviewSwitcher from '$lib/components/branding/PreviewSwitcher.svelte';
 	import { getScrollY, addScrollListener } from '$lib/utils/scrollPosition';
 
 	let scrolled = $state(false);
@@ -69,6 +70,7 @@
 						<div class="avatar-sm">{(page.data.user.username || '?').charAt(0).toUpperCase()}</div>
 						<span class="username-label">{page.data.user.username}</span>
 					</a>
+					<PreviewSwitcher variant="desktop" />
 					<a href="/watch-party" class="wp-btn">
 						<svg
 							width="15"

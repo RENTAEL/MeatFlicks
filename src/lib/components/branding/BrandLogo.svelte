@@ -1,19 +1,52 @@
 <script lang="ts">
+	import { page } from '$app/state';
 	import { authStore } from '$lib/state/stores/authStore.svelte.ts';
+	import { getBranding } from '$lib/utils/branding';
+	import { previewStore } from '$lib/state/stores/previewStore.svelte.ts';
+	import CustomLogo from './CustomLogo.svelte';
 	import MidnightLogo from './MidnightLogo.svelte';
+	import SofiaLogo from './SofiaLogo.svelte';
 
 	let { size = 'md', class: className = '' }: { size?: 'sm' | 'md' | 'lg'; class?: string } =
 		$props();
 
-	function isMidnightUser(): boolean {
-		const user = authStore.state.user;
-		if (!user) return false;
-		return user.displayName === 'ghostbunny_779' || user.email === 'ghostbunny_779@example.com';
-	}
+	const sessionUser = $derived(page.data.user ?? null);
+	const firebaseUser = $derived(authStore.state.user);
+	const actualBranding = $derived(
+		getBranding(firebaseUser) ??
+			(sessionUser ? getBranding({ displayName: sessionUser.username, email: null }) : null)
+	);
+	const previewBranding = $derived(previewStore.current);
+	const branding = $derived(
+		previewBranding === 'streamium' ? null : (previewBranding ?? actualBranding)
+	);
+
+	$effect(() => {
+		console.log(
+			'branding user:',
+			branding,
+			sessionUser?.username ?? null,
+			firebaseUser?.displayName ?? null,
+			firebaseUser?.email ?? null
+		);
+	});
 </script>
 
-{#if isMidnightUser()}
-	<MidnightLogo {size} class={className} />
+{#if branding === 'midnight'}
+	<a href="/" class="logo {className}" title="Midnight" aria-label="Midnight Home">
+		<MidnightLogo {size} />
+		<span class="logo-text">Midnight</span>
+	</a>
+{:else if branding === 'sofia'}
+	<a href="/" class="logo {className}" title="Sofia the First" aria-label="Sofia Home">
+		<SofiaLogo {size} />
+		<span class="logo-text logo-text-sofia">Sofia</span>
+	</a>
+{:else if branding === 'custom'}
+	<a href="/" class="logo {className}" title="user" aria-label="Custom Home">
+		<CustomLogo {size} />
+		<span class="logo-text logo-text-custom">user</span>
+	</a>
 {:else}
 	<a href="/" class="logo {className}" title="Streamium" aria-label="Streamium Home">
 		{#if size === 'sm'}
@@ -65,6 +98,13 @@
 
 	.logo-text {
 		background: var(--gradient-brand-horizontal);
+		-webkit-background-clip: text;
+		-webkit-text-fill-color: transparent;
+		background-clip: text;
+	}
+
+	.logo-text-sofia {
+		background: linear-gradient(90deg, #fcd34d, #f472b6, #a78bfa);
 		-webkit-background-clip: text;
 		-webkit-text-fill-color: transparent;
 		background-clip: text;
