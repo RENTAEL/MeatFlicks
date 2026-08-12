@@ -317,7 +317,8 @@
 			const embedFresh = !!embedEvent && Date.now() - embedEvent.at < 6000;
 			const stateDiffers = embedFresh && embedSettled && embedEvent!.playing !== rs.playing;
 			if (needSeek || stateDiffers) reloadSync(target, rs.playing, forceReload);
-			else updateSyncState(current, target);
+			sendEmbedCommand(frameRef, rs.playing ? 'play' : 'pause');
+			updateSyncState(current, target);
 			markSyncApplied(rs);
 			return;
 		}
