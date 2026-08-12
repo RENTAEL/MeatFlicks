@@ -64,10 +64,18 @@ page.on('request', (r) => {
 await page.goto(`${BASE}/watch/${roomId}`, { waitUntil: 'domcontentloaded', timeout: 90000 });
 console.log('page loaded, waiting for player');
 await page.waitForFunction(() => !!document.querySelector('.player-root'), null, { timeout: 60000 }).catch(() => {});
-await page.waitForTimeout(1000);
-await page.keyboard.press('k');
-await page.waitForTimeout(500);
-console.log('audio unlocked via trusted keydown (parent page); monitoring member SSE + sound for 120s');
+await page.waitForFunction(() => !!document.querySelector('.sound-hint'), null, { timeout: 30000 }).catch(() => {});
+await page.waitForTimeout(1500);
+const hintBox = await page.locator('.sound-hint').boundingBox().catch(() => null);
+if (hintBox) {
+	await page.mouse.click(hintBox.x + hintBox.width / 2, hintBox.y + hintBox.height / 2);
+	await page.waitForTimeout(300);
+}
+const hintAfter = await page.evaluate(() => ({
+	hint: document.querySelector('.sound-hint')?.textContent ?? null
+})).catch(() => null);
+console.log('post-click diag:', JSON.stringify(hintAfter));
+console.log('monitoring member SSE + sound for 120s');
 let lastStreamCount = 0;
 const t0 = Date.now();
 
@@ -84,6 +92,7 @@ for (let i = 0; i < 120; i++) {
 			playing: sw ? sw.playing : null,
 			position: sw ? sw.position : null,
 			sound: sd ? { kind: sd.kind, at: sd.at, source: sd.source } : null,
+			hint: document.querySelector('.sound-hint')?.textContent ?? null,
 			title: document.querySelector('.room-title')?.textContent?.slice(0, 30) ?? null,
 			fxDisabled: document.querySelector('button.fx-btn')?.disabled ?? null
 		};

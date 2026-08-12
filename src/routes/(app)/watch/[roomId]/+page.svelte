@@ -126,18 +126,6 @@
 		soundUnlocked = true;
 	}
 
-	function getRemoteSync() {
-		return state.isHost
-			? null
-			: {
-					seq: state.playback.seq,
-					playing: state.playback.playing,
-					position: state.playback.position,
-					positionAt: state.playback.positionAt,
-					provider: state.playback.provider
-				};
-	}
-
 	let lastPlaybackSignal: { playing: boolean; position: number; provider: { id: string; name: string } | null } | null = null;
 	let syncPoke = 0;
 	let memberSyncState: { status: 'synced' | 'drifted' | 'syncing'; drift: number } = { status: 'synced', drift: 0 };
@@ -265,7 +253,7 @@
 				episode={state.media.episode ?? 1}
 				title={state.media.title}
 				readOnly={!state.isHost}
-				remoteSync={getRemoteSync()}
+				remoteSync={state.isHost ? null : state.playback}
 				syncPoke={syncPoke}
 				onPlaybackChange={onPlaybackChange}
 				onSyncState={onMemberSyncState}
