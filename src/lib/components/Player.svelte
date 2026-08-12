@@ -402,8 +402,10 @@
 					elapsedSeconds = target;
 				}
 			} else if (currentProvider?.id === 'vidlink') {
+				const embedSettled = !lastReload || Date.now() - lastReload.at >= 20000
+					|| (!!embedEvent && Math.abs(embedEvent.position - lastReload.position) <= 8);
 				const embedFresh = !!embedEvent && Date.now() - embedEvent.at < 6000;
-				if (embedFresh && embedEvent!.playing !== latestRemote.playing) reloadSync(target, latestRemote.playing);
+				if (embedFresh && embedSettled && embedEvent!.playing !== latestRemote.playing) reloadSync(target, latestRemote.playing);
 			}
 			maybeShowTapPrompt();
 		}, 5000);
