@@ -257,8 +257,12 @@
 			return false;
 		}
 		if (Date.now() - ev.at >= 6000) return Math.abs(target - current) > 2;
-		// cold-start: embed still far from the position we loaded at — fall back to raw gap
-		if (!lr || Math.abs(ev.position - lr.position) > 8) return Math.abs(target - current) > 2;
+		// cold-start / structural-deficit check: embed far from its expected
+		// trajectory (still seeking to the load point, or #t cold-start lag) —
+		// outside the structural tolerance, fall back to raw gap.
+		if (!lr) return Math.abs(target - current) > 2;
+		const expected = lr.position + (lr.playing ? (Date.now() - lr.at) / 1000 : 0);
+		if (Math.abs(ev.position - expected) > 12) return Math.abs(target - current) > 2;
 		const def = target - current;
 		if (embedBaselineDeficit === null) embedBaselineDeficit = def;
 		const eff = def - embedBaselineDeficit;
