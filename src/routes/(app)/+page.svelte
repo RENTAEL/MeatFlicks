@@ -1,19 +1,22 @@
 <script lang="ts">
-import Hero from '$lib/components/home/Hero.svelte';
-import { PersonalizedRows } from '$lib/components/home';
-import { MediaScrollContainer } from '$lib/components/media';
-import HomePageSkeleton from '$lib/components/skeletons/HomePageSkeleton.svelte';
-import MediaRowSkeleton from '$lib/components/skeletons/MediaRowSkeleton.svelte';
-import type { PageData } from './$types';
-import type { HomeLibrary } from '$lib/types/library';
-import { SEOHead } from '$lib/components/seo';
-import { useLazyComponentOnVisible } from '$lib/utils/lazyLoad.svelte';
-import { Button } from '$lib/components/ui/button';
-import { ErrorState } from '$lib/components/ui';
-import { Loader2, RefreshCw } from '@lucide/svelte';
-import DiscoveryEngine from '$lib/components/DiscoveryEngine.svelte';
-import ContentCalendar from '$lib/components/ContentCalendar.svelte';
-import { goto } from '$app/navigation';
+	import Hero from '$lib/components/home/Hero.svelte';
+	import { PersonalizedRows } from '$lib/components/home';
+	import { MediaScrollContainer } from '$lib/components/media';
+	import HomePageSkeleton from '$lib/components/skeletons/HomePageSkeleton.svelte';
+	import MediaRowSkeleton from '$lib/components/skeletons/MediaRowSkeleton.svelte';
+	import type { PageData } from './$types';
+	import type { HomeLibrary } from '$lib/types/library';
+	import { SEOHead } from '$lib/components/seo';
+	import { useLazyComponentOnVisible } from '$lib/utils/lazyLoad.svelte';
+	import { Button } from '$lib/components/ui/button';
+	import { ErrorState } from '$lib/components/ui';
+	import { Loader2, RefreshCw } from '@lucide/svelte';
+	import DiscoveryEngine from '$lib/components/DiscoveryEngine.svelte';
+	import ContentCalendar from '$lib/components/ContentCalendar.svelte';
+	import { goto } from '$app/navigation';
+	import { onMount } from 'svelte';
+	import { getImageUrl, getBackdropSrcSet } from '$lib/utils/image';
+	import { getScrollY, addScrollListener } from '$lib/utils/scrollPosition';
 
 	const WP_CODE_RE = /^[ABCDEFGHJKMNPQRSTUVWXYZ23456789]{6}$/;
 	let wpCode = $state('');
@@ -68,7 +71,7 @@ import { goto } from '$app/navigation';
 	let refreshError = $state<string | null>(null);
 
 	let homeLibraryPromise = $derived(
-		data.streamed?.homeLibrary as Promise<HomeLibrary | null> ?? null
+		(data.streamed?.homeLibrary as Promise<HomeLibrary | null>) ?? null
 	);
 
 	async function refreshHomeLibrary() {
@@ -98,6 +101,28 @@ import { goto } from '$app/navigation';
 			isRefreshing = false;
 		}
 	}
+
+	// Hero collapse on scroll
+	let heroCollapsed = $state(false);
+	let heroElement = $state<HTMLElement | null>(null);
+	let reducedMotion = false;
+
+	onMount(() => {
+		if (typeof window !== 'undefined') {
+			reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+		}
+	});
+
+	function onHeroScroll() {
+		if (reducedMotion || !heroElement) return;
+		const scrollY = getScrollY();
+		const heroHeight = heroElement.offsetHeight;
+		heroCollapsed = scrollY > heroHeight * 0.3;
+	}
+
+	$effect(() => {
+		return addScrollListener(onHeroScroll);
+	});
 </script>
 
 <SEOHead
@@ -116,23 +141,48 @@ import { goto } from '$app/navigation';
 	]}
 />
 
-<!-- Hero section -->
-<section class="hero">
+<!-- Hero section - Full bleed with collapse on scroll -->
+<section
+	class="hero-section"
+	class:collapsed={heroCollapsed}
+	bind:this={heroElement}
+	aria-labelledby="hero-title"
+>
 	<div class="hero-bg">
+		{#await homeLibraryPromise then resolved}
+			{#if resolved?.trendingMovies?.[0]?.backdropPath}
+				{@const backdropPath = resolved.trendingMovies[0].backdropPath}
+				{@const src = getImageUrl(backdropPath, 'w1280')}
+				{@const srcset = getBackdropSrcSet(backdropPath)}
+				<img
+					{src}
+					{srcset}
+					sizes="100vw"
+					width="1280"
+					height="720"
+					alt=""
+					loading="eager"
+					fetchpriority="high"
+					aria-hidden="true"
+					class="hero-image"
+				/>
+			{/if}
+		{/await}
 		<div class="hero-gradient"></div>
+		<div class="hero-scrim"></div>
 	</div>
-	<div class="hero-content container fade-in-up">
+
+	<div class="hero-content container" id="hero-content">
 		<span class="hero-badge">✦ New & Trending</span>
-		<h1 class="hero-title">Stream Without<br />Limits</h1>
+		<h1 id="hero-title" class="hero-title">Stream Without<br />Limits</h1>
 		<p class="hero-subtitle">
-			Movies, TV series, and Afrikaans content — ad-free,
-			buffer-free, hassle-free.
+			Movies, TV series, and Afrikaans content — ad-free, buffer-free, hassle-free.
 		</p>
 		<div class="hero-actions">
-			<a href="/movies" class="hero-btn hero-btn-primary">
+			<a href="/movies" class="hero-btn hero-btn-primary" data-sveltekit-preload-data="hover">
 				▶ Browse Movies
 			</a>
-			<a href="/tv" class="hero-btn hero-btn-secondary">
+			<a href="/tv" class="hero-btn hero-btn-secondary" data-sveltekit-preload-data="hover">
 				TV Series →
 			</a>
 		</div>
@@ -147,7 +197,10 @@ import { goto } from '$app/navigation';
 		</div>
 		<form
 			class="wp-strip-form"
-			onsubmit={(e) => { e.preventDefault(); joinWatchParty(); }}
+			onsubmit={(e) => {
+				e.preventDefault();
+				joinWatchParty();
+			}}
 		>
 			<input
 				class="wp-strip-input"
@@ -190,7 +243,9 @@ import { goto } from '$app/navigation';
 
 						<Hero movie={featuredItem} movies={trendingMovies} />
 
-						<div class="flex flex-wrap items-center gap-3 px-[5%] pb-6 text-sm text-muted-foreground sm:px-5">
+						<div
+							class="flex flex-wrap items-center gap-3 px-[5%] pb-6 text-sm text-muted-foreground sm:px-5"
+						>
 							<Button
 								type="button"
 								variant="outline"
@@ -223,10 +278,7 @@ import { goto } from '$app/navigation';
 								{#if ContinueWatchingRow}
 									<ContinueWatchingRow />
 								{:else}
-									<div
-										bind:this={continueWatchingRef.value}
-										class="w-full"
-									>
+									<div bind:this={continueWatchingRef.value} class="w-full">
 										<MediaRowSkeleton variant="wide" items={4} />
 									</div>
 								{/if}
@@ -237,10 +289,7 @@ import { goto } from '$app/navigation';
 								{#if RecommendedRow}
 									<RecommendedRow />
 								{:else}
-									<div
-										bind:this={recommendedRef.value}
-										class="w-full"
-									>
+									<div bind:this={recommendedRef.value} class="w-full">
 										<MediaRowSkeleton variant="wide" items={4} />
 									</div>
 								{/if}
@@ -250,10 +299,7 @@ import { goto } from '$app/navigation';
 								{#if TrendingMediaSlider}
 									<TrendingMediaSlider title="Trending Movies" movies={trendingMovies} />
 								{:else}
-									<div
-										bind:this={trendingMediaRef.value}
-										class="w-full"
-									>
+									<div bind:this={trendingMediaRef.value} class="w-full">
 										<MediaRowSkeleton />
 									</div>
 								{/if}
@@ -263,10 +309,7 @@ import { goto } from '$app/navigation';
 								{#if TrendingMediaSlider}
 									<TrendingMediaSlider title="Trending TV Series" movies={trendingTv} />
 								{:else}
-									<div
-										bind:this={trendingTvRef.value}
-										class="w-full"
-									>
+									<div bind:this={trendingTvRef.value} class="w-full">
 										<MediaRowSkeleton />
 									</div>
 								{/if}
@@ -275,10 +318,7 @@ import { goto } from '$app/navigation';
 							{#if RecentlyAddedRow}
 								<RecentlyAddedRow />
 							{:else}
-								<div
-									bind:this={recentlyAddedRef.value}
-									class="w-full"
-								>
+								<div bind:this={recentlyAddedRef.value} class="w-full">
 									<MediaRowSkeleton />
 								</div>
 							{/if}
@@ -286,10 +326,7 @@ import { goto } from '$app/navigation';
 							{#if TopRatedRow}
 								<TopRatedRow />
 							{:else}
-								<div
-									bind:this={topRatedRef.value}
-									class="w-full"
-								>
+								<div bind:this={topRatedRef.value} class="w-full">
 									<MediaRowSkeleton />
 								</div>
 							{/if}
@@ -347,17 +384,39 @@ import { goto } from '$app/navigation';
 </div>
 
 <style>
-	.hero {
+	.hero-section {
 		position: relative;
 		min-height: 480px;
 		display: flex;
 		align-items: center;
 		overflow: hidden;
+		transition: min-height 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+	}
+
+	.hero-section.collapsed {
+		min-height: 240px;
 	}
 
 	.hero-bg {
 		position: absolute;
 		inset: 0;
+		overflow: hidden;
+	}
+
+	.hero-image {
+		position: absolute;
+		inset: 0;
+		width: 100%;
+		height: 100%;
+		object-fit: cover;
+		object-position: center 30%;
+		transform: scale(1.02);
+		transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+		will-change: transform;
+	}
+
+	.hero-section.collapsed .hero-image {
+		transform: scale(1.1) translateY(-8%);
 	}
 
 	.hero-gradient {
@@ -365,15 +424,30 @@ import { goto } from '$app/navigation';
 		inset: 0;
 		background:
 			radial-gradient(ellipse 80% 60% at 30% 20%, rgba(124, 92, 252, 0.12) 0%, transparent 60%),
-			radial-gradient(ellipse 60% 50% at 70% 60%, rgba(201, 75, 140, 0.08) 0%, transparent 60%),
-			linear-gradient(180deg, transparent 0%, var(--bg-root) 100%);
+			radial-gradient(ellipse 60% 50% at 70% 60%, rgba(201, 75, 140, 0.08) 0%, transparent 60%);
+	}
+
+	.hero-scrim {
+		position: absolute;
+		inset: 0;
+		background: linear-gradient(
+			180deg,
+			rgba(10, 10, 15, 0.25) 0%,
+			rgba(10, 10, 15, 0.55) 55%,
+			var(--bg-root) 100%
+		);
 	}
 
 	.hero-content {
 		position: relative;
 		z-index: 1;
-		padding: 4rem 0;
+		padding: 4rem 0 3.5rem;
 		text-align: center;
+		transition: padding 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+	}
+
+	.hero-section.collapsed .hero-content {
+		padding: 2.5rem 0 2rem;
 	}
 
 	.hero-badge {
@@ -446,13 +520,25 @@ import { goto } from '$app/navigation';
 		border-color: var(--border-strong);
 	}
 
+	@media (prefers-reduced-motion: reduce) {
+		.hero-section,
+		.hero-image,
+		.hero-content {
+			transition: none;
+		}
+	}
+
 	@media (max-width: 600px) {
-		.hero {
+		.hero-section {
 			min-height: 380px;
 		}
 
+		.hero-section.collapsed {
+			min-height: 200px;
+		}
+
 		.hero-content {
-			padding: 2rem 0;
+			padding: 2rem 0 2.5rem;
 		}
 	}
 

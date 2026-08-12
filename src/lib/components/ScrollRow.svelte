@@ -5,11 +5,13 @@
 		scrollAmount,
 		gap = '0.75rem',
 		snap = false,
+		peek = false,
 		children
 	}: {
 		scrollAmount?: number;
 		gap?: string;
 		snap?: boolean;
+		peek?: boolean;
 		children: Snippet;
 	} = $props();
 
@@ -52,43 +54,74 @@
 	}
 
 	function handleKeydown(e: KeyboardEvent) {
-		if (e.key === 'ArrowLeft') { e.preventDefault(); scrollLeft(); }
-		if (e.key === 'ArrowRight') { e.preventDefault(); scrollRight(); }
+		if (e.key === 'ArrowLeft') {
+			e.preventDefault();
+			scrollLeft();
+		}
+		if (e.key === 'ArrowRight') {
+			e.preventDefault();
+			scrollRight();
+		}
 	}
 </script>
 
 <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
-<div class="scroll-row" tabindex="-1" role="region" aria-label="Scrollable media row" onkeydown={handleKeydown}>
+<div
+	class="scroll-row"
+	tabindex="-1"
+	role="region"
+	aria-label="Scrollable media row"
+	onkeydown={handleKeydown}
+>
 	<div
 		bind:this={scrollContainer}
 		class="scroll-content"
-		class:snap={snap}
+		class:snap
+		class:peek
 		style="gap: {gap}"
 		onscroll={checkScroll}
 	>
 		{@render children()}
 	</div>
 	{#if hasOverflow}
-	<div class="scroll-controls">
-		<button
-			class="scroll-btn"
-			class:disabled={atStart}
-			onclick={scrollLeft}
-			disabled={atStart}
-			aria-label="Scroll left"
-		>
-			<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
-		</button>
-		<button
-			class="scroll-btn"
-			class:disabled={atEnd}
-			onclick={scrollRight}
-			disabled={atEnd}
-			aria-label="Scroll right"
-		>
-			<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
-		</button>
-	</div>
+		<div class="scroll-controls">
+			<button
+				class="scroll-btn"
+				class:disabled={atStart}
+				onclick={scrollLeft}
+				disabled={atStart}
+				aria-label="Scroll left"
+			>
+				<svg
+					width="14"
+					height="14"
+					viewBox="0 0 24 24"
+					fill="none"
+					stroke="currentColor"
+					stroke-width="2.5"
+					stroke-linecap="round"
+					stroke-linejoin="round"><path d="M15 18l-6-6 6-6" /></svg
+				>
+			</button>
+			<button
+				class="scroll-btn"
+				class:disabled={atEnd}
+				onclick={scrollRight}
+				disabled={atEnd}
+				aria-label="Scroll right"
+			>
+				<svg
+					width="14"
+					height="14"
+					viewBox="0 0 24 24"
+					fill="none"
+					stroke="currentColor"
+					stroke-width="2.5"
+					stroke-linecap="round"
+					stroke-linejoin="round"><path d="M9 18l6-6-6-6" /></svg
+				>
+			</button>
+		</div>
 	{/if}
 </div>
 
@@ -113,6 +146,20 @@
 		scroll-snap-align: start;
 	}
 
+	/* Edge peek: on mobile, first card starts at 16px gutter and last card
+	   leaves room so the next card peeks past the right edge */
+	@media (max-width: 767px) {
+		.scroll-content.peek {
+			scroll-padding-inline-start: 1rem;
+		}
+		.scroll-content.peek > :global(*:first-child) {
+			padding-inline-start: 1rem;
+		}
+		.scroll-content.peek > :global(*:last-child) {
+			padding-inline-end: 20vw;
+		}
+	}
+
 	/* Thin styled scrollbar */
 	.scroll-content::-webkit-scrollbar {
 		height: 4px;
@@ -121,11 +168,11 @@
 		background: transparent;
 	}
 	.scroll-content::-webkit-scrollbar-thumb {
-		background: rgba(255,255,255,0.1);
+		background: rgba(255, 255, 255, 0.1);
 		border-radius: 2px;
 	}
 	.scroll-content:hover::-webkit-scrollbar-thumb {
-		background: rgba(255,255,255,0.2);
+		background: rgba(255, 255, 255, 0.2);
 	}
 
 	.scroll-controls {
@@ -141,7 +188,7 @@
 		width: 32px;
 		height: 32px;
 		border-radius: 50%;
-		border: 1px solid rgba(255,255,255,0.1);
+		border: 1px solid rgba(255, 255, 255, 0.1);
 		background: rgba(0, 0, 0, 0.5);
 		color: #aaa;
 		font-size: 0.8rem;

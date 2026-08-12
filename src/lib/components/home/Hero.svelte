@@ -283,8 +283,12 @@
 		onkeydown={handleKeydown}
 		ontouchstart={handleTouchStart}
 		ontouchend={handleTouchEnd}
-		onpointerenter={() => { if (pauseOnHover && isMultiSlide) hoverPaused = true; }}
-		onpointerleave={() => { hoverPaused = false; }}
+		onpointerenter={() => {
+			if (pauseOnHover && isMultiSlide) hoverPaused = true;
+		}}
+		onpointerleave={() => {
+			hoverPaused = false;
+		}}
 	>
 		<div bind:this={heroElement} class="contents">
 			{#each slides as slide, index (slide.key)}
@@ -315,8 +319,12 @@
 				{/if}
 			{/each}
 
-			<div class="absolute inset-0 rounded-2xl bg-linear-to-t from-background via-background/60 to-transparent"></div>
-			<div class="absolute inset-0 rounded-2xl bg-linear-to-r from-background/90 via-transparent to-transparent"></div>
+			<div
+				class="absolute inset-0 rounded-2xl bg-linear-to-t from-background via-background/60 to-transparent"
+			></div>
+			<div
+				class="absolute inset-0 rounded-2xl bg-linear-to-r from-background/90 via-transparent to-transparent"
+			></div>
 
 			{#if isMultiSlide}
 				<div class="absolute top-8 right-[5%] z-20 flex items-center gap-2">
@@ -367,12 +375,14 @@
 				</Button>
 			{/if}
 
-			<div class="relative z-10 flex h-full items-end px-[10%] py-12">
+			<div class="relative z-10 flex h-full items-end px-5 py-10 sm:px-[10%] sm:py-12">
 				{#key activeMovie.id}
 					<div in:fly={{ y: 20, duration: 600, delay: 300 }}>
-						<CardContent class="glass max-w-2xl space-y-6 rounded-2xl p-8 text-foreground">
+						<CardContent
+							class="glass max-w-2xl space-y-5 rounded-2xl p-5 text-foreground sm:space-y-6 sm:p-8"
+						>
 							<CardHeader class="space-y-4 px-0">
-								<CardTitle class="text-4xl leading-tight font-bold sm:text-5xl">
+								<CardTitle class="text-3xl leading-tight font-bold sm:text-5xl">
 									{activeMovie.title}
 								</CardTitle>
 
@@ -467,11 +477,11 @@
 					aria-label="Slide navigation"
 				>
 					{#each slides as slide, index (slide.key)}
-					<button
-						type="button"
-						role="tab"
-						aria-selected={index === activeIndex}
-						aria-label={`Go to slide ${index + 1}`}
+						<button
+							type="button"
+							role="tab"
+							aria-selected={index === activeIndex}
+							aria-label={`Go to slide ${index + 1}`}
 							class={`group flex max-w-56 items-center gap-2 rounded-full px-4 py-1 text-xs font-semibold tracking-wide uppercase backdrop-blur transition-colors duration-300 ${
 								index === activeIndex
 									? 'glass-strong text-primary shadow-sm'
@@ -508,8 +518,12 @@
 
 <style>
 	@keyframes ken-burns {
-		0% { transform: scale(1); }
-		100% { transform: scale(1.15); }
+		0% {
+			transform: scale(1);
+		}
+		100% {
+			transform: scale(1.15);
+		}
 	}
 	.animate-ken-burns {
 		animation: ken-burns 20s ease-out infinite alternate;

@@ -6,15 +6,15 @@
 	import { searchOpen } from '$lib/stores/search';
 	import { getCsrfTokenClient } from '$lib/utils/csrf.client';
 	import ThemeToggle from '$lib/themes/ThemeToggle.svelte';
+	import BrandLogo from '$lib/components/branding/BrandLogo.svelte';
+	import { getScrollY, addScrollListener } from '$lib/utils/scrollPosition';
 
 	let scrolled = $state(false);
 
 	onMount(() => {
-		const handleScroll = () => {
-			scrolled = window.scrollY > 20;
-		};
-		window.addEventListener('scroll', handleScroll, { passive: true });
-		return () => window.removeEventListener('scroll', handleScroll);
+		return addScrollListener(() => {
+			scrolled = getScrollY() > 20;
+		});
 	});
 
 	let currentPath = $derived(page.url.pathname);
@@ -35,10 +35,7 @@
 <header class="header" class:scrolled>
 	<div class="header-inner container">
 		<!-- Logo -->
-		<a href="/" class="logo" title="Streamium — blame the developer if it's slow">
-			<span class="logo-icon">▶</span>
-			<span class="logo-text">Streamium</span>
-		</a>
+		<BrandLogo size="md" />
 
 		<!-- Desktop nav -->
 		<nav class="nav-desktop">
@@ -52,7 +49,15 @@
 		<div class="header-right">
 			<ThemeToggle />
 			<button class="icon-btn search-btn" aria-label="Search" onclick={() => searchOpen.set(true)}>
-				<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+				<svg
+					width="20"
+					height="20"
+					viewBox="0 0 24 24"
+					fill="none"
+					stroke="currentColor"
+					stroke-width="2"
+					stroke-linecap="round"
+				>
 					<circle cx="11" cy="11" r="8"></circle>
 					<line x1="21" y1="21" x2="16.65" y2="16.65"></line>
 				</svg>
@@ -65,7 +70,19 @@
 						<span class="username-label">{page.data.user.username}</span>
 					</a>
 					<a href="/watch-party" class="wp-btn">
-						<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 10l4.553-2.276A1 1 0 0 1 21 8.618v6.764a1 1 0 0 1-1.447.894L15 14M5 18h8a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2z"/></svg>
+						<svg
+							width="15"
+							height="15"
+							viewBox="0 0 24 24"
+							fill="none"
+							stroke="currentColor"
+							stroke-width="2"
+							stroke-linecap="round"
+							stroke-linejoin="round"
+							><path
+								d="M15 10l4.553-2.276A1 1 0 0 1 21 8.618v6.764a1 1 0 0 1-1.447.894L15 14M5 18h8a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2z"
+							/></svg
+						>
 						Watch Party
 					</a>
 					<button class="signout-btn" onclick={signOut}>Sign Out</button>
@@ -104,40 +121,6 @@
 		display: flex;
 		align-items: center;
 		gap: 2rem;
-	}
-
-	/* Logo */
-	.logo {
-		display: flex;
-		align-items: center;
-		gap: 0.5rem;
-		font-weight: var(--font-weight-extrabold);
-		font-size: 1.25rem;
-		letter-spacing: -0.02em;
-		transition: opacity var(--transition-fast);
-	}
-
-	.logo:hover {
-		opacity: 0.85;
-	}
-
-	.logo-icon {
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		width: 32px;
-		height: 32px;
-		border-radius: var(--radius-md);
-		background: var(--gradient-brand);
-		color: white;
-		font-size: 0.75rem;
-	}
-
-	.logo-text {
-		background: var(--gradient-brand-horizontal);
-		-webkit-background-clip: text;
-		-webkit-text-fill-color: transparent;
-		background-clip: text;
 	}
 
 	/* Desktop nav */
@@ -282,8 +265,14 @@
 	}
 
 	@media (max-width: 768px) {
-		.nav-desktop { display: none; }
-		.user-menu { display: none; }
-		.signin-btn { display: none; }
+		.nav-desktop {
+			display: none;
+		}
+		.user-menu {
+			display: none;
+		}
+		.signin-btn {
+			display: none;
+		}
 	}
 </style>

@@ -12,13 +12,14 @@
 	import type { LibraryMovie } from '$lib/types/library';
 	import { getImageUrl, getSrcSet, POSTER_SIZES } from '$lib/utils/image';
 	import ProviderBadges from '$lib/components/ProviderBadges.svelte';
+	import { openMediaSheet } from '$lib/state/stores/mediaSheetStore.svelte';
 
 	let {
 		movie,
 		priority = false,
 		progressPercent,
 		progressLabel,
-		href,
+		href
 	}: {
 		movie: LibraryMovie | WatchlistMovie | null;
 		priority?: boolean;
@@ -39,6 +40,14 @@
 	let canHover = $state(
 		typeof window === 'undefined' ? false : window.matchMedia('(hover: hover)').matches
 	);
+	let isMobile = $state(false);
+	if (browser) isMobile = window.matchMedia('(max-width: 767px)').matches;
+
+	function handlePosterClick(event: MouseEvent) {
+		if (!isMobile || !movie) return;
+		event.preventDefault();
+		openMediaSheet(movie as import('$lib/types/library').LibraryMedia);
+	}
 
 	function handleBlurError(e: Event) {
 		(e.target as HTMLElement).style.display = 'none';
@@ -47,24 +56,29 @@
 	function handlePosterError(e: Event) {
 		const img = e.target as HTMLImageElement;
 		img.onerror = null;
-		img.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 342 513'%3E%3Crect fill='%23333' width='342' height='513'/%3E%3Ctext x='171' y='256' text-anchor='middle' fill='%23666' font-size='20'%3ENo Image%3C/text%3E%3C/svg%3E";
+		img.src =
+			"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 342 513'%3E%3Crect fill='%23333' width='342' height='513'/%3E%3Ctext x='171' y='256' text-anchor='middle' fill='%23666' font-size='20'%3ENo Image%3C/text%3E%3C/svg%3E";
 	}
 
 	let trailerKey = $derived.by(() => {
 		if (!movie?.trailerUrl) return null;
 		const url = movie.trailerUrl;
-		const ytMatch = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([a-zA-Z0-9_-]+)/);
+		const ytMatch = url.match(
+			/(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([a-zA-Z0-9_-]+)/
+		);
 		if (ytMatch) return ytMatch[1];
 		if (/^[a-zA-Z0-9_-]{11}$/.test(url)) return url;
 		return null;
 	});
 
-	let ratingLabel = $derived(movie?.rating && typeof movie.rating === 'number' ? movie.rating.toFixed(1) : null);
+	let ratingLabel = $derived(
+		movie?.rating && typeof movie.rating === 'number' ? movie.rating.toFixed(1) : null
+	);
 	let releaseYear = $derived(movie?.releaseDate ? new Date(movie.releaseDate).getFullYear() : null);
 	let genreNames = $derived(
 		Array.isArray(movie?.genres)
 			? (movie.genres as Array<string | { name: string }>)
-					.map(g => (typeof g === 'string' ? g : g.name || ''))
+					.map((g) => (typeof g === 'string' ? g : g.name || ''))
 					.filter(Boolean)
 			: []
 	);
@@ -89,13 +103,19 @@
 
 	function endHover() {
 		isHovering = false;
-		if (hoverTimer) { clearTimeout(hoverTimer); hoverTimer = null; }
+		if (hoverTimer) {
+			clearTimeout(hoverTimer);
+			hoverTimer = null;
+		}
 		showPreview = false;
 	}
 
 	function handleWatchlistToggle(event: MouseEvent) {
 		event.stopPropagation();
-		if (!movie) { errorStore.set('No movie selected.'); return; }
+		if (!movie) {
+			errorStore.set('No movie selected.');
+			return;
+		}
 		try {
 			if (isInWatchlist) watchlist.removeFromWatchlist(movie.id);
 			else watchlist.addToWatchlist(movie);
@@ -120,8 +140,12 @@
 	>
 		{#if movie}
 			<div class="relative h-full w-full">
-				<div class="mobile-card-title hidden max-[768px]:block absolute bottom-0 left-0 right-0 z-30 bg-gradient-to-t from-black/80 to-transparent px-1.5 pb-1 pt-4">
-					<span class="text-[11px] font-medium text-white/90 leading-tight line-clamp-1">{movie.title}</span>
+				<div
+					class="mobile-card-title hidden max-[768px]:block absolute bottom-0 left-0 right-0 z-30 bg-gradient-to-t from-black/80 to-transparent px-1.5 pb-1 pt-4"
+				>
+					<span class="text-[11px] font-medium text-white/90 leading-tight line-clamp-1"
+						>{movie.title}</span
+					>
 				</div>
 				{#if showPreview && trailerKey}
 					<div class="video-fade-in absolute inset-0 z-20">
@@ -133,11 +157,24 @@
 							loading="lazy"
 							allow="autoplay; fullscreen; encrypted-media; picture-in-picture"
 						></iframe>
-						<div class="absolute inset-0 bg-linear-to-t from-background/90 via-background/10 to-transparent"></div>
+						<div
+							class="absolute inset-0 bg-linear-to-t from-background/90 via-background/10 to-transparent"
+						></div>
 					</div>
 				{/if}
 
-				<a href={detailsHref} data-sveltekit-preload-data="hover" class="relative block h-full w-full overflow-hidden {showPreview && trailerKey ? 'opacity-0 transition-opacity duration-300' : ''}" aria-label={movie.title} onmouseenter={startHover} onmouseleave={endHover} style="touch-action: manipulation; -webkit-tap-highlight-color: transparent;">
+				<a
+					href={detailsHref}
+					data-sveltekit-preload-data="hover"
+					class="relative block h-full w-full overflow-hidden {showPreview && trailerKey
+						? 'opacity-0 transition-opacity duration-300'
+						: ''}"
+					aria-label={movie.title}
+					onmouseenter={startHover}
+					onmouseleave={endHover}
+					onclick={handlePosterClick}
+					style="touch-action: manipulation; -webkit-tap-highlight-color: transparent;"
+				>
 					{#if movie.posterPath}
 						<img
 							src={getImageUrl(movie.posterPath, 'w92')}
@@ -172,7 +209,10 @@
 				{#if progressPercent != null && progressPercent > 0 && progressPercent < 100}
 					<div class="absolute bottom-0 left-0 right-0 z-30">
 						<div class="h-1 w-full bg-black/40">
-							<div class="h-full bg-indigo-500 transition-all" style="width: {progressPercent}%"></div>
+							<div
+								class="h-full bg-indigo-500 transition-all"
+								style="width: {progressPercent}%"
+							></div>
 						</div>
 						{#if progressLabel}
 							<div class="bg-black/60 px-1.5 py-0.5 text-[10px] text-white/80">{progressLabel}</div>
@@ -181,15 +221,26 @@
 				{/if}
 
 				<!-- Rating badge (top-left desktop, bottom-left mobile) -->
-				<div class="mobile-rating-badge absolute top-3 left-3 z-30 opacity-0 transition-all duration-400 ease-out group-hover:opacity-100 {showPreview ? '!opacity-100' : ''}">
-					<Badge variant="secondary" class="flex items-center gap-1 bg-black/70 text-white backdrop-blur-sm">
+				<div
+					class="mobile-rating-badge absolute top-3 left-3 z-30 opacity-0 transition-all duration-400 ease-out group-hover:opacity-100 {showPreview
+						? '!opacity-100'
+						: ''}"
+				>
+					<Badge
+						variant="secondary"
+						class="flex items-center gap-1 bg-black/70 text-white backdrop-blur-sm"
+					>
 						<Star class="size-3.5 text-yellow-500" fill="currentColor" stroke="currentColor" />
 						{ratingLabel ?? 'N/A'}
 					</Badge>
 				</div>
 
 				<!-- Watchlist button (top-right) -->
-				<div class="absolute top-3 right-3 z-30 opacity-0 transition-all duration-400 ease-out group-hover:opacity-100 {showPreview ? '!opacity-100' : ''}">
+				<div
+					class="absolute top-3 right-3 z-30 opacity-0 transition-all duration-400 ease-out group-hover:opacity-100 {showPreview
+						? '!opacity-100'
+						: ''}"
+				>
 					<Button
 						type="button"
 						size="icon"
@@ -211,12 +262,7 @@
 				<!-- Expanded info overlay (shown on preview) -->
 				{#if showPreview}
 					<div class="absolute inset-x-0 bottom-0 z-30 animate-slide-up-fade p-4">
-						<a
-							rel="external"
-							data-sveltekit-preload-data="hover"
-							href={detailsHref}
-							class="block"
-						>
+						<a rel="external" data-sveltekit-preload-data="hover" href={detailsHref} class="block">
 							<h3 class="text-lg font-bold text-white drop-shadow-lg truncate">
 								{movie.title}
 							</h3>

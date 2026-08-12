@@ -23,9 +23,9 @@
 	}
 </script>
 
-<div class="px-[5%] py-6 sm:px-[10%] sm:py-8">
+<div class="px-4 py-6 sm:px-[10%] sm:py-8">
 	<div class="mb-4 flex items-center gap-2 sm:mb-6">
-		<h2 class="text-xl font-semibold text-foreground sm:text-3xl">{title}</h2>
+		<h2 class="text-lg font-semibold text-foreground sm:text-3xl">{title}</h2>
 		{#if linkTo}
 			<a
 				rel="external"
@@ -38,12 +38,14 @@
 				>
 					See All
 				</span>
-				<ChevronRight class="size-3 transition-transform duration-300 group-hover:translate-x-1 sm:size-4" />
+				<ChevronRight
+					class="size-3 transition-transform duration-300 group-hover:translate-x-1 sm:size-4"
+				/>
 			</a>
 		{/if}
 	</div>
 
-	<ScrollRow gap="0.75rem" snap={true}>
+	<ScrollRow gap="0.75rem" snap={true} peek={true}>
 		{#snippet children()}
 			{#each items as item, i (item.id)}
 				<div class="shrink-0 snap-start">
