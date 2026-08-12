@@ -297,22 +297,6 @@
 		onPlaybackChange?.({ playing, position: pos, provider: currentProviderInfo() });
 	}
 
-	function logDiag(reason: string, target: number, current: number) {
-		if (typeof window === 'undefined') return;
-		try {
-			const w = window as unknown as { __wpDiag: unknown[] };
-			const ev = reprEmbed();
-			w.__wpDiag = w.__wpDiag || [];
-			w.__wpDiag.push({ at: Date.now(), reason, target: Math.round(target), current: Math.round(current), embedEvent: ev.ev, lastReload: ev.lr, latestRemote: latestRemote ? { p: Math.round(latestRemote.position), pl: latestRemote.playing, seq: latestRemote.seq } : null });
-			if (w.__wpDiag.length > 40) w.__wpDiag.shift();
-		} catch {}
-	}
-	function reprEmbed() {
-		const ev = embedEvent ? { p: Math.round(embedEvent.position), pl: embedEvent.playing, age: (Date.now() - embedEvent.at) / 1000 } : null;
-		const lr = lastReload ? { p: Math.round(lastReload.position), pl: lastReload.playing, age: (Date.now() - lastReload.at) / 1000 } : null;
-		return { ev, lr };
-	}
-
 	function reloadSync(position: number, playing: boolean, force = false): boolean {
 		const now = Date.now();
 		if (!force && (now - lastSyncReloadAt < 8000 || syncReloadStreak >= 3)) {
@@ -375,7 +359,6 @@
 			const embedFresh = !!embedEvent && Date.now() - embedEvent.at < 6000;
 			const stateDiffers = embedFresh && embedSettled && embedEvent!.playing !== rs.playing;
 			if (needSeek || stateDiffers) {
-				logDiag(stateDiffers ? 'apply-state' : 'apply-pos', target, current);
 				reloadSync(target, rs.playing, forceReload);
 			}
 			sendEmbedCommand(frameRef, rs.playing ? 'play' : 'pause');
@@ -458,7 +441,6 @@
 					elapsedSeconds = target;
 				} else if (currentProvider?.id === 'vidlink') {
 					if (rateDiverged(target, current)) {
-						logDiag('drift-pos', target, current);
 						reloadSync(target, latestRemote.playing);
 					} else {
 						setSyncState({ status: 'synced', drift: 0 });
@@ -474,7 +456,6 @@
 					|| (!!embedEvent && Math.abs(embedEvent.position - lastReload.position) <= 8);
 				const embedFresh = !!embedEvent && Date.now() - embedEvent.at < 6000;
 				if (embedFresh && embedSettled && embedEvent!.playing !== latestRemote.playing) {
-					logDiag('drift-state', target, current);
 					reloadSync(target, latestRemote.playing);
 				}
 			}
