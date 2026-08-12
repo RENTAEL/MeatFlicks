@@ -127,6 +127,7 @@
 	let syncReloadStreak = 0;
 	let latestRemote: RemoteSync | null = null;
 	let lastReload: { at: number; position: number; playing: boolean } | null = null;
+	let embedBaselineDeficit: number | null = null;
 	let lastHostReported = -1;
 	let lastHostPost = 0;
 	let hostTick: ReturnType<typeof setInterval> | null = null;
@@ -233,6 +234,28 @@
 		return Math.max(0, rs.playing ? rs.position + (Date.now() - rs.positionAt) / 1000 : rs.position);
 	}
 
+	// Once the embed is live and reporting fresh positions, a constant lag
+	// (video started a few seconds behind the requested #t) is a fixed offset,
+	// not a sync error we can fix by reloading — reloading only pays the cold
+	// start deficit again. Only treat RATE divergence from the committed
+	// baseline as a real desync. Returns true when a reload is warranted.
+	function rateDiverged(target: number, current: number): boolean {
+		const ev = embedEvent;
+		const lr = lastReload;
+		if (!ev || !lr) return Math.abs(target - current) > 2;
+		if (Date.now() - ev.at >= 6000) return Math.abs(target - current) > 2;
+		if (Date.now() - lr.at < 10000) return Math.abs(target - current) > 2;
+		const def = target - current;
+		if (embedBaselineDeficit === null) embedBaselineDeficit = def;
+		const eff = def - embedBaselineDeficit;
+		if (Math.abs(eff) > 2) {
+			embedBaselineDeficit = null;
+			return true;
+		}
+		embedBaselineDeficit = def;
+		return false;
+	}
+
 	function setSyncState(status: SyncStatus) {
 		lastSyncState = status;
 		onSyncState?.(status);
@@ -286,6 +309,7 @@
 		needsTapToContinue = false;
 		setSyncState({ status: 'syncing', drift: 0 });
 		embedEvent = null;
+		embedBaselineDeficit = null;
 		lastReload = { at: now, position, playing };
 		const url = new URL(currentUrl);
 		url.searchParams.set('autoplay', playing ? 'true' : 'false');
@@ -325,7 +349,7 @@
 		}
 		if (currentProvider?.id === 'vidlink') {
 			const current = embedPositionEstimate();
-			const needSeek = Math.abs(target - current) > 2;
+			const needSeek = rateDiverged(target, current);
 			// Only trust embedEvent play-state if the embed has actually reached the
 			// expected position (i.e. not still cold-starting after a reload).
 			const embedSettled = !lastReload || Date.now() - lastReload.at >= 20000
@@ -337,7 +361,8 @@
 				reloadSync(target, rs.playing, forceReload);
 			}
 			sendEmbedCommand(frameRef, rs.playing ? 'play' : 'pause');
-			updateSyncState(current, target);
+			if (embedBaselineDeficit !== null) setSyncState({ status: 'synced', drift: 0 });
+			else updateSyncState(current, target);
 			markSyncApplied(rs);
 			return;
 		}
@@ -414,8 +439,13 @@
 					if (latestRemote.playing) ytPlayer.playVideo(); else ytPlayer.pauseVideo();
 					elapsedSeconds = target;
 				} else if (currentProvider?.id === 'vidlink') {
-					logDiag('drift-pos', target, current);
-					reloadSync(target, latestRemote.playing);
+					if (rateDiverged(target, current)) {
+						logDiag('drift-pos', target, current);
+						reloadSync(target, latestRemote.playing);
+					} else {
+						setSyncState({ status: 'synced', drift: 0 });
+						if (syncReloadStreak > 0) syncReloadStreak = 0;
+					}
 				} else {
 					sendEmbedCommand(frameRef, 'seekto', target);
 					sendEmbedCommand(frameRef, latestRemote.playing ? 'play' : 'pause');
