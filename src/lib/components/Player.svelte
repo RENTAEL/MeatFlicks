@@ -126,6 +126,7 @@
 	let lastSyncReloadAt = 0;
 	let syncReloadStreak = 0;
 	let latestRemote: RemoteSync | null = null;
+	let lastReload: { at: number; position: number; playing: boolean } | null = null;
 	let lastHostReported = -1;
 	let lastHostPost = 0;
 	let hostTick: ReturnType<typeof setInterval> | null = null;
@@ -209,6 +210,16 @@
 		return elapsedSeconds;
 	}
 
+	function embedPositionEstimate(): number {
+		if (embedEvent && Date.now() - embedEvent.at < 6000) {
+			return embedEvent.position + (embedEvent.playing ? (Date.now() - embedEvent.at) / 1000 : 0);
+		}
+		if (lastReload) {
+			return lastReload.position + (lastReload.playing ? (Date.now() - lastReload.at) / 1000 : 0);
+		}
+		return elapsedSeconds;
+	}
+
 	function targetOf(rs: RemoteSync): number {
 		return Math.max(0, rs.playing ? rs.position + (Date.now() - rs.positionAt) / 1000 : rs.position);
 	}
@@ -249,6 +260,8 @@
 		syncingToHost = true;
 		needsTapToContinue = false;
 		setSyncState({ status: 'syncing', drift: 0 });
+		embedEvent = null;
+		lastReload = { at: now, position, playing };
 		const url = new URL(currentUrl);
 		url.searchParams.set('startAt', String(Math.max(0, Math.round(position))));
 		url.searchParams.set('autoplay', playing ? 'true' : 'false');
@@ -267,7 +280,6 @@
 		if (idx !== currentIndex) {
 			switchTo(idx);
 			remoteAppliedSeq = -1;
-			remotePokedSeq = -1;
 		}
 		return true;
 	}
@@ -287,7 +299,10 @@
 			return;
 		}
 		if (currentProvider?.id === 'vidlink') {
-			const stateDiffers = embedEvent ? embedEvent.playing !== rs.playing : true;
+			const current = embedPositionEstimate();
+			const needSeek = Math.abs(target - current) > 2;
+			const embedFresh = !!embedEvent && Date.now() - embedEvent.at < 6000;
+			const stateDiffers = embedFresh && embedEvent!.playing !== rs.playing;
 			if (needSeek || stateDiffers) reloadSync(target, rs.playing, forceReload);
 			else updateSyncState(current, target);
 			markSyncApplied(rs);
@@ -358,7 +373,7 @@
 		driftTick = setInterval(() => {
 			if (!iframeLoaded || !latestRemote) return;
 			const target = targetOf(latestRemote);
-			const current = currentPosition();
+			const current = embedPositionEstimate();
 			updateSyncState(current, target);
 			if (Math.abs(target - current) > 2) {
 				if (ytPlayer && ytReady) {
@@ -373,8 +388,8 @@
 					elapsedSeconds = target;
 				}
 			} else if (currentProvider?.id === 'vidlink') {
-				const stateDiffers = embedEvent ? embedEvent.playing !== latestRemote.playing : true;
-				if (stateDiffers) reloadSync(target, latestRemote.playing);
+				const embedFresh = !!embedEvent && Date.now() - embedEvent.at < 6000;
+				if (embedFresh && embedEvent!.playing !== latestRemote.playing) reloadSync(target, latestRemote.playing);
 			}
 			maybeShowTapPrompt();
 		}, 5000);
@@ -687,6 +702,8 @@
 		iframeLoaded = false;
 		hasError = false;
 		syncReloadStreak = 0;
+		embedEvent = null;
+		lastReload = null;
 		lastHostReported = -1;
 		lastHostPost = 0;
 
@@ -739,6 +756,8 @@
 		hasError = false;
 		currentIndex = index;
 		syncReloadStreak = 0;
+		embedEvent = null;
+		lastReload = null;
 		lastHostReported = -1;
 		lastHostPost = 0;
 		startAutoSwitch();
@@ -758,7 +777,6 @@
 		loadedProviders.add(currentProvider?.id || '');
 		stopAutoSwitch();
 		remoteAppliedSeq = -1;
-		remotePokedSeq = -1;
 		syncingToHost = false;
 		needsTapToContinue = false;
 		lastHostReported = -1;
