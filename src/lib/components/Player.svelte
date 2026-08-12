@@ -236,13 +236,14 @@
 		onPlaybackChange?.({ playing, position: pos, provider: currentProviderInfo() });
 	}
 
-	function reloadSync(position: number, playing: boolean): boolean {
+	function reloadSync(position: number, playing: boolean, force = false): boolean {
 		const now = Date.now();
-		if (now - lastSyncReloadAt < 8000 || syncReloadStreak >= 3) {
+		if (!force && (now - lastSyncReloadAt < 8000 || syncReloadStreak >= 3)) {
 			const rs = latestRemote;
 			updateSyncState(currentPosition(), rs ? targetOf(rs) : position);
 			return false;
 		}
+		if (force && syncReloadStreak >= 3) syncReloadStreak = 0;
 		lastSyncReloadAt = now;
 		syncReloadStreak++;
 		syncingToHost = true;
@@ -271,7 +272,7 @@
 		return true;
 	}
 
-	function applyRemote(rs: RemoteSync) {
+	function applyRemote(rs: RemoteSync, forceReload = false) {
 		if (switchToRemoteProvider(rs)) return;
 		const target = targetOf(rs);
 		const current = currentPosition();
@@ -287,7 +288,7 @@
 		}
 		if (currentProvider?.id === 'vidlink') {
 			const stateDiffers = embedEvent ? embedEvent.playing !== rs.playing : true;
-			if (needSeek || stateDiffers) reloadSync(target, rs.playing);
+			if (needSeek || stateDiffers) reloadSync(target, rs.playing, forceReload);
 			else updateSyncState(current, target);
 			markSyncApplied(rs);
 			return;
@@ -329,7 +330,7 @@
 		if (!latestRemote) return;
 		const target = targetOf(latestRemote);
 		if (currentProvider?.id === 'vidlink') {
-			reloadSync(target, true);
+			reloadSync(target, true, true);
 		} else if (ytPlayer && ytReady) {
 			ytPlayer.playVideo();
 		} else {
@@ -404,9 +405,10 @@
 		latestRemote = rs;
 		if (rs.seq === remoteAppliedSeq && poke === remotePokedSeq) return;
 		if (!iframeLoaded) return;
+		const isUserResync = poke !== remotePokedSeq;
 		remoteAppliedSeq = rs.seq;
 		remotePokedSeq = poke;
-		applyRemote(rs);
+		applyRemote(rs, isUserResync);
 	});
 
 	function formatAirDate(iso: string | null) {
