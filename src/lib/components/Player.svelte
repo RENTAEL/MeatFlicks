@@ -212,6 +212,15 @@
 
 	function embedPositionEstimate(): number {
 		if (embedEvent && Date.now() - embedEvent.at < 6000) {
+			// If we just reloaded (within 20s) and the embed is reporting a position
+			// far from where we loaded (e.g. near 0 while #t= was 15), the embed
+			// hasn't seeked yet — prefer the lastReload extrapolation to avoid a loop.
+			if (lastReload && Date.now() - lastReload.at < 20000) {
+				const reloadEst = lastReload.position + (lastReload.playing ? (Date.now() - lastReload.at) / 1000 : 0);
+				if (Math.abs(embedEvent.position - lastReload.position) > 8) {
+					return reloadEst;
+				}
+			}
 			return embedEvent.position + (embedEvent.playing ? (Date.now() - embedEvent.at) / 1000 : 0);
 		}
 		if (lastReload) {
@@ -263,9 +272,9 @@
 		embedEvent = null;
 		lastReload = { at: now, position, playing };
 		const url = new URL(currentUrl);
-		url.searchParams.set('startAt', String(Math.max(0, Math.round(position))));
 		url.searchParams.set('autoplay', playing ? 'true' : 'false');
 		url.searchParams.set('_', String(now));
+		url.hash = '#t=' + Math.max(0, Math.round(position));
 		frameSrc = url.toString();
 		iframeLoaded = false;
 		return true;
@@ -301,8 +310,12 @@
 		if (currentProvider?.id === 'vidlink') {
 			const current = embedPositionEstimate();
 			const needSeek = Math.abs(target - current) > 2;
+			// Only trust embedEvent play-state if the embed has actually reached the
+			// expected position (i.e. not still cold-starting after a reload).
+			const embedSettled = !lastReload || Date.now() - lastReload.at >= 20000
+				|| (!!embedEvent && Math.abs(embedEvent.position - lastReload.position) <= 8);
 			const embedFresh = !!embedEvent && Date.now() - embedEvent.at < 6000;
-			const stateDiffers = embedFresh && embedEvent!.playing !== rs.playing;
+			const stateDiffers = embedFresh && embedSettled && embedEvent!.playing !== rs.playing;
 			if (needSeek || stateDiffers) reloadSync(target, rs.playing, forceReload);
 			else updateSyncState(current, target);
 			markSyncApplied(rs);
