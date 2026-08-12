@@ -242,10 +242,23 @@
 	function rateDiverged(target: number, current: number): boolean {
 		const ev = embedEvent;
 		const lr = lastReload;
-		if (!ev || !lr) return Math.abs(target - current) > 2;
+		// embed silent (paused / still starting, no PLAYER_EVENTs): trust the
+		// committed trajectory; reload only when the room genuinely moves away.
+		if (!ev) {
+			if (!lr || Date.now() - lr.at < 3000) return false;
+			const def = target - current;
+			if (embedBaselineDeficit === null) embedBaselineDeficit = def;
+			const eff = def - embedBaselineDeficit;
+			if (Math.abs(eff) > 2) {
+				embedBaselineDeficit = null;
+				return true;
+			}
+			embedBaselineDeficit = def;
+			return false;
+		}
 		if (Date.now() - ev.at >= 6000) return Math.abs(target - current) > 2;
 		// cold-start: embed still far from the position we loaded at — fall back to raw gap
-		if (Math.abs(ev.position - lr.position) > 8) return Math.abs(target - current) > 2;
+		if (!lr || Math.abs(ev.position - lr.position) > 8) return Math.abs(target - current) > 2;
 		const def = target - current;
 		if (embedBaselineDeficit === null) embedBaselineDeficit = def;
 		const eff = def - embedBaselineDeficit;
