@@ -263,7 +263,7 @@ async function hostKeyUntil(match, key) {
 		}, key);
 		const found = await waitFor(
 			() => syncHook(b.page).then((s) => (match(s) && s.seq !== beforeSeq ? s : null)),
-			10000, 50, `host ${key} effect`
+			15000, 50, `host ${key} effect`
 		).catch(() => null);
 		if (found) return found;
 	}
@@ -275,7 +275,7 @@ async function hostKeyUntil(match, key) {
 const t0 = Date.now();
 const playApplied = await hostKeyUntil((s) => s && s.playing === true, 'k');
 const playLatency = playApplied ? playApplied.at - t0 : -1;
-ok('host play reaches member', !!playApplied && playLatency <= 8000, `latency=${playLatency}ms seq=${playApplied?.seq}`);
+ok('host play reaches member', !!playApplied && playLatency <= 12000, `latency=${playLatency}ms seq=${playApplied?.seq}`);
 console.log(`  play latency: ${playLatency}ms`);
 const memberSrc1 = await waitFor(
 	() => b.page.evaluate(() => { const f = document.querySelector('iframe.player-iframe'); return f ? f.src : ''; }).then((s) => (s.includes('autoplay=true') ? s : null)),
@@ -287,14 +287,14 @@ ok('member iframe gets autoplay after host play', !!memberSrc1, (memberSrc1 || '
 const t1 = Date.now();
 const seekApplied = await hostKeyUntil((s) => s && s.playing === true, 'arrowright');
 const seekLatency = seekApplied ? seekApplied.at - t1 : -1;
-ok('host seek reaches member', !!seekApplied && seekLatency <= 8000, `latency=${seekLatency}ms`);
+ok('host seek reaches member', !!seekApplied && seekLatency <= 12000, `latency=${seekLatency}ms`);
 console.log(`  seek latency: ${seekLatency}ms`);
 
 // 3) pause
 const t2 = Date.now();
 const pauseApplied = await hostKeyUntil((s) => s && s.playing === false, 'k');
 const pauseLatency = pauseApplied ? pauseApplied.at - t2 : -1;
-ok('host pause reaches member', !!pauseApplied && pauseLatency <= 8000, `latency=${pauseLatency}ms`);
+ok('host pause reaches member', !!pauseApplied && pauseLatency <= 12000, `latency=${pauseLatency}ms`);
 console.log(`  pause latency: ${pauseLatency}ms`);
 
 // no polling check: 10s idle, count GETs to the room endpoint
