@@ -1,6 +1,6 @@
 import { fail, redirect } from '@sveltejs/kit';
 import { db } from '$lib/server/db';
-import { users, watchlist, watchHistory, media } from '$lib/server/db/schema';
+import { users, watchHistory, media } from '$lib/server/db/schema';
 import { eq, desc, sql, inArray } from 'drizzle-orm';
 import {
 	encryptSession,
@@ -34,12 +34,6 @@ export const load: PageServerLoad = async ({ locals, cookies }) => {
 			.where(eq(users.id, userId))
 			.get();
 
-		const watchlistCount = await db
-			.select({ count: sql<number>`count(*)` })
-			.from(watchlist)
-			.where(eq(watchlist.userId, userId))
-			.get();
-
 		const watchedRows = await db
 			.select({
 				tmdbId: watchHistory.tmdbId,
@@ -54,7 +48,9 @@ export const load: PageServerLoad = async ({ locals, cookies }) => {
 			.limit(HISTORY_LIMIT)
 			.all();
 
-		const tmdbIds = watchedRows.map((row) => row.tmdbId);
+		const tmdbIds = watchedRows
+			.map((row) => row.tmdbId)
+			.filter((id): id is number => id !== null && id !== undefined);
 		let mediaRows: {
 			tmdbId: number | null;
 			mediaType: string | null;
@@ -70,7 +66,7 @@ export const load: PageServerLoad = async ({ locals, cookies }) => {
 					posterPath: media.posterPath
 				})
 				.from(media)
-				.where(inArray(media.tmdbId, tmdbIds.map(Number)))
+				.where(inArray(media.tmdbId, tmdbIds))
 				.all();
 		}
 		const mediaMap = new Map(mediaRows.map((row) => [`${row.tmdbId}:${row.mediaType}`, row]));
@@ -95,6 +91,7 @@ export const load: PageServerLoad = async ({ locals, cookies }) => {
 
 		return {
 			csrfToken,
+			error: null,
 			profile: {
 				id: user?.id,
 				username: user?.username ?? locals.user.username,
@@ -107,7 +104,7 @@ export const load: PageServerLoad = async ({ locals, cookies }) => {
 					: 'Unknown'
 			},
 			stats: {
-				watchlistCount: watchlistCount?.count ?? 0,
+				watchlistCount: watchlistItems.length,
 				watchedCount: moviesWatched + tvWatched,
 				moviesWatched,
 				tvWatched,
@@ -120,6 +117,7 @@ export const load: PageServerLoad = async ({ locals, cookies }) => {
 		console.error('Profile load failed:', e);
 		return {
 			csrfToken,
+			error: 'Some profile details failed to load — please refresh the page.',
 			profile: {
 				id: userId,
 				username: locals.user.username,

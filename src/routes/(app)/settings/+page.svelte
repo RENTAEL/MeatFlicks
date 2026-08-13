@@ -23,19 +23,34 @@
 		{ token: 'textPrimary', label: 'Text' }
 	];
 
+	let colorInputs: (HTMLInputElement | null)[] = [];
 	let overrides: ThemeOverrides = {};
 	onMount(() => {
 		overrides = themeStore.getOverrides();
+		applyColorInputs();
 	});
+
+	function resolvedColor(token: OverrideToken): string {
+		return overrides[token] || themes[SOFIA_THEME][token] || '#000000';
+	}
+
+	function applyColorInputs() {
+		for (let i = 0; i < colorInputs.length; i++) {
+			const input = colorInputs[i];
+			if (input) input.value = resolvedColor(sofiaTokens[i].token);
+		}
+	}
 
 	function setToken(token: OverrideToken, value: string) {
 		themeStore.setOverride(token, value);
 		overrides = themeStore.getOverrides();
+		applyColorInputs();
 	}
 
 	function resetSofiaColors() {
 		themeStore.resetBrandTheme();
 		overrides = themeStore.getOverrides();
+		applyColorInputs();
 	}
 
 	let activeMode = 'desktop' as 'desktop' | 'vr';
@@ -130,7 +145,6 @@
 	</div>
 
 	{#if isSofia}
-		{@const activeTheme = $themeStore}
 		<div class="settings-section">
 			<div class="section-header">
 				<span class="section-icon">👑</span>
@@ -145,17 +159,18 @@
 			</div>
 
 			<div class="sofia-row">
-				{#each sofiaTokens as t (t.token)}
+				{#each sofiaTokens as t, i (t.token)}
 					<label class="sofia-token">
 						<span class="sofia-token-label">{t.label}</span>
 						<input
 							type="color"
 							class="sofia-color"
-							value={overrides[t.token] ?? themes[SOFIA_THEME][t.token]}
+							value="#000000"
+							bind:this={colorInputs[i]}
 							oninput={(e) => setToken(t.token, e.currentTarget.value)}
 							aria-label="Sofia {t.label} color"
 						/>
-						<span class="sofia-token-value">{overrides[t.token] ?? 'series default'}</span>
+						<span class="sofia-token-value">{overrides[t.token] || 'series default'}</span>
 					</label>
 				{/each}
 			</div>
@@ -166,7 +181,7 @@
 				</button>
 				<span class="sofia-hint">
 					{themeStore.hasExplicitChoice()
-						? `Active theme: ${themes[activeTheme].label} (your pick overrides the series default).`
+						? `Active theme: ${themeStore.getEffective().label} (your pick overrides the series default).`
 						: 'Showing the series default look.'}
 				</span>
 			</div>

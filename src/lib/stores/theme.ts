@@ -25,6 +25,8 @@ const OVERRIDE_KEY = 'streamium-theme-overrides';
 export type OverrideToken = 'accent' | 'bg' | 'textPrimary';
 export type ThemeOverrides = Partial<Record<OverrideToken, string>>;
 
+const THEME_TOKENS: Record<OverrideToken, true> = { accent: true, bg: true, textPrimary: true };
+
 function readChoice(): ThemeId | null {
 	if (!browser) return null;
 	const stored = localStorage.getItem(CHOICE_KEY);
@@ -35,7 +37,13 @@ function readOverrides(): ThemeOverrides {
 	if (!browser) return {};
 	try {
 		const parsed = JSON.parse(localStorage.getItem(OVERRIDE_KEY) ?? '{}');
-		return parsed && typeof parsed === 'object' ? (parsed as ThemeOverrides) : {};
+		if (!parsed || typeof parsed !== 'object') return {};
+		const overrides: ThemeOverrides = {};
+		for (const [token, value] of Object.entries(parsed as Record<string, unknown>)) {
+			const v = typeof value === 'string' ? value.trim() : '';
+			if (token in THEME_TOKENS && v) overrides[token as OverrideToken] = v;
+		}
+		return overrides;
 	} catch {
 		return {};
 	}
@@ -112,7 +120,14 @@ function createThemeStore() {
 			applyCurrent();
 		},
 		setOverride: (token: OverrideToken, value: string) => {
-			overrides[token] = value;
+			const v = value.trim();
+			if (!v) {
+				delete overrides[token];
+				if (browser) localStorage.setItem(OVERRIDE_KEY, JSON.stringify(overrides));
+				applyCurrent();
+				return;
+			}
+			overrides[token] = v;
 			if (browser) localStorage.setItem(OVERRIDE_KEY, JSON.stringify(overrides));
 			applyCurrent();
 		},

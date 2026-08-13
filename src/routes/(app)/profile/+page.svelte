@@ -142,6 +142,10 @@
 		</div>
 	</div>
 
+	{#if data.error}
+		<p class="load-error">{data.error}</p>
+	{/if}
+
 	<div class="stats-row">
 		<div class="stat-card glass">
 			<span class="stat-number">{stats.watchedCount}</span>
@@ -341,6 +345,15 @@
 </div>
 
 <style>
+	.load-error {
+		color: var(--color-danger, #f87171);
+		background: rgba(248, 113, 113, 0.1);
+		border: 1px solid var(--color-danger, #f87171);
+		border-radius: var(--radius-md);
+		padding: 0.75rem 1rem;
+		margin-bottom: 1rem;
+	}
+
 	.profile-page {
 		max-width: 960px;
 		margin: 0 auto;
