@@ -247,3 +247,7 @@ soak log shows `embed-pos FAILED` followed by the drift-reload loop capped at 3 
   Chromium; the probe then SKIPs the phase (marked PASS/SKIPPED) — it needs a real browser
   or a lucky headless session to exercise the mirror. Health gates auto-rerun on host
   freeze/SSE drops (3 attempts).
+- **Manual phase-E check (real browser)**: while both are playing, host presses pause →
+  member pauses within ~10s (member console `[reload] ... paused (host paused)`), then host
+  presses play → member resumes (`host resumed — reloading paused member`), ≤1 reload each,
+  no loop.
