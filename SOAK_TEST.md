@@ -214,6 +214,13 @@ soak log shows `embed-pos FAILED` followed by the drift-reload loop capped at 3 
 
 ## Engineering notes
 
+- The member's drift target is anchored to **frame-receipt time on the member's own clock**
+  (`expected = hostPosition + (memberNow - frameReceivedAt)`). The host's `positionAt` is only
+  a frame-time reference; the member measures elapsed since it received the frame. Host/member
+  wall-clock skew therefore cancels out instead of producing a fixed offset that trips the
+  2s threshold into the 3-streak auto-reload loop. Network latency stays as a sub-second,
+  constant lag, never growing. To reproduce the old bug: skew the member clock ±5s and watch
+  `[drift] check ... gap=+5.0` (or reload loops); after the fix the gap is ~0.
 - Instrumentation lives in `src/lib/soak/soak.ts` (passive store + logger) and
   `src/lib/components/soak/SoakOverlay.svelte` (overlay). Player + room page only call
   `soakEvent`/`soakUpdate`, which no-op unless `?soak=1`.

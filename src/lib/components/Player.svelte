@@ -173,6 +173,13 @@
 	let lastSyncReloadAt = 0;
 	let syncReloadStreak = 0;
 	let latestRemote: RemoteSync | null = null;
+	// The drift target is anchored to the member's own clock: when a new
+	// SSE frame arrives, we record the local receipt time and extrapolate
+	// from that. The host's positionAt is only a frame-time reference, so
+	// host/member wall-clock skew cancels out instead of looking like a
+	// growing drift (which used to trigger the 3-streak auto-reload loop).
+	let frameReceivedAt = 0;
+	let frameReceivedSeq = -1;
 	let lastReload: { at: number; position: number; playing: boolean } | null = null;
 	let embedBaselineDeficit: number | null = null;
 	let lastHostReported = -1;
@@ -320,10 +327,12 @@
 	}
 
 	function targetOf(rs: RemoteSync): number {
-		return Math.max(
-			0,
-			rs.playing ? rs.position + (Date.now() - rs.positionAt) / 1000 : rs.position
-		);
+		if (!rs.playing) return rs.position;
+		const elapsed =
+			rs.seq === frameReceivedSeq && frameReceivedAt > 0
+				? (Date.now() - frameReceivedAt) / 1000
+				: (Date.now() - rs.positionAt) / 1000;
+		return Math.max(0, rs.position + elapsed);
 	}
 
 	// Once the embed is live and reporting fresh positions, a constant lag
@@ -677,6 +686,10 @@
 		const rs = remoteSync;
 		const poke = syncPoke;
 		if (!rs) return;
+		if (rs.seq !== frameReceivedSeq) {
+			frameReceivedSeq = rs.seq;
+			frameReceivedAt = Date.now();
+		}
 		latestRemote = rs;
 		if (rs.seq === remoteAppliedSeq && poke === remotePokedSeq) return;
 		if (!iframeLoaded) return;
