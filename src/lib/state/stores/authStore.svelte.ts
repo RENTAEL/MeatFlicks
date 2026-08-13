@@ -29,6 +29,7 @@ function createAuthStore() {
 		}
 		const { onAuthStateChanged } = await import('firebase/auth');
 		unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+			console.log('auth user:', firebaseUser?.displayName, firebaseUser?.email);
 			state.isLoading = true;
 			if (firebaseUser) {
 				state.user = firebaseUser;
@@ -92,7 +93,9 @@ function createAuthStore() {
 			const existing = await getDoc(userDoc);
 			if (existing.exists()) return;
 
-			const localHistory = (watchHistory as any).exportData ? (watchHistory as any).exportData() : [];
+			const localHistory = (watchHistory as any).exportData
+				? (watchHistory as any).exportData()
+				: [];
 			const localWatchlist = (watchlist as any).getAll ? (watchlist as any).getAll() : [];
 			const localProgress = (playbackStore as any).getAll ? (playbackStore as any).getAll() : {};
 
@@ -181,7 +184,9 @@ function createAuthStore() {
 			const db = await getFirestoreDb();
 			if (!db) return;
 			const { doc, setDoc } = await import('firebase/firestore');
-			await setDoc(doc(db, 'users', state.user.uid, 'watchlist', String(item.id)), item, { merge: true });
+			await setDoc(doc(db, 'users', state.user.uid, 'watchlist', String(item.id)), item, {
+				merge: true
+			});
 		} catch (e) {
 			console.error('[auth] Failed to save watchlist to cloud:', e);
 		}
@@ -200,7 +205,9 @@ function createAuthStore() {
 	}
 
 	return {
-		get state() { return state; },
+		get state() {
+			return state;
+		},
 		init,
 		cleanup,
 		signup,

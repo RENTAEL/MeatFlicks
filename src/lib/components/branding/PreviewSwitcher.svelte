@@ -14,13 +14,17 @@
 	const firebaseUser = $derived(authStore.state.user);
 	const isAdmin = $derived(
 		isAdminUser(firebaseUser) ||
-			(sessionUser ? isAdminUser({ displayName: sessionUser.username, email: null }) : false)
+			(sessionUser
+				? isAdminUser({ displayName: sessionUser.username, email: sessionUser.email })
+				: false)
 	);
 
 	const preview = $derived(previewStore.current);
 	const actual = $derived(
 		getBranding(firebaseUser) ??
-			(sessionUser ? getBranding({ displayName: sessionUser.username, email: null }) : null)
+			(sessionUser
+				? getBranding({ displayName: sessionUser.username, email: sessionUser.email })
+				: null)
 	);
 	const effective = $derived(preview === 'streamium' ? null : (preview ?? actual));
 

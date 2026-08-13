@@ -52,6 +52,11 @@ export interface RoomPlayback {
 	provider: { id: string; name: string } | null;
 }
 
+export interface RoomKick {
+	by: string;
+	at: number;
+}
+
 export interface RoomState {
 	closed: boolean;
 	roomId: string;
@@ -64,4 +69,5 @@ export interface RoomState {
 	participants: RoomParticipant[];
 	lastMessageId: number;
 	messages: RoomMessage[];
+	kicked: RoomKick | null;
 }

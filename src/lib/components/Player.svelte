@@ -14,15 +14,35 @@
 		imdbId = null as string | null,
 		runtime = null as number | null,
 		backdrop = null as string | null,
-		next = null as { season_number: number; episode_number: number; name: string; air_date: string | null; still_path: string | null } | null,
+		next = null as {
+			season_number: number;
+			episode_number: number;
+			name: string;
+			air_date: string | null;
+			still_path: string | null;
+		} | null,
 		onnext = undefined as (() => void) | undefined,
 		onerror,
 		preResolvedSource = null as string | null,
 		readOnly = false as boolean,
-		remoteSync = null as { seq: number; playing: boolean; position: number; positionAt: number; provider: { id: string; name: string } | null } | null,
+		remoteSync = null as {
+			seq: number;
+			playing: boolean;
+			position: number;
+			positionAt: number;
+			provider: { id: string; name: string } | null;
+		} | null,
 		syncPoke = 0 as number,
-		onPlaybackChange = undefined as ((signal: { playing: boolean; position: number; provider: { id: string; name: string } | null }) => void) | undefined,
-		onSyncState = undefined as ((state: { status: 'synced' | 'drifted' | 'syncing'; drift: number }) => void) | undefined
+		onPlaybackChange = undefined as
+			| ((signal: {
+					playing: boolean;
+					position: number;
+					provider: { id: string; name: string } | null;
+			  }) => void)
+			| undefined,
+		onSyncState = undefined as
+			| ((state: { status: 'synced' | 'drifted' | 'syncing'; drift: number }) => void)
+			| undefined
 	}: {
 		tmdbId: number;
 		type?: 'movie' | 'tv';
@@ -32,23 +52,45 @@
 		imdbId?: string | null;
 		runtime?: number | null;
 		backdrop?: string | null;
-		next?: { season_number: number; episode_number: number; name: string; air_date: string | null; still_path: string | null } | null;
+		next?: {
+			season_number: number;
+			episode_number: number;
+			name: string;
+			air_date: string | null;
+			still_path: string | null;
+		} | null;
 		onnext?: () => void;
 		onerror?: (detail: { message: string }) => void;
 		preResolvedSource?: string | null;
 		readOnly?: boolean;
-		remoteSync?: { seq: number; playing: boolean; position: number; positionAt: number; provider: { id: string; name: string } | null } | null;
+		remoteSync?: {
+			seq: number;
+			playing: boolean;
+			position: number;
+			positionAt: number;
+			provider: { id: string; name: string } | null;
+		} | null;
 		syncPoke?: number;
-		onPlaybackChange?: (signal: { playing: boolean; position: number; provider: { id: string; name: string } | null }) => void;
+		onPlaybackChange?: (signal: {
+			playing: boolean;
+			position: number;
+			provider: { id: string; name: string } | null;
+		}) => void;
 		onSyncState?: (state: { status: 'synced' | 'drifted' | 'syncing'; drift: number }) => void;
 	} = $props();
 
 	interface ScanResult {
-		id: string; name: string; movieUrl: string; tvUrl: string | null;
+		id: string;
+		name: string;
+		movieUrl: string;
+		tvUrl: string | null;
 		status: 'working' | 'blocked' | 'dead';
 	}
 
-	export const TRACKING_CAPS: Record<string, { tracksPosition: boolean; playbackControl: 'full' | 'best-effort' }> = {
+	export const TRACKING_CAPS: Record<
+		string,
+		{ tracksPosition: boolean; playbackControl: 'full' | 'best-effort' }
+	> = {
 		vidlink: { tracksPosition: false, playbackControl: 'best-effort' },
 		vidsrc: { tracksPosition: false, playbackControl: 'best-effort' },
 		'2embed': { tracksPosition: false, playbackControl: 'best-effort' },
@@ -59,17 +101,19 @@
 	let isScanning = $state(true);
 	let scanError = $state('');
 	let allProviders: ScanResult[] = $state([]);
-	let workingProviders: ScanResult[] = $derived(allProviders.filter(p => p.status !== 'dead'));
+	let workingProviders: ScanResult[] = $derived(allProviders.filter((p) => p.status !== 'dead'));
 	let currentIndex = $state(0);
 	let currentProvider = $derived(workingProviders[currentIndex]);
-	let canResumePosition = $derived(TRACKING_CAPS[currentProvider?.id ?? '']?.tracksPosition ?? false);
+	let canResumePosition = $derived(
+		TRACKING_CAPS[currentProvider?.id ?? '']?.tracksPosition ?? false
+	);
 	let hasFullPlaybackControl = $derived(currentProvider?.id === 'youtube');
 	let currentUrl = $derived(
 		type === 'tv' && currentProvider?.tvUrl
 			? currentProvider.tvUrl
 			: currentProvider?.movieUrl || ''
 	);
-	let deadProviders = $derived(allProviders.filter(p => p.status === 'dead'));
+	let deadProviders = $derived(allProviders.filter((p) => p.status === 'dead'));
 	let iframeLoaded = $state(false);
 	let hasError = $state(false);
 	let showServerList = $state(false);
@@ -87,7 +131,9 @@
 	let elapsedTick: ReturnType<typeof setInterval> | null = null;
 	let effectiveVolume = $derived(playerPreferences.muted ? 0 : playerPreferences.volume);
 
-	let nextUnavailable = $derived(!!next && !!next.air_date && new Date(next.air_date).getTime() > Date.now());
+	let nextUnavailable = $derived(
+		!!next && !!next.air_date && new Date(next.air_date).getTime() > Date.now()
+	);
 	let nextReady = $derived(!!next && !nextUnavailable);
 	let upNextThumb = $derived(
 		next?.still_path
@@ -134,9 +180,26 @@
 	let driftTick: ReturnType<typeof setInterval> | null = null;
 	let isCoarse = $state(false);
 	let lastSyncState: SyncStatus = { status: 'synced', drift: 0 };
+	let reloadPending: { position: number; playing: boolean; at: number } | null = null;
+	let frameBump = $state(0);
+	let frameBuiltFromReload = false;
 
 	$effect(() => {
-		frameSrc = currentUrl;
+		const base = currentUrl;
+		void frameBump;
+		const pending = reloadPending;
+		if (pending) {
+			reloadPending = null;
+			const url = new URL(base);
+			url.searchParams.set('autoplay', pending.playing ? 'true' : 'false');
+			url.searchParams.set('_', String(pending.at));
+			url.hash = '#t=' + Math.max(0, Math.round(pending.position));
+			frameSrc = url.toString();
+			frameBuiltFromReload = true;
+		} else {
+			frameSrc = base;
+			frameBuiltFromReload = false;
+		}
 		syncReloadStreak = 0;
 	});
 
@@ -153,7 +216,7 @@
 	$effect(() => {
 		let pendingPause: { position: number } | null = null;
 		let pendingPauseTimer: ReturnType<typeof setTimeout> | null = null;
-	function reportHostSignal(sig: { playing: boolean; position: number }) {
+		function reportHostSignal(sig: { playing: boolean; position: number }) {
 			if (readOnly) return;
 			const now = Date.now();
 			if (now - lastHostPost < 1500) return;
@@ -173,7 +236,11 @@
 			if (ev.event === 'play') {
 				needsTapToContinue = false;
 				if (!readOnly) {
-					if (pendingPauseTimer) { clearTimeout(pendingPauseTimer); pendingPauseTimer = null; pendingPause = null; }
+					if (pendingPauseTimer) {
+						clearTimeout(pendingPauseTimer);
+						pendingPauseTimer = null;
+						pendingPause = null;
+					}
 					reportHostSignal({ playing: true, position: pos });
 				}
 			} else if (ev.event === 'pause') {
@@ -211,13 +278,29 @@
 		return elapsedSeconds;
 	}
 
+	// Host-side position estimate: extrapolates from the last known embed
+	// state (even when PLAYER_EVENTs go stale), so reported positions stay
+	// accurate through sparse event streams instead of falling back to the
+	// timer-driven elapsedSeconds (which ignores pauses and reloads).
+	function hostPosition(): number {
+		if (ytPlayer && ytReady) return ytPlayer.getCurrentTime?.() ?? elapsedSeconds;
+		if (embedEvent) {
+			return embedEvent.position + (embedEvent.playing ? (Date.now() - embedEvent.at) / 1000 : 0);
+		}
+		if (lastReload) {
+			return lastReload.position + (lastReload.playing ? (Date.now() - lastReload.at) / 1000 : 0);
+		}
+		return elapsedSeconds;
+	}
+
 	function embedPositionEstimate(): number {
 		if (embedEvent && Date.now() - embedEvent.at < 6000) {
 			// If we just reloaded (within 20s) and the embed is reporting a position
 			// far from where we loaded (e.g. near 0 while #t= was 15), the embed
 			// hasn't seeked yet — prefer the lastReload extrapolation to avoid a loop.
 			if (lastReload && Date.now() - lastReload.at < 20000) {
-				const reloadEst = lastReload.position + (lastReload.playing ? (Date.now() - lastReload.at) / 1000 : 0);
+				const reloadEst =
+					lastReload.position + (lastReload.playing ? (Date.now() - lastReload.at) / 1000 : 0);
 				if (Math.abs(embedEvent.position - lastReload.position) > 8) {
 					return reloadEst;
 				}
@@ -231,7 +314,10 @@
 	}
 
 	function targetOf(rs: RemoteSync): number {
-		return Math.max(0, rs.playing ? rs.position + (Date.now() - rs.positionAt) / 1000 : rs.position);
+		return Math.max(
+			0,
+			rs.playing ? rs.position + (Date.now() - rs.positionAt) / 1000 : rs.position
+		);
 	}
 
 	// Once the embed is live and reporting fresh positions, a constant lag
@@ -313,12 +399,10 @@
 		embedEvent = null;
 		embedBaselineDeficit = null;
 		lastReload = { at: now, position, playing };
-		const url = new URL(currentUrl);
-		url.searchParams.set('autoplay', playing ? 'true' : 'false');
-		url.searchParams.set('_', String(now));
-		url.hash = '#t=' + Math.max(0, Math.round(position));
-		frameSrc = url.toString();
+		elapsedSeconds = position;
+		reloadPending = { at: now, position, playing };
 		iframeLoaded = false;
+		frameBump++;
 		return true;
 	}
 
@@ -330,19 +414,31 @@
 		if (idx < 0) return false;
 		if (idx !== currentIndex) {
 			switchTo(idx);
-			remoteAppliedSeq = -1;
 		}
 		return true;
 	}
 
+	function applyPendingRemote() {
+		const rs = latestRemote;
+		if (!rs || rs.seq === remoteAppliedSeq) return;
+		remoteAppliedSeq = rs.seq;
+		remotePokedSeq = syncPoke;
+		applyRemote(rs, true);
+	}
+
 	function applyRemote(rs: RemoteSync, forceReload = false) {
-		if (switchToRemoteProvider(rs)) return;
+		if (switchToRemoteProvider(rs)) {
+			if (!hasFullPlaybackControl) reloadSync(targetOf(rs), rs.playing, true);
+			markSyncApplied(rs);
+			return;
+		}
 		const target = targetOf(rs);
 		const current = currentPosition();
 		const needSeek = Math.abs(target - current) > 2;
 		if (ytPlayer && ytReady) {
 			if (needSeek) ytPlayer.seekTo(target, true);
-			if (rs.playing) ytPlayer.playVideo(); else ytPlayer.pauseVideo();
+			if (rs.playing) ytPlayer.playVideo();
+			else ytPlayer.pauseVideo();
 			playing = rs.playing;
 			elapsedSeconds = target;
 			updateSyncState(current, target);
@@ -354,11 +450,13 @@
 			const needSeek = rateDiverged(target, current);
 			// Only trust embedEvent play-state if the embed has actually reached the
 			// expected position (i.e. not still cold-starting after a reload).
-			const embedSettled = !lastReload || Date.now() - lastReload.at >= 20000
-				|| (!!embedEvent && Math.abs(embedEvent.position - lastReload.position) <= 8);
+			const embedSettled =
+				!lastReload ||
+				Date.now() - lastReload.at >= 20000 ||
+				(!!embedEvent && Math.abs(embedEvent.position - lastReload.position) <= 8);
 			const embedFresh = !!embedEvent && Date.now() - embedEvent.at < 6000;
 			const stateDiffers = embedFresh && embedSettled && embedEvent!.playing !== rs.playing;
-			if (needSeek || stateDiffers) {
+			if (needSeek || stateDiffers || forceReload) {
 				reloadSync(target, rs.playing, forceReload);
 			}
 			sendEmbedCommand(frameRef, rs.playing ? 'play' : 'pause');
@@ -416,7 +514,7 @@
 		stopHostTick();
 		hostTick = setInterval(() => {
 			if (!iframeLoaded) return;
-			const pos = currentPosition();
+			const pos = hostPosition();
 			if (Math.abs(pos - lastHostReported) < 1) return;
 			lastHostReported = pos;
 			onPlaybackChange?.({ playing, position: pos, provider: currentProviderInfo() });
@@ -424,7 +522,10 @@
 	}
 
 	function stopHostTick() {
-		if (hostTick) { clearInterval(hostTick); hostTick = null; }
+		if (hostTick) {
+			clearInterval(hostTick);
+			hostTick = null;
+		}
 	}
 
 	function startDriftTick() {
@@ -437,7 +538,8 @@
 			if (Math.abs(target - current) > 2) {
 				if (ytPlayer && ytReady) {
 					ytPlayer.seekTo(target, true);
-					if (latestRemote.playing) ytPlayer.playVideo(); else ytPlayer.pauseVideo();
+					if (latestRemote.playing) ytPlayer.playVideo();
+					else ytPlayer.pauseVideo();
 					elapsedSeconds = target;
 				} else if (currentProvider?.id === 'vidlink') {
 					if (rateDiverged(target, current)) {
@@ -452,8 +554,10 @@
 					elapsedSeconds = target;
 				}
 			} else if (currentProvider?.id === 'vidlink') {
-				const embedSettled = !lastReload || Date.now() - lastReload.at >= 20000
-					|| (!!embedEvent && Math.abs(embedEvent.position - lastReload.position) <= 8);
+				const embedSettled =
+					!lastReload ||
+					Date.now() - lastReload.at >= 20000 ||
+					(!!embedEvent && Math.abs(embedEvent.position - lastReload.position) <= 8);
 				const embedFresh = !!embedEvent && Date.now() - embedEvent.at < 6000;
 				if (embedFresh && embedSettled && embedEvent!.playing !== latestRemote.playing) {
 					reloadSync(target, latestRemote.playing);
@@ -464,7 +568,10 @@
 	}
 
 	function stopDriftTick() {
-		if (driftTick) { clearInterval(driftTick); driftTick = null; }
+		if (driftTick) {
+			clearInterval(driftTick);
+			driftTick = null;
+		}
 	}
 
 	$effect(() => {
@@ -496,13 +603,19 @@
 
 	function formatAirDate(iso: string | null) {
 		if (!iso) return '';
-		return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+		return new Date(iso).toLocaleDateString('en-US', {
+			month: 'short',
+			day: 'numeric',
+			year: 'numeric'
+		});
 	}
 
 	function toggleAutoplay() {
 		autoplayNext = !autoplayNext;
 		if (browser) {
-			try { localStorage.setItem(AUTOPLAY_KEY, autoplayNext ? '1' : '0'); } catch {}
+			try {
+				localStorage.setItem(AUTOPLAY_KEY, autoplayNext ? '1' : '0');
+			} catch {}
 		}
 	}
 
@@ -516,10 +629,16 @@
 	});
 
 	function stopAutoTick() {
-		if (autoTick) { clearInterval(autoTick); autoTick = null; }
+		if (autoTick) {
+			clearInterval(autoTick);
+			autoTick = null;
+		}
 	}
 	function stopUpNextTick() {
-		if (upNextTick) { clearInterval(upNextTick); upNextTick = null; }
+		if (upNextTick) {
+			clearInterval(upNextTick);
+			upNextTick = null;
+		}
 	}
 
 	function syncAutoTick() {
@@ -586,7 +705,11 @@
 			} else {
 				ytPlayer.playVideo();
 			}
-			onPlaybackChange?.({ playing: !playing, position: ytPlayer.getCurrentTime?.() ?? elapsedSeconds, provider: currentProviderInfo() });
+			onPlaybackChange?.({
+				playing: !playing,
+				position: ytPlayer.getCurrentTime?.() ?? elapsedSeconds,
+				provider: currentProviderInfo()
+			});
 		} else {
 			playing = !playing;
 			sendEmbedCommand(frameRef, playing ? 'play' : 'pause');
@@ -717,6 +840,9 @@
 							iframeLoaded = true;
 							stopAutoSwitch();
 							applyVolume();
+							if (latestRemote && latestRemote.seq !== remoteAppliedSeq) {
+								applyPendingRemote();
+							}
 						},
 						onStateChange: (event: any) => {
 							playing = event.data === 1 || event.data === 3;
@@ -752,13 +878,15 @@
 
 	async function scan() {
 		if (preResolvedSource) {
-			allProviders = [{
-				id: 'youtube',
-				name: 'YouTube',
-				movieUrl: preResolvedSource,
-				tvUrl: null,
-				status: 'working',
-			}];
+			allProviders = [
+				{
+					id: 'youtube',
+					name: 'YouTube',
+					movieUrl: preResolvedSource,
+					tvUrl: null,
+					status: 'working'
+				}
+			];
 			currentIndex = 0;
 			isScanning = false;
 			return;
@@ -809,13 +937,19 @@
 			if (!iframeLoaded && workingProviders.length > 1) {
 				isAutoSwitching = true;
 				switchToNext();
-				setTimeout(() => { isAutoSwitching = false; startAutoSwitch(); }, 500);
+				setTimeout(() => {
+					isAutoSwitching = false;
+					startAutoSwitch();
+				}, 500);
 			}
 		}, 4000);
 	}
 
 	function stopAutoSwitch() {
-		if (autoSwitchTimer) { clearTimeout(autoSwitchTimer); autoSwitchTimer = null; }
+		if (autoSwitchTimer) {
+			clearTimeout(autoSwitchTimer);
+			autoSwitchTimer = null;
+		}
 	}
 
 	function switchTo(index: number) {
@@ -830,7 +964,7 @@
 		lastHostPost = 0;
 		startAutoSwitch();
 		if (!readOnly) {
-			onPlaybackChange?.({ playing, position: currentPosition(), provider: currentProviderInfo() });
+			onPlaybackChange?.({ playing, position: hostPosition(), provider: currentProviderInfo() });
 		}
 	}
 
@@ -849,6 +983,10 @@
 		needsTapToContinue = false;
 		lastHostReported = -1;
 		lastHostPost = 0;
+		if (latestRemote && latestRemote.seq !== remoteAppliedSeq && !frameBuiltFromReload) {
+			applyPendingRemote();
+		}
+		frameBuiltFromReload = false;
 		maybeShowTapPrompt();
 	}
 
@@ -858,7 +996,10 @@
 		if (workingProviders.length > 1 && !isAutoSwitching) {
 			isAutoSwitching = true;
 			switchToNext();
-			setTimeout(() => { isAutoSwitching = false; startAutoSwitch(); }, 500);
+			setTimeout(() => {
+				isAutoSwitching = false;
+				startAutoSwitch();
+			}, 500);
 		}
 	}
 
@@ -881,8 +1022,11 @@
 		stopElapsed();
 		stopDriftTick();
 		stopHostTick();
-		try { ytPlayer?.destroy?.(); } catch {}
-	});</script>
+		try {
+			ytPlayer?.destroy?.();
+		} catch {}
+	});
+</script>
 
 <div class="player-root" bind:this={playerRoot}>
 	<div class="iframe-container">
@@ -895,8 +1039,19 @@
 
 		{#if scanError && !isScanning}
 			<div class="overlay">
-				<svg class="error-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-					<circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+				<svg
+					class="error-icon"
+					viewBox="0 0 24 24"
+					fill="none"
+					stroke="currentColor"
+					stroke-width="2"
+				>
+					<circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line
+						x1="12"
+						y1="16"
+						x2="12.01"
+						y2="16"
+					/>
 				</svg>
 				<p class="overlay-text">{scanError}</p>
 				<button onclick={retry} class="retry-btn">Retry Scan</button>
@@ -936,7 +1091,12 @@
 			<div
 				class="tap-overlay"
 				onclick={tapToContinue}
-				onkeydown={(e) => { if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); tapToContinue(); } }}
+				onkeydown={(e) => {
+					if (e.key === ' ' || e.key === 'Enter') {
+						e.preventDefault();
+						tapToContinue();
+					}
+				}}
 				role="button"
 				tabindex="-1"
 				aria-label="Tap to continue watching"
@@ -985,7 +1145,11 @@
 
 	<div class="provider-bar">
 		<div class="provider-bar-left">
-			<span class="dot" class:dot-working={iframeLoaded} class:dot-loading={!iframeLoaded && !isScanning}></span>
+			<span
+				class="dot"
+				class:dot-working={iframeLoaded}
+				class:dot-loading={!iframeLoaded && !isScanning}
+			></span>
 			<span class="provider-name">{currentProvider?.name || ''}</span>
 			{#if iframeLoaded}
 				<span class="badge badge-working">Live</span>
@@ -993,16 +1157,26 @@
 		</div>
 		<div class="provider-bar-right">
 			{#if workingProviders.length > 0}
-				<span class="count">{workingProviders.length} server{workingProviders.length !== 1 ? 's' : ''}</span>
+				<span class="count"
+					>{workingProviders.length} server{workingProviders.length !== 1 ? 's' : ''}</span
+				>
 				{#if next}
 					<button
 						class="next-btn"
 						class:next-btn-disabled={nextUnavailable}
 						disabled={nextUnavailable}
-						title={nextUnavailable ? `${next.name} airs ${formatAirDate(next.air_date)}` : `Play ${next.name}`}
+						title={nextUnavailable
+							? `${next.name} airs ${formatAirDate(next.air_date)}`
+							: `Play ${next.name}`}
 						onclick={() => onnext?.()}
 					>
-						<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="next-icon"><path d="M5 3l14 9-14 9V3z"/></svg>
+						<svg
+							viewBox="0 0 24 24"
+							fill="none"
+							stroke="currentColor"
+							stroke-width="2"
+							class="next-icon"><path d="M5 3l14 9-14 9V3z" /></svg
+						>
 						Next <span class="next-spec">S{next.season_number}:E{next.episode_number}</span>
 					</button>
 				{/if}
@@ -1016,9 +1190,21 @@
 						Auto-next <span class="auto-pill">{autoplayNext ? 'On' : 'Off'}</span>
 					</button>
 				{/if}
-				<button onclick={() => showServerList = !showServerList} class="switch-btn" aria-label="Switch server">
-					<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="switch-icon">
-						<polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/>
+				<button
+					onclick={() => (showServerList = !showServerList)}
+					class="switch-btn"
+					aria-label="Switch server"
+				>
+					<svg
+						viewBox="0 0 24 24"
+						fill="none"
+						stroke="currentColor"
+						stroke-width="2"
+						class="switch-icon"
+					>
+						<polyline points="17 1 21 5 17 9" /><path d="M3 11V9a4 4 0 0 1 4-4h14" /><polyline
+							points="7 23 3 19 7 15"
+						/><path d="M21 13v2a4 4 0 0 1-4 4H3" />
 					</svg>
 					Switch
 				</button>
@@ -1030,7 +1216,9 @@
 		<div class="server-list">
 			<div class="server-list-header">
 				<span>Select Server</span>
-				<button onclick={() => showServerList = false} class="close-btn" aria-label="Close">&times;</button>
+				<button onclick={() => (showServerList = false)} class="close-btn" aria-label="Close"
+					>&times;</button
+				>
 			</div>
 			<div class="server-list-body">
 				{#each allProviders as p, i}
@@ -1039,7 +1227,13 @@
 					{@const isCurrent = workingProviders.indexOf(p) === currentIndex && isWorking}
 					{#if isWorking}
 						<button
-							onclick={() => { const idx = workingProviders.indexOf(p); if (idx >= 0) { showServerList = false; switchTo(idx); } }}
+							onclick={() => {
+								const idx = workingProviders.indexOf(p);
+								if (idx >= 0) {
+									showServerList = false;
+									switchTo(idx);
+								}
+							}}
 							class="server-item"
 							class:current={isCurrent}
 							class:loaded={isLoaded}
@@ -1049,7 +1243,11 @@
 								<span>{p.name}</span>
 								{#if isCurrent}<span class="current-label">Current</span>{/if}
 							</div>
-							<span class="server-status" class:working={isLoaded} class:failing={!isLoaded && isCurrent && !isScanning}>
+							<span
+								class="server-status"
+								class:working={isLoaded}
+								class:failing={!isLoaded && isCurrent && !isScanning}
+							>
 								{isLoaded ? '✓ Working' : isCurrent ? '⟳ Trying...' : 'Ready'}
 							</span>
 						</button>
@@ -1058,8 +1256,20 @@
 
 				{#if deadProviders.length > 0}
 					<div class="dead-section">
-						<button onclick={(e) => { const el = e.currentTarget.nextElementSibling as HTMLElement; if (el) el.classList.toggle('hidden'); }} class="dead-toggle">
-							<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="dead-chevron"><polyline points="6 9 12 15 18 9"/></svg>
+						<button
+							onclick={(e) => {
+								const el = e.currentTarget.nextElementSibling as HTMLElement;
+								if (el) el.classList.toggle('hidden');
+							}}
+							class="dead-toggle"
+						>
+							<svg
+								viewBox="0 0 24 24"
+								fill="none"
+								stroke="currentColor"
+								stroke-width="2"
+								class="dead-chevron"><polyline points="6 9 12 15 18 9" /></svg
+							>
 							{deadProviders.length} dead
 						</button>
 						<div class="dead-list hidden">
@@ -1072,7 +1282,16 @@
 			</div>
 			<div class="server-list-footer">
 				<button onclick={retry} class="rescan-btn">
-					<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="rescan-icon"><path d="M1 4v6h6M23 20v-6h-6"/><path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 0 1 3.51 15"/></svg>
+					<svg
+						viewBox="0 0 24 24"
+						fill="none"
+						stroke="currentColor"
+						stroke-width="2"
+						class="rescan-icon"
+						><path d="M1 4v6h6M23 20v-6h-6" /><path
+							d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 0 1 3.51 15"
+						/></svg
+					>
 					Rescan All
 				</button>
 			</div>
@@ -1091,103 +1310,571 @@
 {/if}
 
 <style>
-	.player-root { display: flex; flex-direction: column; width: 100%; background: #0a0a0b; border-radius: 12px; overflow: hidden; border: 1px solid #1f1f23; }
-	.iframe-container { position: relative; width: 100%; aspect-ratio: 16 / 9; background: #000; }
-	.player-iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: none; }
-	.overlay { position: absolute; inset: 0; z-index: 10; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; background: rgba(0,0,0,0.9); backdrop-filter: blur(8px); }
-	.loading-overlay { background: rgba(0,0,0,0.75); pointer-events: none; }
-	.spinner { width: 36px; height: 36px; border: 3px solid rgba(255,255,255,0.1); border-top-color: #818cf8; border-radius: 50%; animation: spin 0.7s linear infinite; }
-	@keyframes spin { to { transform: rotate(360deg); } }
-	.overlay-text { color: #d4d4d8; font-size: 14px; font-weight: 500; }
-	.overlay-sub { color: #71717a; font-size: 12px; }
-	.error-icon { width: 36px; height: 36px; color: #f87171; }
-	.retry-btn { padding: 8px 20px; background: #27272a; color: #d4d4d8; border: 1px solid #3f3f46; border-radius: 8px; font-size: 13px; cursor: pointer; }
-	.retry-btn:hover { background: #3f3f46; }
+	.player-root {
+		display: flex;
+		flex-direction: column;
+		width: 100%;
+		background: #0a0a0b;
+		border-radius: 12px;
+		overflow: hidden;
+		border: 1px solid #1f1f23;
+	}
+	.iframe-container {
+		position: relative;
+		width: 100%;
+		aspect-ratio: 16 / 9;
+		background: #000;
+	}
+	.player-iframe {
+		position: absolute;
+		inset: 0;
+		width: 100%;
+		height: 100%;
+		border: none;
+	}
+	.overlay {
+		position: absolute;
+		inset: 0;
+		z-index: 10;
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		justify-content: center;
+		gap: 12px;
+		background: rgba(0, 0, 0, 0.9);
+		backdrop-filter: blur(8px);
+	}
+	.loading-overlay {
+		background: rgba(0, 0, 0, 0.75);
+		pointer-events: none;
+	}
+	.spinner {
+		width: 36px;
+		height: 36px;
+		border: 3px solid rgba(255, 255, 255, 0.1);
+		border-top-color: #818cf8;
+		border-radius: 50%;
+		animation: spin 0.7s linear infinite;
+	}
+	@keyframes spin {
+		to {
+			transform: rotate(360deg);
+		}
+	}
+	.overlay-text {
+		color: #d4d4d8;
+		font-size: 14px;
+		font-weight: 500;
+	}
+	.overlay-sub {
+		color: #71717a;
+		font-size: 12px;
+	}
+	.error-icon {
+		width: 36px;
+		height: 36px;
+		color: #f87171;
+	}
+	.retry-btn {
+		padding: 8px 20px;
+		background: #27272a;
+		color: #d4d4d8;
+		border: 1px solid #3f3f46;
+		border-radius: 8px;
+		font-size: 13px;
+		cursor: pointer;
+	}
+	.retry-btn:hover {
+		background: #3f3f46;
+	}
 
-	.provider-bar { display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; background: #111113; border-top: 1px solid #1f1f23; gap: 12px; flex-wrap: wrap; }
-	.provider-bar-left { display: flex; align-items: center; gap: 8px; }
-	.provider-name { font-size: 13px; font-weight: 500; color: #e4e4e7; }
-	.dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
-	.dot-working { background: #22c55e; }
-	.dot-loading { background: #f59e0b; animation: pulse 1.5s ease-in-out infinite; }
-	@keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.3; } }
-	.badge { font-size: 10px; font-weight: 600; padding: 2px 6px; border-radius: 4px; text-transform: uppercase; letter-spacing: 0.5px; }
-	.badge-working { background: #064e3b; color: #6ee7b7; }
-	.count { font-size: 11px; color: #71717a; }
-	.next-btn { display: flex; align-items: center; gap: 6px; padding: 6px 12px; background: #27272a; color: #d4d4d8; border: 1px solid #3f3f46; border-radius: 6px; font-size: 12px; cursor: pointer; min-height: 44px; box-sizing: border-box; }
-	.next-btn:hover:not(:disabled) { background: #3f3f46; }
-	.next-btn:disabled { opacity: 0.45; cursor: not-allowed; }
-	.next-btn:active:not(:disabled) { background: #18181b; }
-	.next-icon { width: 14px; height: 14px; }
-	.next-spec { color: #818cf8; font-weight: 700; }
-	.auto-btn { display: inline-flex; align-items: center; gap: 6px; padding: 6px 10px; background: #18181b; color: #71717a; border: 1px solid #27272a; border-radius: 6px; font-size: 12px; cursor: pointer; min-height: 44px; box-sizing: border-box; }
-	.auto-btn:hover { color: #a1a1aa; }
-	.auto-btn-on { color: #d4d4d8; background: #27272a; border-color: #3f3f46; }
-	.auto-pill { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.4px; color: #a1a1aa; }
-	.auto-btn-on .auto-pill { color: #6ee7b7; }
-	.switch-btn { display: flex; align-items: center; gap: 6px; padding: 6px 12px; background: #27272a; color: #d4d4d8; border: 1px solid #3f3f46; border-radius: 6px; font-size: 12px; cursor: pointer; min-height: 44px; box-sizing: border-box; }
-	.switch-btn:hover { background: #3f3f46; }
-	.switch-icon { width: 14px; height: 14px; }
+	.provider-bar {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		padding: 10px 14px;
+		background: #111113;
+		border-top: 1px solid #1f1f23;
+		gap: 12px;
+		flex-wrap: wrap;
+	}
+	.provider-bar-left {
+		display: flex;
+		align-items: center;
+		gap: 8px;
+	}
+	.provider-name {
+		font-size: 13px;
+		font-weight: 500;
+		color: #e4e4e7;
+	}
+	.dot {
+		width: 8px;
+		height: 8px;
+		border-radius: 50%;
+		flex-shrink: 0;
+	}
+	.dot-working {
+		background: #22c55e;
+	}
+	.dot-loading {
+		background: #f59e0b;
+		animation: pulse 1.5s ease-in-out infinite;
+	}
+	@keyframes pulse {
+		0%,
+		100% {
+			opacity: 1;
+		}
+		50% {
+			opacity: 0.3;
+		}
+	}
+	.badge {
+		font-size: 10px;
+		font-weight: 600;
+		padding: 2px 6px;
+		border-radius: 4px;
+		text-transform: uppercase;
+		letter-spacing: 0.5px;
+	}
+	.badge-working {
+		background: #064e3b;
+		color: #6ee7b7;
+	}
+	.count {
+		font-size: 11px;
+		color: #71717a;
+	}
+	.next-btn {
+		display: flex;
+		align-items: center;
+		gap: 6px;
+		padding: 6px 12px;
+		background: #27272a;
+		color: #d4d4d8;
+		border: 1px solid #3f3f46;
+		border-radius: 6px;
+		font-size: 12px;
+		cursor: pointer;
+		min-height: 44px;
+		box-sizing: border-box;
+	}
+	.next-btn:hover:not(:disabled) {
+		background: #3f3f46;
+	}
+	.next-btn:disabled {
+		opacity: 0.45;
+		cursor: not-allowed;
+	}
+	.next-btn:active:not(:disabled) {
+		background: #18181b;
+	}
+	.next-icon {
+		width: 14px;
+		height: 14px;
+	}
+	.next-spec {
+		color: #818cf8;
+		font-weight: 700;
+	}
+	.auto-btn {
+		display: inline-flex;
+		align-items: center;
+		gap: 6px;
+		padding: 6px 10px;
+		background: #18181b;
+		color: #71717a;
+		border: 1px solid #27272a;
+		border-radius: 6px;
+		font-size: 12px;
+		cursor: pointer;
+		min-height: 44px;
+		box-sizing: border-box;
+	}
+	.auto-btn:hover {
+		color: #a1a1aa;
+	}
+	.auto-btn-on {
+		color: #d4d4d8;
+		background: #27272a;
+		border-color: #3f3f46;
+	}
+	.auto-pill {
+		font-size: 10px;
+		font-weight: 700;
+		text-transform: uppercase;
+		letter-spacing: 0.4px;
+		color: #a1a1aa;
+	}
+	.auto-btn-on .auto-pill {
+		color: #6ee7b7;
+	}
+	.switch-btn {
+		display: flex;
+		align-items: center;
+		gap: 6px;
+		padding: 6px 12px;
+		background: #27272a;
+		color: #d4d4d8;
+		border: 1px solid #3f3f46;
+		border-radius: 6px;
+		font-size: 12px;
+		cursor: pointer;
+		min-height: 44px;
+		box-sizing: border-box;
+	}
+	.switch-btn:hover {
+		background: #3f3f46;
+	}
+	.switch-icon {
+		width: 14px;
+		height: 14px;
+	}
 
-	.yt-host { overflow: hidden; }
+	.yt-host {
+		overflow: hidden;
+	}
 
-	.tap-overlay { position: absolute; inset: 0; z-index: 25; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,0.75); backdrop-filter: blur(4px); cursor: pointer; }
-	.tap-card { display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 28px 36px; background: rgba(17,17,19,0.95); border: 1px solid #3f3f46; border-radius: 14px; color: #e4e4e7; }
-	.tap-card :global(svg) { color: #818cf8; }
-	.tap-title { font-size: 15px; font-weight: 600; }
-	.tap-sub { font-size: 12px; color: #71717a; }
+	.tap-overlay {
+		position: absolute;
+		inset: 0;
+		z-index: 25;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		background: rgba(0, 0, 0, 0.75);
+		backdrop-filter: blur(4px);
+		cursor: pointer;
+	}
+	.tap-card {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: 10px;
+		padding: 28px 36px;
+		background: rgba(17, 17, 19, 0.95);
+		border: 1px solid #3f3f46;
+		border-radius: 14px;
+		color: #e4e4e7;
+	}
+	.tap-card :global(svg) {
+		color: #818cf8;
+	}
+	.tap-title {
+		font-size: 15px;
+		font-weight: 600;
+	}
+	.tap-sub {
+		font-size: 12px;
+		color: #71717a;
+	}
 
-	.server-list { border-top: 1px solid #1f1f23; background: #0c0c0e; max-height: 360px; overflow-y: auto; }
-	.server-list-header { display: flex; align-items: center; justify-content: space-between; padding: 12px 14px 10px; position: sticky; top: 0; background: #0c0c0e; border-bottom: 1px solid #1f1f23; font-size: 13px; font-weight: 600; color: #e4e4e7; }
-	.close-btn { background: none; border: none; color: #71717a; font-size: 20px; cursor: pointer; padding: 4px; line-height: 1; }
-	.close-btn:hover { color: #e4e4e7; }
-	.server-list-body { padding: 6px; }
-	.server-item { display: flex; align-items: center; justify-content: space-between; width: 100%; padding: 10px 12px; background: none; border: 1px solid transparent; border-radius: 8px; cursor: pointer; text-align: left; color: #e4e4e7; font-size: 13px; }
-	.server-item:hover { background: #18181b; }
-	.server-item.current { border-color: #3f3f46; background: #18181b; }
-	.server-item.loaded { border-color: #064e3b; }
-	.server-item-left { display: flex; align-items: center; gap: 10px; }
-	.item-dot { width: 8px; height: 8px; border-radius: 50%; background: #3f3f46; flex-shrink: 0; }
-	.dot-working { background: #22c55e; }
-	.current-label { font-size: 10px; color: #818cf8; margin-left: 6px; font-weight: 600; }
-	.server-status { font-size: 11px; font-weight: 500; }
-	.server-status.working { color: #4ade80; }
-	.server-status.failing { color: #fbbf24; }
+	.server-list {
+		border-top: 1px solid #1f1f23;
+		background: #0c0c0e;
+		max-height: 360px;
+		overflow-y: auto;
+	}
+	.server-list-header {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		padding: 12px 14px 10px;
+		position: sticky;
+		top: 0;
+		background: #0c0c0e;
+		border-bottom: 1px solid #1f1f23;
+		font-size: 13px;
+		font-weight: 600;
+		color: #e4e4e7;
+	}
+	.close-btn {
+		background: none;
+		border: none;
+		color: #71717a;
+		font-size: 20px;
+		cursor: pointer;
+		padding: 4px;
+		line-height: 1;
+	}
+	.close-btn:hover {
+		color: #e4e4e7;
+	}
+	.server-list-body {
+		padding: 6px;
+	}
+	.server-item {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		width: 100%;
+		padding: 10px 12px;
+		background: none;
+		border: 1px solid transparent;
+		border-radius: 8px;
+		cursor: pointer;
+		text-align: left;
+		color: #e4e4e7;
+		font-size: 13px;
+	}
+	.server-item:hover {
+		background: #18181b;
+	}
+	.server-item.current {
+		border-color: #3f3f46;
+		background: #18181b;
+	}
+	.server-item.loaded {
+		border-color: #064e3b;
+	}
+	.server-item-left {
+		display: flex;
+		align-items: center;
+		gap: 10px;
+	}
+	.item-dot {
+		width: 8px;
+		height: 8px;
+		border-radius: 50%;
+		background: #3f3f46;
+		flex-shrink: 0;
+	}
+	.dot-working {
+		background: #22c55e;
+	}
+	.current-label {
+		font-size: 10px;
+		color: #818cf8;
+		margin-left: 6px;
+		font-weight: 600;
+	}
+	.server-status {
+		font-size: 11px;
+		font-weight: 500;
+	}
+	.server-status.working {
+		color: #4ade80;
+	}
+	.server-status.failing {
+		color: #fbbf24;
+	}
 
-	.dead-section { margin-top: 8px; padding: 0 6px; }
-	.dead-toggle { display: flex; align-items: center; gap: 6px; width: 100%; padding: 8px 12px; background: none; border: none; color: #52525b; font-size: 12px; cursor: pointer; }
-	.dead-toggle:hover { color: #a1a1aa; }
-	.dead-chevron { width: 14px; height: 14px; }
-	.dead-list.hidden { display: none; }
-	.dead-item { padding: 6px 20px; font-size: 12px; color: #52525b; }
+	.dead-section {
+		margin-top: 8px;
+		padding: 0 6px;
+	}
+	.dead-toggle {
+		display: flex;
+		align-items: center;
+		gap: 6px;
+		width: 100%;
+		padding: 8px 12px;
+		background: none;
+		border: none;
+		color: #52525b;
+		font-size: 12px;
+		cursor: pointer;
+	}
+	.dead-toggle:hover {
+		color: #a1a1aa;
+	}
+	.dead-chevron {
+		width: 14px;
+		height: 14px;
+	}
+	.dead-list.hidden {
+		display: none;
+	}
+	.dead-item {
+		padding: 6px 20px;
+		font-size: 12px;
+		color: #52525b;
+	}
 
-	.server-list-footer { padding: 10px 14px; border-top: 1px solid #1f1f23; position: sticky; bottom: 0; background: #0c0c0e; }
-	.rescan-btn { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; padding: 8px 16px; background: #18181b; color: #a1a1aa; border: 1px solid #27272a; border-radius: 8px; font-size: 13px; cursor: pointer; }
-	.rescan-btn:hover { background: #27272a; color: #e4e4e7; }
-	.rescan-icon { width: 16px; height: 16px; }
+	.server-list-footer {
+		padding: 10px 14px;
+		border-top: 1px solid #1f1f23;
+		position: sticky;
+		bottom: 0;
+		background: #0c0c0e;
+	}
+	.rescan-btn {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		gap: 8px;
+		width: 100%;
+		padding: 8px 16px;
+		background: #18181b;
+		color: #a1a1aa;
+		border: 1px solid #27272a;
+		border-radius: 8px;
+		font-size: 13px;
+		cursor: pointer;
+	}
+	.rescan-btn:hover {
+		background: #27272a;
+		color: #e4e4e7;
+	}
+	.rescan-icon {
+		width: 16px;
+		height: 16px;
+	}
 
-	.upnext-overlay { position: absolute; inset: 0; z-index: 20; display: flex; flex-direction: column; justify-content: flex-end; background: #000; overflow: hidden; }
-	.upnext-bg { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0.5; }
-	.upnext-shade { position: absolute; inset: 0; background: linear-gradient(to top, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0.6) 55%, rgba(0,0,0,0.2) 100%); }
-	.upnext-body { position: relative; display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; padding: 24px; flex-wrap: wrap; }
-	.upnext-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
-	.upnext-kicker { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: #a78bfa; }
-	.upnext-spec { font-size: 12px; font-weight: 600; color: #818cf8; }
-	.upnext-name { font-size: 20px; font-weight: 700; color: #fff; overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical; }
-	.upnext-actions { display: flex; gap: 8px; flex-shrink: 0; }
-	.upnext-play { padding: 10px 20px; background: #818cf8; color: #fff; border: none; border-radius: 10px; font-size: 14px; font-weight: 600; cursor: pointer; font-family: inherit; min-height: 44px; }
-	.upnext-play:hover { background: #6d7cf0; }
-	.upnext-cancel { padding: 10px 20px; background: rgba(255,255,255,0.08); color: #d4d4d8; border: 1px solid rgba(255,255,255,0.25); border-radius: 10px; font-size: 14px; cursor: pointer; font-family: inherit; min-height: 44px; }
-	.upnext-cancel:hover { background: rgba(255,255,255,0.16); }
-	.upnext-ring { position: absolute; top: 14px; right: 14px; width: 52px; height: 52px; }
-	.upnext-ring svg { width: 100%; height: 100%; transform: scaleX(-1); }
-	.upnext-ring-bg { fill: none; stroke: rgba(255,255,255,0.2); stroke-width: 4; }
-	.upnext-ring-fg { fill: none; stroke: #818cf8; stroke-width: 4; stroke-linecap: round; stroke-dasharray: 125.66; transform: rotate(-90deg); transform-origin: center; transition: stroke-dashoffset 1s linear; }
-	.upnext-num { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 14px; font-weight: 700; }
+	.upnext-overlay {
+		position: absolute;
+		inset: 0;
+		z-index: 20;
+		display: flex;
+		flex-direction: column;
+		justify-content: flex-end;
+		background: #000;
+		overflow: hidden;
+	}
+	.upnext-bg {
+		position: absolute;
+		inset: 0;
+		width: 100%;
+		height: 100%;
+		object-fit: cover;
+		opacity: 0.5;
+	}
+	.upnext-shade {
+		position: absolute;
+		inset: 0;
+		background: linear-gradient(
+			to top,
+			rgba(0, 0, 0, 0.95) 0%,
+			rgba(0, 0, 0, 0.6) 55%,
+			rgba(0, 0, 0, 0.2) 100%
+		);
+	}
+	.upnext-body {
+		position: relative;
+		display: flex;
+		align-items: flex-end;
+		justify-content: space-between;
+		gap: 16px;
+		padding: 24px;
+		flex-wrap: wrap;
+	}
+	.upnext-text {
+		display: flex;
+		flex-direction: column;
+		gap: 2px;
+		min-width: 0;
+	}
+	.upnext-kicker {
+		font-size: 12px;
+		font-weight: 700;
+		text-transform: uppercase;
+		letter-spacing: 1px;
+		color: #a78bfa;
+	}
+	.upnext-spec {
+		font-size: 12px;
+		font-weight: 600;
+		color: #818cf8;
+	}
+	.upnext-name {
+		font-size: 20px;
+		font-weight: 700;
+		color: #fff;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		display: -webkit-box;
+		-webkit-line-clamp: 2;
+		line-clamp: 2;
+		-webkit-box-orient: vertical;
+	}
+	.upnext-actions {
+		display: flex;
+		gap: 8px;
+		flex-shrink: 0;
+	}
+	.upnext-play {
+		padding: 10px 20px;
+		background: #818cf8;
+		color: #fff;
+		border: none;
+		border-radius: 10px;
+		font-size: 14px;
+		font-weight: 600;
+		cursor: pointer;
+		font-family: inherit;
+		min-height: 44px;
+	}
+	.upnext-play:hover {
+		background: #6d7cf0;
+	}
+	.upnext-cancel {
+		padding: 10px 20px;
+		background: rgba(255, 255, 255, 0.08);
+		color: #d4d4d8;
+		border: 1px solid rgba(255, 255, 255, 0.25);
+		border-radius: 10px;
+		font-size: 14px;
+		cursor: pointer;
+		font-family: inherit;
+		min-height: 44px;
+	}
+	.upnext-cancel:hover {
+		background: rgba(255, 255, 255, 0.16);
+	}
+	.upnext-ring {
+		position: absolute;
+		top: 14px;
+		right: 14px;
+		width: 52px;
+		height: 52px;
+	}
+	.upnext-ring svg {
+		width: 100%;
+		height: 100%;
+		transform: scaleX(-1);
+	}
+	.upnext-ring-bg {
+		fill: none;
+		stroke: rgba(255, 255, 255, 0.2);
+		stroke-width: 4;
+	}
+	.upnext-ring-fg {
+		fill: none;
+		stroke: #818cf8;
+		stroke-width: 4;
+		stroke-linecap: round;
+		stroke-dasharray: 125.66;
+		transform: rotate(-90deg);
+		transform-origin: center;
+		transition: stroke-dashoffset 1s linear;
+	}
+	.upnext-num {
+		position: absolute;
+		inset: 0;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		color: #fff;
+		font-size: 14px;
+		font-weight: 700;
+	}
 	@media (max-width: 560px) {
-		.upnext-body { padding: 16px; align-items: flex-start; }
-		.upnext-name { font-size: 16px; }
-		.upnext-actions { width: 100%; }
-		.upnext-ring { top: 12px; right: 12px; width: 44px; height: 44px; }
+		.upnext-body {
+			padding: 16px;
+			align-items: flex-start;
+		}
+		.upnext-name {
+			font-size: 16px;
+		}
+		.upnext-actions {
+			width: 100%;
+		}
+		.upnext-ring {
+			top: 12px;
+			right: 12px;
+			width: 44px;
+			height: 44px;
+		}
 	}
 </style>

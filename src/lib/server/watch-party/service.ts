@@ -1,9 +1,5 @@
 import { db } from '$lib/server/db';
-import {
-	watchPartyRooms,
-	watchPartyMembers,
-	watchPartyMessages
-} from '$lib/server/db/schema';
+import { watchPartyRooms, watchPartyMembers, watchPartyMessages } from '$lib/server/db/schema';
 import { and, eq, isNotNull, isNull, ne, sql } from 'drizzle-orm';
 import { NotFoundError, ForbiddenError } from '$lib/server';
 import type { MediaTarget, RoomUser, RoomState, SoundEffect, PlaybackCommand } from './types';
@@ -56,7 +52,12 @@ async function cleanupExpired() {
 		const expired = await db
 			.select({ id: watchPartyRooms.id })
 			.from(watchPartyRooms)
-			.where(and(isNull(watchPartyRooms.closedAt), sql`${watchPartyRooms.lastActivityAt} < ${now - ROOM_INACTIVITY_MS}`))
+			.where(
+				and(
+					isNull(watchPartyRooms.closedAt),
+					sql`${watchPartyRooms.lastActivityAt} < ${now - ROOM_INACTIVITY_MS}`
+				)
+			)
 			.all();
 		for (const room of expired) {
 			await closeRoomRows(room.id, now);
@@ -65,7 +66,12 @@ async function cleanupExpired() {
 		const veryOld = await db
 			.select({ id: watchPartyRooms.id })
 			.from(watchPartyRooms)
-			.where(and(isNotNull(watchPartyRooms.closedAt), sql`${watchPartyRooms.closedAt} < ${now - PURGE_CLOSED_MS}`))
+			.where(
+				and(
+					isNotNull(watchPartyRooms.closedAt),
+					sql`${watchPartyRooms.closedAt} < ${now - PURGE_CLOSED_MS}`
+				)
+			)
 			.all();
 		for (const room of veryOld) {
 			await db.delete(watchPartyMessages).where(eq(watchPartyMessages.roomId, room.id)).run();
@@ -89,11 +95,7 @@ async function closeRoomRows(roomId: string, at: number) {
 
 async function getRoomOrThrow(roomId: string) {
 	await cleanupExpired();
-	const room = await db
-		.select()
-		.from(watchPartyRooms)
-		.where(eq(watchPartyRooms.id, roomId))
-		.get();
+	const room = await db.select().from(watchPartyRooms).where(eq(watchPartyRooms.id, roomId)).get();
 	if (!room) {
 		throw new NotFoundError('Watch party room not found');
 	}
@@ -183,11 +185,16 @@ export async function joinRoom(roomId: string, user: RoomUser): Promise<void> {
 			.where(and(eq(watchPartyMembers.roomId, roomId), eq(watchPartyMembers.userId, user.id)))
 			.run();
 	} else {
-	await db
-		.insert(watchPartyMembers)
-		.values({ roomId, userId: user.id, username: user.username, lastSeenAt: now, joinedAt: now })
-		.run();
+		await db
+			.insert(watchPartyMembers)
+			.values({ roomId, userId: user.id, username: user.username, lastSeenAt: now, joinedAt: now })
+			.run();
 	}
+	await db
+		.update(watchPartyRooms)
+		.set({ kickedUserId: null, kickedByUsername: null, kickedAt: null })
+		.where(and(eq(watchPartyRooms.id, roomId), eq(watchPartyRooms.kickedUserId, user.id)))
+		.run();
 	await touchActivity(roomId);
 	publishRoom(roomId);
 }
@@ -212,7 +219,8 @@ export async function getRoomState(
 			sound: null,
 			participants: [],
 			lastMessageId: 0,
-			messages: []
+			messages: [],
+			kicked: null
 		};
 	}
 
@@ -297,12 +305,17 @@ export async function getRoomState(
 			position: room.position,
 			positionAt: room.positionAt,
 			seq: room.seq,
-			provider: room.provider && room.providerName ? { id: room.provider, name: room.providerName } : null
+			provider:
+				room.provider && room.providerName ? { id: room.provider, name: room.providerName } : null
 		},
 		sound: room.lastSound ? { effect: room.lastSound as SoundEffect, seq: room.soundSeq } : null,
 		participants,
 		lastMessageId: room.lastMessageId,
-		messages
+		messages,
+		kicked:
+			room.kickedUserId === viewer.id && room.kickedAt
+				? { by: room.kickedByUsername ?? 'the host', at: room.kickedAt }
+				: null
 	};
 }
 
@@ -314,14 +327,22 @@ export async function updatePlayback(roomId: string, user: RoomUser, command: Pl
 	}
 	const now = Date.now();
 	const position = command.position ?? room.position;
-	const playing = command.action === 'pause' ? false : command.action === 'play' ? true : room.playing;
+	const playing =
+		command.action === 'pause' ? false : command.action === 'play' ? true : room.playing;
 	const providerUpdate =
 		command.provider !== undefined && command.provider !== null
 			? { provider: command.provider.id, providerName: command.provider.name }
 			: {};
 	await db
 		.update(watchPartyRooms)
-		.set({ position, positionAt: now, playing, seq: room.seq + 1, lastActivityAt: now, ...providerUpdate })
+		.set({
+			position,
+			positionAt: now,
+			playing,
+			seq: room.seq + 1,
+			lastActivityAt: now,
+			...providerUpdate
+		})
 		.where(eq(watchPartyRooms.id, roomId))
 		.run();
 	publishRoom(roomId);
@@ -342,7 +363,14 @@ export async function addMessage(roomId: string, user: RoomUser, input: { body: 
 
 	const inserted = await db
 		.insert(watchPartyMessages)
-		.values({ roomId, userId: user.id, username: user.username, body, deleted: false, createdAt: Date.now() })
+		.values({
+			roomId,
+			userId: user.id,
+			username: user.username,
+			body,
+			deleted: false,
+			createdAt: Date.now()
+		})
 		.returning({ id: watchPartyMessages.id })
 		.get();
 
@@ -365,7 +393,11 @@ export async function deleteMessage(roomId: string, user: RoomUser, messageId: n
 		.set({ deleted: true, deletedAt: Date.now() })
 		.where(and(eq(watchPartyMessages.roomId, roomId), eq(watchPartyMessages.id, messageId)))
 		.run();
-	await db.update(watchPartyRooms).set({ seq: room.seq + 1 }).where(eq(watchPartyRooms.id, roomId)).run();
+	await db
+		.update(watchPartyRooms)
+		.set({ seq: room.seq + 1 })
+		.where(eq(watchPartyRooms.id, roomId))
+		.run();
 	publishRoom(roomId);
 }
 
@@ -375,12 +407,23 @@ export async function kickMember(roomId: string, host: RoomUser, targetUserId: s
 		throw new ForbiddenError('Only the host can kick members');
 	}
 	if (targetUserId === host.id) return;
+	const now = Date.now();
 	await db
 		.delete(watchPartyMembers)
 		.where(and(eq(watchPartyMembers.roomId, roomId), eq(watchPartyMembers.userId, targetUserId)))
 		.run();
-	await db.update(watchPartyRooms).set({ seq: room.seq + 1 }).where(eq(watchPartyRooms.id, roomId)).run();
-	publishRoom(roomId);
+	await db
+		.update(watchPartyRooms)
+		.set({
+			seq: room.seq + 1,
+			kickedUserId: targetUserId,
+			kickedByUsername: host.username,
+			kickedAt: now,
+			lastActivityAt: now
+		})
+		.where(eq(watchPartyRooms.id, roomId))
+		.run();
+	publishRoom(roomId, { type: 'kick', userId: targetUserId, by: host.username, at: now });
 }
 
 export async function leaveRoom(roomId: string, user: RoomUser) {
@@ -400,7 +443,12 @@ export async function leaveRoom(roomId: string, user: RoomUser) {
 	return { closedRoom: false };
 }
 
-export async function setSoundControl(roomId: string, host: RoomUser, targetUserId: string, granted: boolean) {
+export async function setSoundControl(
+	roomId: string,
+	host: RoomUser,
+	targetUserId: string,
+	granted: boolean
+) {
 	const room = await getRoomOrThrow(roomId);
 	if (room.hostUserId !== host.id) {
 		throw new ForbiddenError('Only the host can grant sound control');
@@ -417,7 +465,11 @@ export async function setSoundControl(roomId: string, host: RoomUser, targetUser
 		.set({ canControlSounds: granted })
 		.where(and(eq(watchPartyMembers.roomId, roomId), eq(watchPartyMembers.userId, targetUserId)))
 		.run();
-	await db.update(watchPartyRooms).set({ seq: room.seq + 1 }).where(eq(watchPartyRooms.id, roomId)).run();
+	await db
+		.update(watchPartyRooms)
+		.set({ seq: room.seq + 1 })
+		.where(eq(watchPartyRooms.id, roomId))
+		.run();
 	publishRoom(roomId);
 }
 
@@ -442,7 +494,9 @@ export async function playSound(roomId: string, user: RoomUser, effect: SoundEff
 	publishRoom(roomId);
 }
 
-export async function getLatestSound(roomId: string): Promise<{ effect: string; seq: number } | null> {
+export async function getLatestSound(
+	roomId: string
+): Promise<{ effect: string; seq: number } | null> {
 	const room = await db
 		.select({ lastSound: watchPartyRooms.lastSound, soundSeq: watchPartyRooms.soundSeq })
 		.from(watchPartyRooms)

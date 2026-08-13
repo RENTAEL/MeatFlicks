@@ -654,16 +654,25 @@ export const watchPartyRooms = sqliteTable(
 		episode: integer('episode'),
 		playing: integer('playing', { mode: 'boolean' }).notNull().default(false),
 		position: real('position').notNull().default(0),
-		positionAt: integer('position_at').notNull().$defaultFn(() => Date.now()),
+		positionAt: integer('position_at')
+			.notNull()
+			.$defaultFn(() => Date.now()),
 		seq: integer('seq').notNull().default(0),
 		lastSound: text('last_sound'),
 		soundSeq: integer('sound_seq').notNull().default(0),
 		lastMessageId: integer('last_message_id').notNull().default(0),
-		lastActivityAt: integer('last_activity_at').notNull().$defaultFn(() => Date.now()),
+		lastActivityAt: integer('last_activity_at')
+			.notNull()
+			.$defaultFn(() => Date.now()),
 		closedAt: integer('closed_at'),
-		createdAt: integer('created_at').notNull().$defaultFn(() => Date.now()),
+		createdAt: integer('created_at')
+			.notNull()
+			.$defaultFn(() => Date.now()),
 		provider: text('provider'),
-		providerName: text('provider_name')
+		providerName: text('provider_name'),
+		kickedUserId: text('kicked_user_id'),
+		kickedByUsername: text('kicked_by_username'),
+		kickedAt: integer('kicked_at')
 	},
 	(table) => [
 		index('idx_wp_rooms_host').on(table.hostUserId),
@@ -680,8 +689,12 @@ export const watchPartyMembers = sqliteTable(
 			.references(() => watchPartyRooms.id, { onDelete: 'cascade' }),
 		userId: text('user_id').notNull(),
 		username: text('username').notNull(),
-		lastSeenAt: integer('last_seen_at').notNull().$defaultFn(() => Date.now()),
-		joinedAt: integer('joined_at').notNull().$defaultFn(() => Date.now()),
+		lastSeenAt: integer('last_seen_at')
+			.notNull()
+			.$defaultFn(() => Date.now()),
+		joinedAt: integer('joined_at')
+			.notNull()
+			.$defaultFn(() => Date.now()),
 		canControlSounds: integer('can_control_sounds', { mode: 'boolean' }).notNull().default(false)
 	},
 	(table) => [
@@ -703,7 +716,9 @@ export const watchPartyMessages = sqliteTable(
 		body: text('body').notNull(),
 		deleted: integer('deleted', { mode: 'boolean' }).notNull().default(false),
 		deletedAt: integer('deleted_at'),
-		createdAt: integer('created_at').notNull().$defaultFn(() => Date.now())
+		createdAt: integer('created_at')
+			.notNull()
+			.$defaultFn(() => Date.now())
 	},
 	(table) => [
 		index('idx_wp_messages_room').on(table.roomId, table.createdAt),

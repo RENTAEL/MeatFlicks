@@ -3,8 +3,28 @@
 	import { browser } from '$app/environment';
 	import { goto } from '$app/navigation';
 	import Player from '$lib/components/Player.svelte';
-	import { playSoundEffect, preloadSounds, SOUND_PRESETS, getSoundVolume, getSoundMuted, setSoundVolume, toggleSoundMute, unlockAudio, isSoundUnlocked } from '$lib/watch-party/sounds';
-	import { Users, Trophy, Copy, Send, Sparkles, LogOut, Skull, MessageCircle } from '@lucide/svelte';
+	import {
+		playSoundEffect,
+		preloadSounds,
+		SOUND_PRESETS,
+		getSoundVolume,
+		getSoundMuted,
+		setSoundVolume,
+		toggleSoundMute,
+		unlockAudio,
+		isSoundUnlocked
+	} from '$lib/watch-party/sounds';
+	import { randomKickMessage } from '$lib/watch-party/kickMessages';
+	import {
+		Users,
+		Trophy,
+		Copy,
+		Send,
+		Sparkles,
+		LogOut,
+		Skull,
+		MessageCircle
+	} from '@lucide/svelte';
 	import type { RoomState } from '$lib/server/watch-party/types';
 
 	interface WatchData {
@@ -22,7 +42,8 @@
 	let closed = false;
 	let fxAllowed =
 		data.initialState.isHost ||
-		(data.initialState.participants.find((p) => p.userId === data.user.id)?.canControlSounds ?? false);
+		(data.initialState.participants.find((p) => p.userId === data.user.id)?.canControlSounds ??
+			false);
 	let messages: RoomState['messages'] = data.initialState.messages;
 	let lastMessageId = data.initialState.lastMessageId;
 	let lastSoundSeq = data.initialState.sound?.seq ?? 0;
@@ -32,6 +53,11 @@
 	let fxVolume = getSoundVolume();
 	let fxMuted = getSoundMuted();
 	let chatOpen = false;
+	let kicked: { by: string; at: number } | null = null;
+	let lastKickAt = 0;
+	let kickMessage = '';
+	let kickTimer: ReturnType<typeof setTimeout> | null = null;
+	let refetchTimer: ReturnType<typeof setInterval> | null = null;
 
 	let eventSource: EventSource | null = null;
 
@@ -44,11 +70,26 @@
 		messages = [...byId.values()].sort((a, b) => a.id - b.id);
 	}
 
+	function handleKick(by: string, at: number) {
+		if (at === lastKickAt) return;
+		lastKickAt = at;
+		kickMessage = randomKickMessage(by);
+		kicked = { by, at };
+		if (kickTimer) clearTimeout(kickTimer);
+		kickTimer = setTimeout(() => {
+			kickTimer = null;
+			void goto('/watch-party');
+		}, 7000);
+	}
+
 	function handleState(s: RoomState) {
 		if (s.closed) {
 			closed = true;
 			lastSoundSeq = s.sound?.seq ?? lastSoundSeq;
 			return;
+		}
+		if (s.kicked) {
+			handleKick(s.kicked.by, s.kicked.at);
 		}
 		if (s.sound && s.sound.seq !== lastSoundSeq) {
 			lastSoundSeq = s.sound.seq;
@@ -59,7 +100,8 @@
 			lastMessageId = Math.max(lastMessageId, s.lastMessageId);
 		}
 		state = s;
-		fxAllowed = s.isHost || (s.participants.find((p) => p.userId === user.id)?.canControlSounds ?? false);
+		fxAllowed =
+			s.isHost || (s.participants.find((p) => p.userId === user.id)?.canControlSounds ?? false);
 	}
 
 	function connectStream() {
@@ -73,6 +115,16 @@
 				// ignore malformed frames
 			}
 		});
+		eventSource.addEventListener('kick', (e) => {
+			if (!e.data) return;
+			try {
+				const ev = JSON.parse(e.data) as { type: 'kick'; userId: string; by: string; at: number };
+				if (ev.userId !== user.id) return;
+				handleKick(ev.by, ev.at);
+			} catch {
+				// ignore malformed frames
+			}
+		});
 		eventSource.onopen = () => {
 			api<RoomState>(`/watch-party/rooms/${roomId}?since=${lastMessageId}`).then((s) => {
 				if (s) handleState(s);
@@ -81,6 +133,13 @@
 		eventSource.onerror = () => {
 			// EventSource reconnects automatically; onopen catches us up
 		};
+		if (!refetchTimer) {
+			refetchTimer = setInterval(() => {
+				api<RoomState>(`/watch-party/rooms/${roomId}?since=${lastMessageId}`).then((s) => {
+					if (s) handleState(s);
+				});
+			}, 15000);
+		}
 	}
 
 	async function api<T = unknown>(path: string, init?: RequestInit): Promise<T | null> {
@@ -93,7 +152,11 @@
 				await goto(`/login?next=${encodeURIComponent(`/watch/${roomId}`)}`);
 				return null;
 			}
-			if (!res.ok) throw new Error((await res.json().catch(() => ({ message: 'Request failed' }))).message ?? 'Request failed');
+			if (!res.ok)
+				throw new Error(
+					(await res.json().catch(() => ({ message: 'Request failed' }))).message ??
+						'Request failed'
+				);
 			return (await res.json()) as T;
 		} catch (e) {
 			error = e instanceof Error ? e.message : 'Something went wrong';
@@ -111,6 +174,8 @@
 	});
 
 	onDestroy(() => {
+		if (kickTimer) clearTimeout(kickTimer);
+		if (refetchTimer) clearInterval(refetchTimer);
 		if (eventSource) eventSource.close();
 		if (browser) {
 			window.removeEventListener('pointerdown', unlockSound);
@@ -126,15 +191,26 @@
 		soundUnlocked = true;
 	}
 
-	let lastPlaybackSignal: { playing: boolean; position: number; provider: { id: string; name: string } | null } | null = null;
+	let lastPlaybackSignal: {
+		playing: boolean;
+		position: number;
+		provider: { id: string; name: string } | null;
+	} | null = null;
 	let syncPoke = 0;
-	let memberSyncState: { status: 'synced' | 'drifted' | 'syncing'; drift: number } = { status: 'synced', drift: 0 };
+	let memberSyncState: { status: 'synced' | 'drifted' | 'syncing'; drift: number } = {
+		status: 'synced',
+		drift: 0
+	};
 
 	function onMemberSyncState(s: { status: 'synced' | 'drifted' | 'syncing'; drift: number }) {
 		memberSyncState = s;
 	}
 
-	function onPlaybackChange(signal: { playing: boolean; position: number; provider: { id: string; name: string } | null }) {
+	function onPlaybackChange(signal: {
+		playing: boolean;
+		position: number;
+		provider: { id: string; name: string } | null;
+	}) {
 		if (!state.isHost) return;
 		const prev = lastPlaybackSignal;
 		lastPlaybackSignal = signal;
@@ -161,10 +237,15 @@
 	}
 
 	async function kickMember(userId: string) {
-		await api(`/watch-party/rooms/${roomId}/kick`, {
+		const prevParticipants = state.participants;
+		state = { ...state, participants: state.participants.filter((p) => p.userId !== userId) };
+		const res = await api(`/watch-party/rooms/${roomId}/kick`, {
 			method: 'POST',
 			body: JSON.stringify({ userId })
 		});
+		if (!res) {
+			state = { ...state, participants: prevParticipants };
+		}
 	}
 
 	async function grantSoundControl(userId: string, granted: boolean) {
@@ -223,6 +304,24 @@
 {/if}
 
 <div class="watch-root">
+	{#if kicked}
+		<div class="kick-toast" role="status" aria-live="polite">
+			<div class="kick-card">
+				<span class="kick-icon"><Skull size={20} /></span>
+				<div class="kick-text">
+					<strong>You've been kicked from the party</strong>
+					<span class="kick-msg">{kickMessage}</span>
+				</div>
+				<button
+					class="kick-close"
+					onclick={() => void goto('/watch-party')}
+					aria-label="Close and return to lobby">&times;</button
+				>
+				<button class="kick-go" onclick={() => void goto('/watch-party')}>Return to lobby</button>
+			</div>
+		</div>
+	{/if}
+
 	<div class="player-col">
 		<div class="room-head">
 			<div>
@@ -245,7 +344,7 @@
 			<div class="sound-hint" role="status">Click anywhere to enable sound effects</div>
 		{/if}
 
-		{#if state.media}
+		{#if state.media && !kicked}
 			<Player
 				tmdbId={state.media.tmdbId}
 				type={state.media.mediaType}
@@ -254,8 +353,8 @@
 				title={state.media.title}
 				readOnly={!state.isHost}
 				remoteSync={state.isHost ? null : state.playback}
-				syncPoke={syncPoke}
-				onPlaybackChange={onPlaybackChange}
+				{syncPoke}
+				{onPlaybackChange}
 				onSyncState={onMemberSyncState}
 			/>
 		{:else}
@@ -264,7 +363,11 @@
 
 		{#if !state.isHost}
 			<div class="sync-row">
-				<button class="sync-btn" onclick={() => syncPoke++} title="Jump back to the host's playback position">
+				<button
+					class="sync-btn"
+					onclick={() => syncPoke++}
+					title="Jump back to the host's playback position"
+				>
 					Sync to host
 				</button>
 				<span
@@ -316,7 +419,9 @@
 							>
 								{p.canControlSounds ? 'Sound: On' : 'Sound: Off'}
 							</button>
-							<button class="kick-btn" onclick={() => kickMember(p.userId)} title="Remove from room">kick</button>
+							<button class="kick-btn" onclick={() => kickMember(p.userId)} title="Remove from room"
+								>kick</button
+							>
 						{/if}
 					</div>
 				{/each}
@@ -388,7 +493,9 @@
 						</span>
 						<span class="msg-body">{m.deleted ? '' : m.body}</span>
 						{#if m.deleted === false && state.isHost && m.userId !== user.id}
-							<button class="del-btn" onclick={() => deleteMessage(m.id)} title="Delete message">×</button>
+							<button class="del-btn" onclick={() => deleteMessage(m.id)} title="Delete message"
+								>×</button
+							>
 						{/if}
 					</div>
 				{/each}
@@ -396,7 +503,13 @@
 					<div></div>
 				{/if}
 			</div>
-			<form class="chat-form" onsubmit={(e) => { e.preventDefault(); sendMessage(); }}>
+			<form
+				class="chat-form"
+				onsubmit={(e) => {
+					e.preventDefault();
+					sendMessage();
+				}}
+			>
 				<input
 					class="chat-input"
 					bind:value={chatInput}
@@ -417,16 +530,26 @@
 </div>
 
 {#if chatOpen}
-	<div class="mobile-chat-backdrop" role="dialog" aria-modal="true" aria-label="Room chat" tabindex="-1" onclick={() => (chatOpen = false)}>
+	<div
+		class="mobile-chat-backdrop"
+		role="dialog"
+		aria-modal="true"
+		aria-label="Room chat"
+		tabindex="-1"
+		onclick={() => (chatOpen = false)}
+	>
 		<div class="mobile-chat-sheet" onclick={(e) => e.stopPropagation()}>
 			<div class="mobile-chat-head">
 				<span class="mobile-chat-title">Room chat</span>
-				<button class="mobile-close" onclick={() => (chatOpen = false)} aria-label="Close chat">×</button>
+				<button class="mobile-close" onclick={() => (chatOpen = false)} aria-label="Close chat"
+					>×</button
+				>
 			</div>
 			<div class="mobile-member-list">
 				{#each state.participants as p, i (p.userId)}
 					<span class="mobile-member-chip" class:is-me={p.userId === user.id}>
-						{p.username.slice(0, 1).toUpperCase()} {p.username}
+						{p.username.slice(0, 1).toUpperCase()}
+						{p.username}
 					</span>
 				{/each}
 			</div>
@@ -447,7 +570,13 @@
 					</div>
 				{/each}
 			</div>
-			<form class="chat-form" onsubmit={(e) => { e.preventDefault(); sendMessage(); }}>
+			<form
+				class="chat-form"
+				onsubmit={(e) => {
+					e.preventDefault();
+					sendMessage();
+				}}
+			>
 				<input
 					class="chat-input"
 					bind:value={chatInput}
@@ -466,94 +595,582 @@
 </button>
 
 <style>
-	.watch-root { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 20px; padding: 24px; max-width: 1400px; margin: 0 auto; }
-	@media (max-width: 900px) { .watch-root { grid-template-columns: 1fr; } }
+	.watch-root {
+		display: grid;
+		grid-template-columns: minmax(0, 1fr) 340px;
+		gap: 20px;
+		padding: 24px;
+		max-width: 1400px;
+		margin: 0 auto;
+	}
+	@media (max-width: 900px) {
+		.watch-root {
+			grid-template-columns: 1fr;
+		}
+	}
 
-	.room-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; margin-bottom: 16px; margin-top: 8px; }
-	.room-title { font-size: 22px; font-weight: 700; color: #f4f4f5; margin: 0; }
-	.room-sub { color: #71717a; font-size: 13px; margin-top: 4px; }
-	.room-code-wrap { display: flex; align-items: center; flex-direction: column; gap: 4px; }
-	.room-code-label { font-size: 10px; text-transform: uppercase; letter-spacing: 1px; color: #52525b; }
-	.room-code { display: flex; align-items: center; gap: 8px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 14px; font-weight: 700; color: #c4b5fd; background: #18181b; border: 1px solid #3f3f46; padding: 6px 12px; border-radius: 8px; cursor: pointer; letter-spacing: 1px; }
-	.room-code:hover { border-color: #52525b; }
-	.room-copied { font-size: 11px; color: #6ee7b7; min-height: 14px; }
-	.sound-hint { display: inline-flex; align-items: center; gap: 8px; padding: 8px 14px; margin-bottom: 14px; background: rgba(124, 92, 252, 0.12); border: 1px solid rgba(124, 92, 252, 0.35); color: #c4b5fd; border-radius: 999px; font-size: 13px; font-weight: 600; animation: sound-hint-in 0.3s ease; }
-	@keyframes sound-hint-in { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }
+	.room-head {
+		display: flex;
+		align-items: flex-start;
+		justify-content: space-between;
+		gap: 16px;
+		margin-bottom: 16px;
+		margin-top: 8px;
+	}
+	.room-title {
+		font-size: 22px;
+		font-weight: 700;
+		color: #f4f4f5;
+		margin: 0;
+	}
+	.room-sub {
+		color: #71717a;
+		font-size: 13px;
+		margin-top: 4px;
+	}
+	.room-code-wrap {
+		display: flex;
+		align-items: center;
+		flex-direction: column;
+		gap: 4px;
+	}
+	.room-code-label {
+		font-size: 10px;
+		text-transform: uppercase;
+		letter-spacing: 1px;
+		color: #52525b;
+	}
+	.room-code {
+		display: flex;
+		align-items: center;
+		gap: 8px;
+		font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+		font-size: 14px;
+		font-weight: 700;
+		color: #c4b5fd;
+		background: #18181b;
+		border: 1px solid #3f3f46;
+		padding: 6px 12px;
+		border-radius: 8px;
+		cursor: pointer;
+		letter-spacing: 1px;
+	}
+	.room-code:hover {
+		border-color: #52525b;
+	}
+	.room-copied {
+		font-size: 11px;
+		color: #6ee7b7;
+		min-height: 14px;
+	}
+	.sound-hint {
+		display: inline-flex;
+		align-items: center;
+		gap: 8px;
+		padding: 8px 14px;
+		margin-bottom: 14px;
+		background: rgba(124, 92, 252, 0.12);
+		border: 1px solid rgba(124, 92, 252, 0.35);
+		color: #c4b5fd;
+		border-radius: 999px;
+		font-size: 13px;
+		font-weight: 600;
+		animation: sound-hint-in 0.3s ease;
+	}
+	@keyframes sound-hint-in {
+		from {
+			opacity: 0;
+			transform: translateY(-4px);
+		}
+		to {
+			opacity: 1;
+			transform: translateY(0);
+		}
+	}
 
-	.panel { background: #111113; border: 1px solid #1f1f23; border-radius: 12px; overflow: hidden; }
-	.panel-head { display: flex; align-items: center; gap: 8px; padding: 12px 14px; border-bottom: 1px solid #1f1f23; }
-	.panel-title { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600; color: #e4e4e7; }
+	.panel {
+		background: #111113;
+		border: 1px solid #1f1f23;
+		border-radius: 12px;
+		overflow: hidden;
+	}
+	.panel-head {
+		display: flex;
+		align-items: center;
+		gap: 8px;
+		padding: 12px 14px;
+		border-bottom: 1px solid #1f1f23;
+	}
+	.panel-title {
+		display: inline-flex;
+		align-items: center;
+		gap: 6px;
+		font-size: 13px;
+		font-weight: 600;
+		color: #e4e4e7;
+	}
 
-	.side-col { display: flex; flex-direction: column; gap: 16px; }
+	.side-col {
+		display: flex;
+		flex-direction: column;
+		gap: 16px;
+	}
 
-	.member-list { max-height: 200px; overflow-y: auto; padding: 6px; }
-	.member-row { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 8px; }
-	.member-row:hover { background: #18181b; }
-	.member-avatar { width: 26px; height: 26px; border-radius: 50%; background: #27272a; color: #c4b5fd; display: inline-flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; flex-shrink: 0; }
-	.member-name { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: #d4d4d8; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-	.grant-btn { background: #18181b; color: #a1a1aa; border: 1px solid #3f3f46; border-radius: 6px; font-size: 11px; padding: 3px 8px; cursor: pointer; }
-	.grant-btn:hover { background: #3f3f46; }
-	.grant-btn.granted { color: #6ee7b7; border-color: #065f46; background: #022c22; }
-	.kick-btn { background: #18181b; color: #f87171; border: 1px solid #3f3f46; border-radius: 6px; font-size: 11px; padding: 3px 8px; cursor: pointer; }
-	.kick-btn:hover { background: #3f3f46; }
+	.member-list {
+		max-height: 200px;
+		overflow-y: auto;
+		padding: 6px;
+	}
+	.member-row {
+		display: flex;
+		align-items: center;
+		gap: 10px;
+		padding: 8px 10px;
+		border-radius: 8px;
+	}
+	.member-row:hover {
+		background: #18181b;
+	}
+	.member-avatar {
+		width: 26px;
+		height: 26px;
+		border-radius: 50%;
+		background: #27272a;
+		color: #c4b5fd;
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		font-size: 12px;
+		font-weight: 700;
+		flex-shrink: 0;
+	}
+	.member-name {
+		display: inline-flex;
+		align-items: center;
+		gap: 6px;
+		font-size: 13px;
+		color: #d4d4d8;
+		flex: 1;
+		min-width: 0;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+	.grant-btn {
+		background: #18181b;
+		color: #a1a1aa;
+		border: 1px solid #3f3f46;
+		border-radius: 6px;
+		font-size: 11px;
+		padding: 3px 8px;
+		cursor: pointer;
+	}
+	.grant-btn:hover {
+		background: #3f3f46;
+	}
+	.grant-btn.granted {
+		color: #6ee7b7;
+		border-color: #065f46;
+		background: #022c22;
+	}
+	.kick-btn {
+		background: #18181b;
+		color: #f87171;
+		border: 1px solid #3f3f46;
+		border-radius: 6px;
+		font-size: 11px;
+		padding: 3px 8px;
+		cursor: pointer;
+	}
+	.kick-btn:hover {
+		background: #3f3f46;
+	}
 
-	.fx-row { display: flex; gap: 8px; padding: 12px 14px; flex-wrap: wrap; }
-	.fx-btn { flex: 1; min-width: 100px; padding: 8px 10px; background: #18181b; color: #d4d4d8; border: 1px solid #3f3f46; border-radius: 8px; font-size: 12px; cursor: pointer; }
-	.fx-btn:hover { background: #27272a; border-color: #52525b; }
-	.fx-btn:disabled { opacity: 0.4; cursor: not-allowed; }
-	.fx-btn:disabled:hover { background: #18181b; border-color: #3f3f46; }
-	.fx-hint { padding: 0 14px 10px; font-size: 11px; color: #71717a; }
+	.fx-row {
+		display: flex;
+		gap: 8px;
+		padding: 12px 14px;
+		flex-wrap: wrap;
+	}
+	.fx-btn {
+		flex: 1;
+		min-width: 100px;
+		padding: 8px 10px;
+		background: #18181b;
+		color: #d4d4d8;
+		border: 1px solid #3f3f46;
+		border-radius: 8px;
+		font-size: 12px;
+		cursor: pointer;
+	}
+	.fx-btn:hover {
+		background: #27272a;
+		border-color: #52525b;
+	}
+	.fx-btn:disabled {
+		opacity: 0.4;
+		cursor: not-allowed;
+	}
+	.fx-btn:disabled:hover {
+		background: #18181b;
+		border-color: #3f3f46;
+	}
+	.fx-hint {
+		padding: 0 14px 10px;
+		font-size: 11px;
+		color: #71717a;
+	}
 
-	.fx-ctrl-row { display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-top: 1px solid #1f1f23; }
-	.fx-mute { background: none; border: none; font-size: 15px; cursor: pointer; padding: 2px; }
-	.fx-slider { flex: 1; accent-color: #818cf8; }
+	.fx-ctrl-row {
+		display: flex;
+		align-items: center;
+		gap: 10px;
+		padding: 10px 14px;
+		border-top: 1px solid #1f1f23;
+	}
+	.fx-mute {
+		background: none;
+		border: none;
+		font-size: 15px;
+		cursor: pointer;
+		padding: 2px;
+	}
+	.fx-slider {
+		flex: 1;
+		accent-color: #818cf8;
+	}
 
-	.chat-panel { display: flex; flex-direction: column; height: 320px; }
-	.msg-list { flex: 1; overflow-y: auto; padding: 10px; display: flex; flex-direction: column; gap: 6px; }
-	.msg-row { display: flex; align-items: flex-start; gap: 8px; padding: 6px 8px; border-radius: 8px; position: relative; flex-direction: column; }
-	.msg-row:hover { background: #18181b; }
-	.msg-row.deleted .msg-body { color: #52525b; font-style: italic; }
-	.msg-who { font-size: 12px; font-weight: 600; color: #818cf8; display: inline-flex; align-items: center; gap: 6px; }
-	.msg-time { font-weight: 400; color: #52525b; font-size: 11px; }
-	.msg-body { font-size: 13px; color: #e4e4e7; }
-	.msg-del-tag { font-size: 10px; color: #52525b; text-transform: uppercase; letter-spacing: 0.4px; }
-	.del-btn { position: absolute; right: 8px; top: 6px; background: none; border: none; color: #52525b; cursor: pointer; font-size: 14px; line-height: 1; }
-	.del-btn:hover { color: #f87171; }
-	.msg-empty { color: #52525b; font-size: 12px; padding: 12px; text-align: center; }
+	.chat-panel {
+		display: flex;
+		flex-direction: column;
+		height: 320px;
+	}
+	.msg-list {
+		flex: 1;
+		overflow-y: auto;
+		padding: 10px;
+		display: flex;
+		flex-direction: column;
+		gap: 6px;
+	}
+	.msg-row {
+		display: flex;
+		align-items: flex-start;
+		gap: 8px;
+		padding: 6px 8px;
+		border-radius: 8px;
+		position: relative;
+		flex-direction: column;
+	}
+	.msg-row:hover {
+		background: #18181b;
+	}
+	.msg-row.deleted .msg-body {
+		color: #52525b;
+		font-style: italic;
+	}
+	.msg-who {
+		font-size: 12px;
+		font-weight: 600;
+		color: #818cf8;
+		display: inline-flex;
+		align-items: center;
+		gap: 6px;
+	}
+	.msg-time {
+		font-weight: 400;
+		color: #52525b;
+		font-size: 11px;
+	}
+	.msg-body {
+		font-size: 13px;
+		color: #e4e4e7;
+	}
+	.msg-del-tag {
+		font-size: 10px;
+		color: #52525b;
+		text-transform: uppercase;
+		letter-spacing: 0.4px;
+	}
+	.del-btn {
+		position: absolute;
+		right: 8px;
+		top: 6px;
+		background: none;
+		border: none;
+		color: #52525b;
+		cursor: pointer;
+		font-size: 14px;
+		line-height: 1;
+	}
+	.del-btn:hover {
+		color: #f87171;
+	}
+	.msg-empty {
+		color: #52525b;
+		font-size: 12px;
+		padding: 12px;
+		text-align: center;
+	}
 
-	.chat-form { display: flex; gap: 8px; padding: 10px; border-top: 1px solid #1f1f23; }
-	.chat-input { flex: 1; padding: 8px 12px; background: #18181b; border: 1px solid #3f3f46; border-radius: 8px; color: #f4f4f5; font-size: 13px; outline: none; min-height: 40px; }
-	.chat-input:focus { border-color: #818cf8; }
-	.send-btn { width: 40px; height: 40px; display: inline-flex; align-items: center; justify-content: center; background: #818cf8; color: #fff; border: none; border-radius: 8px; cursor: pointer; }
-	.send-btn:hover { background: #6d7cf0; }
+	.chat-form {
+		display: flex;
+		gap: 8px;
+		padding: 10px;
+		border-top: 1px solid #1f1f23;
+	}
+	.chat-input {
+		flex: 1;
+		padding: 8px 12px;
+		background: #18181b;
+		border: 1px solid #3f3f46;
+		border-radius: 8px;
+		color: #f4f4f5;
+		font-size: 13px;
+		outline: none;
+		min-height: 40px;
+	}
+	.chat-input:focus {
+		border-color: #818cf8;
+	}
+	.send-btn {
+		width: 40px;
+		height: 40px;
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		background: #818cf8;
+		color: #fff;
+		border: none;
+		border-radius: 8px;
+		cursor: pointer;
+	}
+	.send-btn:hover {
+		background: #6d7cf0;
+	}
 
-	.leave-row { padding: 4px 0; }
-	.leave-btn { display: inline-flex; align-items: center; gap: 8px; padding: 8px 14px; background: #18181b; color: #a1a1aa; border: 1px solid #3f3f46; border-radius: 8px; font-size: 13px; cursor: pointer; }
-	.leave-btn:hover { color: #f87171; border-color: #f87171; }
+	.leave-row {
+		padding: 4px 0;
+	}
+	.leave-btn {
+		display: inline-flex;
+		align-items: center;
+		gap: 8px;
+		padding: 8px 14px;
+		background: #18181b;
+		color: #a1a1aa;
+		border: 1px solid #3f3f46;
+		border-radius: 8px;
+		font-size: 13px;
+		cursor: pointer;
+	}
+	.leave-btn:hover {
+		color: #f87171;
+		border-color: #f87171;
+	}
 
-	.err { color: #f87171; font-size: 13px; margin-top: 10px; }
+	.err {
+		color: #f87171;
+		font-size: 13px;
+		margin-top: 10px;
+	}
 
-	.closed-wrap { display: flex; align-items: center; justify-content: center; min-height: 60vh; padding: 24px; }
-	.closed-card { display: flex; flex-direction: column; align-items: center; gap: 8px; text-align: center; color: #e4e4e7; max-width: 360px; }
-	.closed-card h1 { font-size: 20px; margin: 8px 0 0; }
-	.closed-card p { color: #71717a; font-size: 13px; margin: 0; }
-	.primary-btn { margin-top: 12px; padding: 10px 20px; background: #818cf8; color: #fff; border: none; border-radius: 10px; font-weight: 600; cursor: pointer; }
+	.closed-wrap {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		min-height: 60vh;
+		padding: 24px;
+	}
+	.closed-card {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: 8px;
+		text-align: center;
+		color: #e4e4e7;
+		max-width: 360px;
+	}
+	.closed-card h1 {
+		font-size: 20px;
+		margin: 8px 0 0;
+	}
+	.closed-card p {
+		color: #71717a;
+		font-size: 13px;
+		margin: 0;
+	}
+	.primary-btn {
+		margin-top: 12px;
+		padding: 10px 20px;
+		background: #818cf8;
+		color: #fff;
+		border: none;
+		border-radius: 10px;
+		font-weight: 600;
+		cursor: pointer;
+	}
 
-	.no-media { color: #71717a; padding: 40px; text-align: center; }
+	.no-media {
+		color: #71717a;
+		padding: 40px;
+		text-align: center;
+	}
 
-	.sync-row { margin-top: 10px; display: flex; align-items: center; gap: 10px; }
-	.sync-btn { display: inline-flex; align-items: center; gap: 8px; padding: 7px 14px; background: #18181b; color: #c4b5fd; border: 1px solid #3f3f46; border-radius: 8px; font-size: 12px; font-weight: 600; cursor: pointer; }
-	.sync-btn:hover { background: #27272a; border-color: #818cf8; }
-	.sync-status { display: inline-flex; align-items: center; gap: 6px; padding: 5px 10px; border-radius: 999px; font-size: 11px; font-weight: 600; }
-	.sync-status::before { content: ''; width: 7px; height: 7px; border-radius: 50%; }
-	.sync-ok { background: rgba(34,197,94,0.12); color: #4ade80; }
-	.sync-ok::before { background: #22c55e; }
-	.sync-bad { background: rgba(251,191,36,0.12); color: #fbbf24; }
-	.sync-bad::before { background: #f59e0b; }
-	.sync-syncing { background: rgba(129,140,248,0.12); color: #a5b4fc; }
-	.sync-syncing::before { background: #818cf8; animation: pulse 1.5s ease-in-out infinite; }
+	.sync-row {
+		margin-top: 10px;
+		display: flex;
+		align-items: center;
+		gap: 10px;
+	}
+	.sync-btn {
+		display: inline-flex;
+		align-items: center;
+		gap: 8px;
+		padding: 7px 14px;
+		background: #18181b;
+		color: #c4b5fd;
+		border: 1px solid #3f3f46;
+		border-radius: 8px;
+		font-size: 12px;
+		font-weight: 600;
+		cursor: pointer;
+	}
+	.sync-btn:hover {
+		background: #27272a;
+		border-color: #818cf8;
+	}
+	.sync-status {
+		display: inline-flex;
+		align-items: center;
+		gap: 6px;
+		padding: 5px 10px;
+		border-radius: 999px;
+		font-size: 11px;
+		font-weight: 600;
+	}
+	.sync-status::before {
+		content: '';
+		width: 7px;
+		height: 7px;
+		border-radius: 50%;
+	}
+	.sync-ok {
+		background: rgba(34, 197, 94, 0.12);
+		color: #4ade80;
+	}
+	.sync-ok::before {
+		background: #22c55e;
+	}
+	.sync-bad {
+		background: rgba(251, 191, 36, 0.12);
+		color: #fbbf24;
+	}
+	.sync-bad::before {
+		background: #f59e0b;
+	}
+	.sync-syncing {
+		background: rgba(129, 140, 248, 0.12);
+		color: #a5b4fc;
+	}
+	.sync-syncing::before {
+		background: #818cf8;
+		animation: pulse 1.5s ease-in-out infinite;
+	}
 
-	.chat-fab { display: none; }
+	.kick-toast {
+		position: fixed;
+		top: 16px;
+		left: 50%;
+		transform: translateX(-50%);
+		z-index: 70;
+		width: min(92vw, 480px);
+	}
+	.kick-card {
+		display: flex;
+		align-items: center;
+		gap: 12px;
+		background: #18181b;
+		border: 1px solid #3f3f46;
+		border-radius: 14px;
+		padding: 14px 16px;
+		box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5);
+		animation: kick-in 0.35s cubic-bezier(0.21, 1.02, 0.73, 1);
+	}
+	@keyframes kick-in {
+		from {
+			opacity: 0;
+			transform: translateY(-16px);
+		}
+		to {
+			opacity: 1;
+			transform: translateY(0);
+		}
+	}
+	@media (prefers-reduced-motion: reduce) {
+		.kick-card {
+			animation: none;
+		}
+	}
+	.kick-icon {
+		color: #f87171;
+		flex-shrink: 0;
+		display: inline-flex;
+	}
+	.kick-text {
+		display: flex;
+		flex-direction: column;
+		gap: 2px;
+		min-width: 0;
+		flex: 1;
+	}
+	.kick-text strong {
+		font-size: 14px;
+		color: #f4f4f5;
+	}
+	.kick-msg {
+		font-size: 12.5px;
+		color: #a1a1aa;
+	}
+	.kick-close {
+		background: none;
+		border: none;
+		color: #71717a;
+		font-size: 18px;
+		line-height: 1;
+		cursor: pointer;
+		padding: 4px;
+		flex-shrink: 0;
+	}
+	.kick-close:hover {
+		color: #f87171;
+	}
+	.kick-go {
+		flex-shrink: 0;
+		padding: 7px 14px;
+		background: #818cf8;
+		color: #fff;
+		border: none;
+		border-radius: 8px;
+		font-size: 12px;
+		font-weight: 600;
+		cursor: pointer;
+	}
+	.kick-go:hover {
+		background: #6d7cf0;
+	}
+	@media (max-width: 600px) {
+		.kick-card {
+			flex-wrap: wrap;
+		}
+		.kick-go {
+			margin-left: auto;
+		}
+	}
+
+	.chat-fab {
+		display: none;
+	}
 
 	.mobile-chat-backdrop {
 		display: none;
@@ -578,7 +1195,9 @@
 			cursor: pointer;
 		}
 
-		.chat-fab:hover { background: #6d7cf0; }
+		.chat-fab:hover {
+			background: #6d7cf0;
+		}
 
 		.mobile-chat-backdrop {
 			display: flex;
@@ -606,7 +1225,11 @@
 			justify-content: space-between;
 		}
 
-		.mobile-chat-title { font-size: 15px; font-weight: 700; color: #e4e4e7; }
+		.mobile-chat-title {
+			font-size: 15px;
+			font-weight: 700;
+			color: #e4e4e7;
+		}
 
 		.mobile-close {
 			background: none;
@@ -617,7 +1240,11 @@
 			cursor: pointer;
 		}
 
-		.mobile-member-list { display: flex; flex-wrap: wrap; gap: 6px; }
+		.mobile-member-list {
+			display: flex;
+			flex-wrap: wrap;
+			gap: 6px;
+		}
 		.mobile-member-chip {
 			font-size: 11px;
 			padding: 3px 8px;
@@ -626,8 +1253,15 @@
 			border: 1px solid #27272a;
 			color: #a1a1aa;
 		}
-		.mobile-member-chip.is-me { color: #c4b5fd; border-color: #3f3f46; }
+		.mobile-member-chip.is-me {
+			color: #c4b5fd;
+			border-color: #3f3f46;
+		}
 
-		.mobile-msg-list { flex: 1; overflow-y: auto; min-height: 120px; }
+		.mobile-msg-list {
+			flex: 1;
+			overflow-y: auto;
+			min-height: 120px;
+		}
 	}
 </style>

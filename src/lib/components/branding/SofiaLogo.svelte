@@ -18,10 +18,10 @@
 					<stop offset="45%" stop-color="#F59E0B" />
 					<stop offset="100%" stop-color="#B45309" />
 				</linearGradient>
-				<linearGradient id="sofiaRuby" x1="0%" y1="0%" x2="100%" y2="100%">
-					<stop offset="0%" stop-color="#FECDD3" />
-					<stop offset="40%" stop-color="#E11D48" />
-					<stop offset="100%" stop-color="#881337" />
+				<linearGradient id="sofiaGem" x1="0%" y1="0%" x2="100%" y2="100%">
+					<stop offset="0%" stop-color="#E9D5FF" />
+					<stop offset="45%" stop-color="#A855F7" />
+					<stop offset="100%" stop-color="#581C87" />
 				</linearGradient>
 			</defs>
 			<path
@@ -31,9 +31,22 @@
 			<rect x="5.2" y="9.6" width="13.6" height="1.9" rx="0.95" fill="#92400E" />
 			<path
 				d="M12 21.2 C8.9 19.3 6.9 17.2 6.9 14.9 A3.9 3.9 0 0 1 12 11.2 A3.9 3.9 0 0 1 17.1 14.9 C17.1 17.2 15.1 19.3 12 21.2 Z"
-				fill="url(#sofiaRuby)"
+				fill="url(#sofiaGem)"
+				stroke="url(#sofiaGold)"
+				stroke-width="1.1"
+				stroke-linejoin="round"
 			/>
-			<circle cx="9.9" cy="14.6" r="0.95" fill="#FECDD3" opacity="0.85" />
+			<path
+				class="sofia-facet"
+				d="M8.7 14.3 Q9.7 16.7 12 17.5 Q14.3 16.7 15.3 14.3"
+				fill="none"
+				stroke="#FDE68A"
+				stroke-width="0.8"
+				stroke-linecap="round"
+				opacity="0.8"
+			/>
+			<circle cx="9.7" cy="14.4" r="0.55" fill="#FDE68A" opacity="0.9" />
+			<circle cx="14.3" cy="14.4" r="0.55" fill="#FDE68A" opacity="0.9" />
 			<path
 				class="sofia-sparkle sofia-sparkle-1"
 				d="M2.9 2.4 L3.55 4.15 L5.3 4.8 L3.55 5.45 L2.9 7.2 L2.25 5.45 L0.5 4.8 L2.25 4.15 Z"
@@ -69,6 +82,10 @@
 		animation: sofia-sparkle 2.4s ease-in-out infinite;
 	}
 
+	.sofia-facet {
+		animation: sofia-shimmer 3.2s ease-in-out infinite;
+	}
+
 	.sofia-sparkle-1 {
 		animation-delay: 0s;
 	}
@@ -99,6 +116,16 @@
 		}
 	}
 
+	@keyframes sofia-shimmer {
+		0%,
+		100% {
+			opacity: 0.35;
+		}
+		50% {
+			opacity: 0.95;
+		}
+	}
+
 	:global(.logo:hover) .sofia-tilt {
 		animation-duration: 2.2s;
 	}
@@ -111,7 +138,8 @@
 		.sofia-tilt,
 		.sofia-sparkle,
 		.sofia-sparkle-1,
-		.sofia-sparkle-2 {
+		.sofia-sparkle-2,
+		.sofia-facet {
 			animation: none;
 		}
 

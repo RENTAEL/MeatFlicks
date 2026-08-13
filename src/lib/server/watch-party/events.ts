@@ -1,6 +1,10 @@
-const listeners = new Map<string, Set<() => void>>();
+const listeners = new Map<string, Set<(payload?: RoomEvent) => void>>();
 
-export function subscribeRoom(roomId: string, cb: () => void): () => void {
+export type RoomEvent =
+	| { type: 'kick'; userId: string; by: string; at: number }
+	| { type: 'state' };
+
+export function subscribeRoom(roomId: string, cb: (payload?: RoomEvent) => void): () => void {
 	let set = listeners.get(roomId);
 	if (!set) {
 		set = new Set();
@@ -13,12 +17,12 @@ export function subscribeRoom(roomId: string, cb: () => void): () => void {
 	};
 }
 
-export function publishRoom(roomId: string) {
+export function publishRoom(roomId: string, payload?: RoomEvent) {
 	const set = listeners.get(roomId);
 	if (!set) return;
 	for (const cb of [...set]) {
 		try {
-			cb();
+			cb(payload);
 		} catch {
 			// subscriber errors are non-fatal
 		}

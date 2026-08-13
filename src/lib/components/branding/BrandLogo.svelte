@@ -2,6 +2,7 @@
 	import { page } from '$app/state';
 	import { authStore } from '$lib/state/stores/authStore.svelte.ts';
 	import { getBranding } from '$lib/utils/branding';
+	import { themeStore } from '$lib/stores/theme';
 	import { previewStore } from '$lib/state/stores/previewStore.svelte.ts';
 	import CustomLogo from './CustomLogo.svelte';
 	import MidnightLogo from './MidnightLogo.svelte';
@@ -14,7 +15,9 @@
 	const firebaseUser = $derived(authStore.state.user);
 	const actualBranding = $derived(
 		getBranding(firebaseUser) ??
-			(sessionUser ? getBranding({ displayName: sessionUser.username, email: null }) : null)
+			(sessionUser
+				? getBranding({ displayName: sessionUser.username, email: sessionUser.email })
+				: null)
 	);
 	const previewBranding = $derived(previewStore.current);
 	const branding = $derived(
@@ -22,13 +25,13 @@
 	);
 
 	$effect(() => {
-		console.log(
-			'branding user:',
-			branding,
-			sessionUser?.username ?? null,
-			firebaseUser?.displayName ?? null,
-			firebaseUser?.email ?? null
-		);
+		// Brand themes: Sofia carries its series palette; everything else uses
+		// the user's explicit choice or the standard default.
+		if (previewBranding === 'sofia') {
+			themeStore.setBrandTheme('sofia', true);
+		} else {
+			themeStore.setBrandTheme(branding);
+		}
 	});
 </script>
 

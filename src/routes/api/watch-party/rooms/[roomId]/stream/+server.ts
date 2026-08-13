@@ -26,6 +26,7 @@ export const GET: RequestHandler = async ({ params, locals, request }) => {
 		const encoder = new TextEncoder();
 		let lastVersion = '';
 		let since = 0;
+		let pushInFlight = false;
 
 		const stream = new ReadableStream({
 			start(controller) {
@@ -39,23 +40,46 @@ export const GET: RequestHandler = async ({ params, locals, request }) => {
 					}
 				};
 
+				const versionOf = (
+					tick: {
+						seq: number;
+						closedAt: number | null;
+						lastMessageId: number;
+						soundSeq: number;
+					} | null
+				) =>
+					tick
+						? `${tick.seq}:${tick.closedAt ?? ''}:${tick.lastMessageId}:${tick.soundSeq}`
+						: 'gone';
+
 				const push = async () => {
-					if (settled) return;
+					if (settled || pushInFlight) return;
+					pushInFlight = true;
 					try {
-					const tick = await getRoomTick(roomId);
-					const version = tick ? `${tick.seq}:${tick.closedAt ?? ''}:${tick.lastMessageId}:${tick.soundSeq}` : 'gone';
+						const tick = await getRoomTick(roomId);
+						const version = versionOf(tick);
 						if (version === lastVersion) return;
-						console.log(`[stream] ${roomId} version ${version} (was ${lastVersion || '(initial)'}, since ${since})`);
 						lastVersion = version;
 						const state = await getRoomState(roomId, user, { sinceMessageId: since });
+						// The room changed while we were reading state; skip this
+						// snapshot so a stale one never lands after a fresher one.
+						if (versionOf(await getRoomTick(roomId)) !== version) return;
 						since = state.lastMessageId;
 						send(`event: state\ndata: ${JSON.stringify(state)}\n\n`);
 					} catch (error) {
-						console.error(`[stream] ${roomId} push failed:`, error instanceof Error ? error.message : String(error));
+						console.error(
+							`[stream] ${roomId} push failed:`,
+							error instanceof Error ? error.message : String(error)
+						);
+					} finally {
+						pushInFlight = false;
 					}
 				};
 
-				const unsubscribe = subscribeRoom(roomId, () => {
+				const unsubscribe = subscribeRoom(roomId, (payload) => {
+					if (payload?.type === 'kick') {
+						send(`event: kick\ndata: ${JSON.stringify(payload)}\n\n`);
+					}
 					void push();
 				});
 
