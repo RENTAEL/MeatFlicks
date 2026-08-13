@@ -226,3 +226,24 @@ soak log shows `embed-pos FAILED` followed by the drift-reload loop capped at 3 
   `soakEvent`/`soakUpdate`, which no-op unless `?soak=1`.
 - Overlay is absent in production unless the URL carries `?soak=1`.
 - svelte-check: 0 errors / 38 warnings (baseline); build + deploy via `npx vercel --prod --yes`.
+
+## Autoplay-blocked member & host-pause mirror (2026-08)
+
+- Members whose browser blocked autoplay never auto-reload: drift is gated on the member's
+  actual playback state (`memberIsPlaying` — last `[embed-ev]` freshness). A blocked member
+  gets a **"Tap to resume"** overlay; tapping force-reloads to the host position. Mid-playback
+  stalls are gated the same way (no overlay). See `Player.svelte` `maybeShowTapPrompt` /
+  `tapToContinue` / drift-tick gate.
+- Host pause/pause-while-member-stalled is mirrored with a single bounded paused reload
+  (`paused (host paused)`), and host resume force-reloads a mirror-paused member
+  (`host resumed — reloading paused member`). Both bounded by the 8s cooldown + 3-streak cap.
+- **vidlink has no inbound postMessage command protocol**: `sendEmbedCommand` play/pause/seek
+  are inert on vidlink embeds (verified against the live player — no message handler in any
+  static chunk). All control is URL-based (`#t=`, `autoplay`, cache-buster) via reloads.
+- **Headless verification limits** (`ui-soak-stall.mjs`, runs against the live deploy with
+  `?soak=1` + CDP-injected autoplay-block): phases A–D are deterministic and green
+  (block→overlay, tap→force reload→unblock→resume, stall gate, recovery). Phase E
+  (host-pause mirror) can go event-silent after mid-movie catch-up reloads in headless
+  Chromium; the probe then SKIPs the phase (marked PASS/SKIPPED) — it needs a real browser
+  or a lucky headless session to exercise the mirror. Health gates auto-rerun on host
+  freeze/SSE drops (3 attempts).
