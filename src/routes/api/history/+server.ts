@@ -2,6 +2,7 @@ import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { libraryRepository } from '$lib/server/repositories/library.repository';
 import { playbackProgressRepository } from '$lib/server/repositories/playback-progress.repository';
+import { resolveMediaId } from '$lib/server/db/media-resolver';
 import { z } from 'zod';
 import { errorHandler, UnauthorizedError, ValidationError } from '$lib/server';
 import { validateRequestBody, validateQueryParams } from '$lib/server/validation';
@@ -58,6 +59,11 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 				body.season,
 				body.episode
 			);
+
+			const mediaId = await resolveMediaId(Number(body.tmdb_id), body.media_type as 'movie' | 'tv');
+			if (mediaId) {
+				await libraryRepository.addToWatchHistory(user.id, mediaId);
+			}
 
 			return json({ success: true });
 		}

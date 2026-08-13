@@ -24,19 +24,25 @@ export const watchlistRepository = {
 
 	async addToWatchlist(userId: string, mediaId: string): Promise<void> {
 		try {
-			await db
-				.insert(watchlist)
-				.values({
+			const existing = await db
+				.select({ mediaId: watchlist.mediaId })
+				.from(watchlist)
+				.where(and(eq(watchlist.userId, userId), eq(watchlist.mediaId, mediaId)))
+				.limit(1)
+				.get();
+
+			if (existing) {
+				await db
+					.update(watchlist)
+					.set({ addedAt: Date.now() })
+					.where(and(eq(watchlist.userId, userId), eq(watchlist.mediaId, mediaId)));
+			} else {
+				await db.insert(watchlist).values({
 					userId,
 					mediaId,
 					addedAt: Date.now()
-				})
-				.onConflictDoUpdate({
-					target: [watchlist.userId, watchlist.mediaId],
-					set: {
-						addedAt: Date.now()
-					}
 				});
+			}
 		} catch (error) {
 			console.error('Error adding to watchlist:', error);
 			throw new Error('Failed to add to watchlist');
