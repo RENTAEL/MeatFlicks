@@ -36,8 +36,7 @@ const ensureDirectory = (dbPath: string) => {
 	try {
 		const folder = dirname(dbPath.replace(/^file:/, ''));
 		mkdirSync(folder, { recursive: true });
-	} catch {
-	}
+	} catch {}
 };
 
 const runInitSql = async (client: Client) => {
@@ -65,12 +64,28 @@ const runInitSql = async (client: Client) => {
 			"productionCompanies" TEXT,
 			"createdAt" INTEGER NOT NULL, "updatedAt" INTEGER NOT NULL
 		)`);
-		try { await client.execute('CREATE UNIQUE INDEX IF NOT EXISTS idx_media_id ON media("id")'); } catch {}
-		try { await client.execute('CREATE UNIQUE INDEX IF NOT EXISTS idx_media_tmdbId ON media("tmdbId")'); } catch {}
-		try { await client.execute('CREATE INDEX IF NOT EXISTS idx_media_rating ON media("rating")'); } catch {}
-		try { await client.execute('CREATE INDEX IF NOT EXISTS idx_media_mediaType ON media("mediaType")'); } catch {}
-		try { await client.execute('CREATE INDEX IF NOT EXISTS idx_media_popularity ON media("popularity")'); } catch {}
-		try { await client.execute('CREATE INDEX IF NOT EXISTS idx_media_releaseDate ON media("releaseDate")'); } catch {}
+		try {
+			await client.execute('CREATE UNIQUE INDEX IF NOT EXISTS idx_media_id ON media("id")');
+		} catch {}
+		try {
+			await client.execute('CREATE UNIQUE INDEX IF NOT EXISTS idx_media_tmdbId ON media("tmdbId")');
+		} catch {}
+		try {
+			await client.execute('CREATE INDEX IF NOT EXISTS idx_media_rating ON media("rating")');
+		} catch {}
+		try {
+			await client.execute('CREATE INDEX IF NOT EXISTS idx_media_mediaType ON media("mediaType")');
+		} catch {}
+		try {
+			await client.execute(
+				'CREATE INDEX IF NOT EXISTS idx_media_popularity ON media("popularity")'
+			);
+		} catch {}
+		try {
+			await client.execute(
+				'CREATE INDEX IF NOT EXISTS idx_media_releaseDate ON media("releaseDate")'
+			);
+		} catch {}
 
 		await client.execute(`CREATE TABLE IF NOT EXISTS genres (
 			"id" INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
@@ -89,8 +104,16 @@ const runInitSql = async (client: Client) => {
 			"genreId" INTEGER NOT NULL REFERENCES genres("id") ON DELETE CASCADE,
 			PRIMARY KEY ("mediaId", "genreId")
 		)`);
-		try { await client.execute('CREATE INDEX IF NOT EXISTS idx_media_genres_media ON media_genres("mediaId")'); } catch {}
-		try { await client.execute('CREATE INDEX IF NOT EXISTS idx_media_genres_genre ON media_genres("genreId")'); } catch {}
+		try {
+			await client.execute(
+				'CREATE INDEX IF NOT EXISTS idx_media_genres_media ON media_genres("mediaId")'
+			);
+		} catch {}
+		try {
+			await client.execute(
+				'CREATE INDEX IF NOT EXISTS idx_media_genres_genre ON media_genres("genreId")'
+			);
+		} catch {}
 
 		await client.execute(`CREATE TABLE IF NOT EXISTS people (
 			"id" TEXT PRIMARY KEY NOT NULL,
@@ -129,9 +152,15 @@ const runInitSql = async (client: Client) => {
 			tokenize='porter unicode61'
 		)`);
 
-		try { await client.execute('CREATE INDEX IF NOT EXISTS idx_media_numericId ON media("numericId")'); } catch {}
+		try {
+			await client.execute('CREATE INDEX IF NOT EXISTS idx_media_numericId ON media("numericId")');
+		} catch {}
 
-		try { await client.execute("INSERT INTO movie_fts(movie_fts) VALUES('rebuild')"); } catch (e) { logger.warn({ err: e }, 'FTS rebuild warning'); }
+		try {
+			await client.execute("INSERT INTO movie_fts(movie_fts) VALUES('rebuild')");
+		} catch (e) {
+			logger.warn({ err: e }, 'FTS rebuild warning');
+		}
 
 		await client.execute(`CREATE TABLE IF NOT EXISTS users (
 			"id" TEXT PRIMARY KEY NOT NULL,
@@ -140,8 +169,14 @@ const runInitSql = async (client: Client) => {
 			"role" TEXT NOT NULL DEFAULT 'USER'
 		)`);
 
-		try { await client.execute(`ALTER TABLE users ADD COLUMN "email" TEXT`); } catch {}
-		try { await client.execute(`ALTER TABLE users ADD COLUMN "created_at" INTEGER NOT NULL DEFAULT ${Date.now()}`); } catch {}
+		try {
+			await client.execute(`ALTER TABLE users ADD COLUMN "email" TEXT`);
+		} catch {}
+		try {
+			await client.execute(
+				`ALTER TABLE users ADD COLUMN "created_at" INTEGER NOT NULL DEFAULT ${Date.now()}`
+			);
+		} catch {}
 
 		await client.execute(`CREATE TABLE IF NOT EXISTS sessions (
 			"id" TEXT PRIMARY KEY NOT NULL,
@@ -161,7 +196,11 @@ const runInitSql = async (client: Client) => {
 			"addedAt" INTEGER NOT NULL,
 			"folderId" INTEGER
 		)`);
-		try { await client.execute('CREATE INDEX IF NOT EXISTS idx_watchlist_userId ON watchlist("userId")'); } catch {}
+		try {
+			await client.execute(
+				'CREATE INDEX IF NOT EXISTS idx_watchlist_userId ON watchlist("userId")'
+			);
+		} catch {}
 
 		await client.execute(`CREATE TABLE IF NOT EXISTS watch_history (
 			"id" INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
@@ -178,8 +217,16 @@ const runInitSql = async (client: Client) => {
 			"watchedAt" INTEGER NOT NULL,
 			"completed" INTEGER NOT NULL DEFAULT 0
 		)`);
-		try { await client.execute('CREATE INDEX IF NOT EXISTS idx_watch_history_userId ON watch_history("userId")'); } catch {}
-		try { await client.execute('CREATE INDEX IF NOT EXISTS idx_watch_history_mediaId ON watch_history("mediaId")'); } catch {}
+		try {
+			await client.execute(
+				'CREATE INDEX IF NOT EXISTS idx_watch_history_userId ON watch_history("userId")'
+			);
+		} catch {}
+		try {
+			await client.execute(
+				'CREATE INDEX IF NOT EXISTS idx_watch_history_mediaId ON watch_history("mediaId")'
+			);
+		} catch {}
 
 		await client.execute(`CREATE TABLE IF NOT EXISTS playback_progress (
 			"id" INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
@@ -192,7 +239,11 @@ const runInitSql = async (client: Client) => {
 			"episode" INTEGER,
 			"updatedAt" INTEGER NOT NULL
 		)`);
-		try { await client.execute('CREATE UNIQUE INDEX IF NOT EXISTS idx_playback_progress_unique ON playback_progress("userId", "tmdbId", "mediaType")'); } catch {}
+		try {
+			await client.execute(
+				'CREATE UNIQUE INDEX IF NOT EXISTS idx_playback_progress_unique ON playback_progress("userId", "tmdbId", "mediaType")'
+			);
+		} catch {}
 
 		await client.execute(`CREATE TABLE IF NOT EXISTS search_history (
 			"id" INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
@@ -243,11 +294,27 @@ const runInitSql = async (client: Client) => {
 			"provider" TEXT,
 			"provider_name" TEXT
 		)`);
-		try { await client.execute('ALTER TABLE watch_party_rooms ADD COLUMN "provider" TEXT'); } catch {}
-		try { await client.execute('ALTER TABLE watch_party_rooms ADD COLUMN "provider_name" TEXT'); } catch {}
-		try { await client.execute('CREATE INDEX IF NOT EXISTS idx_wp_rooms_host ON watch_party_rooms("host_user_id")'); } catch {}
-		try { await client.execute('CREATE INDEX IF NOT EXISTS idx_wp_rooms_activity ON watch_party_rooms("last_activity_at")'); } catch {}
-		try { await client.execute('CREATE INDEX IF NOT EXISTS idx_wp_rooms_closed ON watch_party_rooms("closed_at")'); } catch {}
+		try {
+			await client.execute('ALTER TABLE watch_party_rooms ADD COLUMN "provider" TEXT');
+		} catch {}
+		try {
+			await client.execute('ALTER TABLE watch_party_rooms ADD COLUMN "provider_name" TEXT');
+		} catch {}
+		try {
+			await client.execute(
+				'CREATE INDEX IF NOT EXISTS idx_wp_rooms_host ON watch_party_rooms("host_user_id")'
+			);
+		} catch {}
+		try {
+			await client.execute(
+				'CREATE INDEX IF NOT EXISTS idx_wp_rooms_activity ON watch_party_rooms("last_activity_at")'
+			);
+		} catch {}
+		try {
+			await client.execute(
+				'CREATE INDEX IF NOT EXISTS idx_wp_rooms_closed ON watch_party_rooms("closed_at")'
+			);
+		} catch {}
 
 		await client.execute(`CREATE TABLE IF NOT EXISTS watch_party_members (
 			"room_id" TEXT NOT NULL REFERENCES watch_party_rooms("id") ON DELETE CASCADE,
@@ -258,8 +325,16 @@ const runInitSql = async (client: Client) => {
 			"can_control_sounds" INTEGER NOT NULL DEFAULT 0,
 			PRIMARY KEY ("room_id", "user_id")
 		)`);
-		try { await client.execute('CREATE INDEX IF NOT EXISTS idx_wp_members_user ON watch_party_members("user_id")'); } catch {}
-		try { await client.execute('CREATE INDEX IF NOT EXISTS idx_wp_members_seen ON watch_party_members("last_seen_at")'); } catch {}
+		try {
+			await client.execute(
+				'CREATE INDEX IF NOT EXISTS idx_wp_members_user ON watch_party_members("user_id")'
+			);
+		} catch {}
+		try {
+			await client.execute(
+				'CREATE INDEX IF NOT EXISTS idx_wp_members_seen ON watch_party_members("last_seen_at")'
+			);
+		} catch {}
 		try {
 			const memberTable = await client.execute(
 				"SELECT name FROM sqlite_master WHERE type='table' AND name='watch_party_members'"
@@ -289,8 +364,12 @@ const runInitSql = async (client: Client) => {
 					await client.execute('DROP TABLE watch_party_members');
 					await client.execute('ALTER TABLE watch_party_members_v2 RENAME TO watch_party_members');
 					await client.execute('DROP TABLE IF EXISTS watch_party_members_old');
-					await client.execute('CREATE INDEX IF NOT EXISTS idx_wp_members_user ON watch_party_members("user_id")');
-					await client.execute('CREATE INDEX IF NOT EXISTS idx_wp_members_seen ON watch_party_members("last_seen_at")');
+					await client.execute(
+						'CREATE INDEX IF NOT EXISTS idx_wp_members_user ON watch_party_members("user_id")'
+					);
+					await client.execute(
+						'CREATE INDEX IF NOT EXISTS idx_wp_members_seen ON watch_party_members("last_seen_at")'
+					);
 				} else {
 					await client.execute('DROP TABLE IF EXISTS watch_party_members_old');
 					await client.execute('DROP TABLE IF EXISTS watch_party_members_v2');
@@ -299,7 +378,9 @@ const runInitSql = async (client: Client) => {
 		} catch {}
 
 		try {
-			await client.execute('ALTER TABLE watch_party_members ADD COLUMN "can_control_sounds" INTEGER NOT NULL DEFAULT 0');
+			await client.execute(
+				'ALTER TABLE watch_party_members ADD COLUMN "can_control_sounds" INTEGER NOT NULL DEFAULT 0'
+			);
 		} catch {}
 
 		await client.execute(`CREATE TABLE IF NOT EXISTS watch_party_messages (
@@ -312,9 +393,39 @@ const runInitSql = async (client: Client) => {
 			"deleted_at" INTEGER,
 			"created_at" INTEGER NOT NULL DEFAULT ${Date.now()}
 		)`);
-		try { await client.execute('CREATE INDEX IF NOT EXISTS idx_wp_messages_room ON watch_party_messages("room_id", "created_at")'); } catch {}
-		try { await client.execute('CREATE INDEX IF NOT EXISTS idx_wp_messages_user ON watch_party_messages("user_id")'); } catch {}
-		try { await client.execute('ALTER TABLE watch_party_messages ADD COLUMN "deleted_at" INTEGER'); } catch {}
+		try {
+			await client.execute(
+				'CREATE INDEX IF NOT EXISTS idx_wp_messages_room ON watch_party_messages("room_id", "created_at")'
+			);
+		} catch {}
+		try {
+			await client.execute(
+				'CREATE INDEX IF NOT EXISTS idx_wp_messages_user ON watch_party_messages("user_id")'
+			);
+		} catch {}
+		try {
+			await client.execute('ALTER TABLE watch_party_messages ADD COLUMN "deleted_at" INTEGER');
+		} catch {}
+
+		await client.execute(`CREATE TABLE IF NOT EXISTS watch_party_queue (
+			"id" INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+			"room_id" TEXT NOT NULL REFERENCES watch_party_rooms("id") ON DELETE CASCADE,
+			"position" INTEGER NOT NULL,
+			"title" TEXT NOT NULL,
+			"media_type" TEXT NOT NULL,
+			"tmdb_id" INTEGER NOT NULL,
+			"season" INTEGER,
+			"episode" INTEGER,
+			"provider" TEXT,
+			"provider_name" TEXT,
+			"added_by" TEXT NOT NULL,
+			"added_at" INTEGER NOT NULL DEFAULT ${Date.now()}
+		)`);
+		try {
+			await client.execute(
+				'CREATE INDEX IF NOT EXISTS idx_wp_queue_room ON watch_party_queue("room_id")'
+			);
+		} catch {}
 
 		await client.execute(`CREATE TABLE IF NOT EXISTS seasons (
 			"id" INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
@@ -383,7 +494,10 @@ const runInitSql = async (client: Client) => {
 // Initialize database eagerly before any module imports complete
 const initUrl = resolveDatabaseUrl();
 ensureDirectory(initUrl);
-const initClient = createClient({ url: initUrl, authToken: isTurso() ? getAuthToken() : undefined });
+const initClient = createClient({
+	url: initUrl,
+	authToken: isTurso() ? getAuthToken() : undefined
+});
 await runInitSql(initClient);
 await initClient.close();
 

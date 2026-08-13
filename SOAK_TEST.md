@@ -37,6 +37,8 @@ Append `?soak=1` to the room URL: `https://streamium-cosmic.vercel.app/watch/XXX
 | `provider`     | provider switched (manual, auto, or remote-driven)                                    |
 | `iframe`       | iframe loaded; `builtFromReload` tells you it was a position-restore reload           |
 | `iframe-error` | iframe failed; auto-switch pending                                                    |
+| `queue`        | host added/removed/reordered queue items, or pressed Play next (`advanced -> ...`)    |
+| `media`        | room media switched (queue advance) — player rescan + new source on every client      |
 | `kick`         | kick received (with `by` and `at`)                                                    |
 | `closed`       | room ended                                                                            |
 | `leave`        | user left the room                                                                    |
@@ -158,6 +160,23 @@ on return the member is still synced (≤2s).
 
 **PASS**: chat + FX functional; soak instrumentation did not disturb sync.
 
+### 8. Next-up queue (host adds 2, advances)
+
+- Host opens the **Next up** panel (right column) and searches, e.g. "dune" → adds **Dune**
+  and **Dune: Part Two**. Member sees both + "Up next: Dune" (header chip + panel list).
+- Member attempts to add/remove/advance via the APIs → all **403** (host-only).
+- Host moves Dune: Part Two up (reorder) → order flips on the member within ~1s.
+- Host presses **Play next** → both consoles show `[queue] advanced -> "Dune: Part Two"`
+  then `[media] switch -> ...` and `[iframe] loaded provider=...`; both players now show
+  the new title paused at 0; host presses play → member follows via `[apply]`/`[reload-frame]`.
+- Member refreshes the page → queue still visible (persists server-side).
+- Host removes the remaining item and presses Play next → `advance: empty queue, no-op`;
+  nothing changes.
+- Host leaves the room → room closes → queue cleared (rejoin shows empty queue).
+
+**PASS**: queue CRUD propagates to members via SSE, advance switches everyone to the new
+source at 0, provider follows the host, empty-queue advance is a no-op.
+
 ## Log table template
 
 | time     | host pos | member pos | drift | network notes / events seen               |
@@ -180,6 +199,7 @@ Columns: read positions from the overlay (or `[drift] check target=... current=.
 | 5   | Kick delivered <1s via dedicated event                   | `[kick]` line; toast; rejoin OK                                                  |
 | 6   | Member survives background-tab + 2-min gap               | no 120s drop; resync ≤2s                                                         |
 | 7   | Chat + FX unaffected                                     | messages/deletes/FX work                                                         |
+| 8   | Queue advance switches everyone to the new source at 0   | `[queue] advanced` + `[media] switch` + `[iframe] loaded` on both clients        |
 
 **Session is a FAIL if any of 1-4 fail** — record the time, the `[soak]` lines, and file an issue.
 

@@ -1,8 +1,20 @@
 import { db } from '$lib/server/db';
-import { watchPartyRooms, watchPartyMembers, watchPartyMessages } from '$lib/server/db/schema';
+import {
+	watchPartyRooms,
+	watchPartyMembers,
+	watchPartyMessages,
+	watchPartyQueue
+} from '$lib/server/db/schema';
 import { and, eq, isNotNull, isNull, ne, sql } from 'drizzle-orm';
 import { NotFoundError, ForbiddenError } from '$lib/server';
-import type { MediaTarget, RoomUser, RoomState, SoundEffect, PlaybackCommand } from './types';
+import type {
+	MediaTarget,
+	RoomUser,
+	RoomState,
+	SoundEffect,
+	PlaybackCommand,
+	RoomQueueItem
+} from './types';
 import { publishRoom } from './events';
 
 export const ROOM_INACTIVITY_MS = 30 * 60 * 1000;
@@ -75,6 +87,7 @@ async function cleanupExpired() {
 			.all();
 		for (const room of veryOld) {
 			await db.delete(watchPartyMessages).where(eq(watchPartyMessages.roomId, room.id)).run();
+			await db.delete(watchPartyQueue).where(eq(watchPartyQueue.roomId, room.id)).run();
 			await db.delete(watchPartyRooms).where(eq(watchPartyRooms.id, room.id)).run();
 		}
 	} catch {
@@ -90,6 +103,7 @@ async function closeRoomRows(roomId: string, at: number) {
 		.run();
 	await db.delete(watchPartyMembers).where(eq(watchPartyMembers.roomId, roomId)).run();
 	await db.delete(watchPartyMessages).where(eq(watchPartyMessages.roomId, roomId)).run();
+	await db.delete(watchPartyQueue).where(eq(watchPartyQueue.roomId, roomId)).run();
 	publishRoom(roomId);
 }
 
@@ -116,6 +130,204 @@ export function touchMemberActivity(roomId: string, userId: string) {
 		.set({ lastSeenAt: Date.now() })
 		.where(and(eq(watchPartyMembers.roomId, roomId), eq(watchPartyMembers.userId, userId)))
 		.run();
+}
+
+export async function getQueueItems(roomId: string): Promise<RoomQueueItem[]> {
+	const rows = await db
+		.select()
+		.from(watchPartyQueue)
+		.where(eq(watchPartyQueue.roomId, roomId))
+		.orderBy(watchPartyQueue.position)
+		.all();
+	return rows.map((r) => ({
+		id: r.id,
+		position: r.position,
+		title: r.title,
+		mediaType: r.mediaType as 'movie' | 'tv',
+		tmdbId: r.tmdbId,
+		season: r.season ?? undefined,
+		episode: r.episode ?? undefined,
+		provider: r.provider && r.providerName ? { id: r.provider, name: r.providerName } : null,
+		addedBy: r.addedBy,
+		addedAt: r.addedAt
+	}));
+}
+
+async function renumberQueue(roomId: string) {
+	const rows = await db
+		.select({ id: watchPartyQueue.id, position: watchPartyQueue.position })
+		.from(watchPartyQueue)
+		.where(eq(watchPartyQueue.roomId, roomId))
+		.orderBy(watchPartyQueue.position)
+		.all();
+	for (let i = 0; i < rows.length; i++) {
+		if (rows[i].position !== i + 1) {
+			await db
+				.update(watchPartyQueue)
+				.set({ position: i + 1 })
+				.where(eq(watchPartyQueue.id, rows[i].id))
+				.run();
+		}
+	}
+}
+
+export async function addToQueue(
+	roomId: string,
+	host: RoomUser,
+	item: {
+		mediaType: 'movie' | 'tv';
+		tmdbId: number;
+		season?: number;
+		episode?: number;
+		title: string;
+		provider?: { id: string; name: string } | null;
+	}
+): Promise<void> {
+	const room = await getRoomOrThrow(roomId);
+	if (room.closedAt) return;
+	if (room.hostUserId !== host.id) {
+		throw new ForbiddenError('Only the host can manage the queue');
+	}
+	const now = Date.now();
+	const maxPos = await db
+		.select({ m: sql<number>`coalesce(max(${watchPartyQueue.position}), 0)` })
+		.from(watchPartyQueue)
+		.where(eq(watchPartyQueue.roomId, roomId))
+		.get();
+	await db
+		.insert(watchPartyQueue)
+		.values({
+			roomId,
+			position: (maxPos?.m ?? 0) + 1,
+			title: item.title,
+			mediaType: item.mediaType,
+			tmdbId: item.tmdbId,
+			season: item.season ?? null,
+			episode: item.episode ?? null,
+			provider: item.provider?.id ?? null,
+			providerName: item.provider?.name ?? null,
+			addedBy: host.username,
+			addedAt: now
+		})
+		.run();
+	await db
+		.update(watchPartyRooms)
+		.set({ seq: room.seq + 1, lastActivityAt: now })
+		.where(eq(watchPartyRooms.id, roomId))
+		.run();
+	publishRoom(roomId);
+}
+
+export async function removeFromQueue(
+	roomId: string,
+	host: RoomUser,
+	itemId: number
+): Promise<void> {
+	const room = await getRoomOrThrow(roomId);
+	if (room.closedAt) return;
+	if (room.hostUserId !== host.id) {
+		throw new ForbiddenError('Only the host can manage the queue');
+	}
+	await db
+		.delete(watchPartyQueue)
+		.where(and(eq(watchPartyQueue.roomId, roomId), eq(watchPartyQueue.id, itemId)))
+		.run();
+	await renumberQueue(roomId);
+	await db
+		.update(watchPartyRooms)
+		.set({ seq: room.seq + 1, lastActivityAt: Date.now() })
+		.where(eq(watchPartyRooms.id, roomId))
+		.run();
+	publishRoom(roomId);
+}
+
+export async function reorderQueue(
+	roomId: string,
+	host: RoomUser,
+	orderedIds: number[]
+): Promise<void> {
+	const room = await getRoomOrThrow(roomId);
+	if (room.closedAt) return;
+	if (room.hostUserId !== host.id) {
+		throw new ForbiddenError('Only the host can manage the queue');
+	}
+	const rows = await db
+		.select({ id: watchPartyQueue.id, position: watchPartyQueue.position })
+		.from(watchPartyQueue)
+		.where(eq(watchPartyQueue.roomId, roomId))
+		.all();
+	const byId = new Map(rows.map((r) => [r.id, r]));
+	for (let i = 0; i < orderedIds.length; i++) {
+		const row = byId.get(orderedIds[i]);
+		if (row && row.position !== i + 1) {
+			await db
+				.update(watchPartyQueue)
+				.set({ position: i + 1 })
+				.where(eq(watchPartyQueue.id, row.id))
+				.run();
+		}
+	}
+	await db
+		.update(watchPartyRooms)
+		.set({ seq: room.seq + 1, lastActivityAt: Date.now() })
+		.where(eq(watchPartyRooms.id, roomId))
+		.run();
+	publishRoom(roomId);
+}
+
+export async function advanceQueue(roomId: string, host: RoomUser): Promise<RoomQueueItem | null> {
+	const room = await getRoomOrThrow(roomId);
+	if (room.closedAt) return null;
+	if (room.hostUserId !== host.id) {
+		throw new ForbiddenError('Only the host can advance the queue');
+	}
+	const next = await db
+		.select()
+		.from(watchPartyQueue)
+		.where(eq(watchPartyQueue.roomId, roomId))
+		.orderBy(watchPartyQueue.position)
+		.limit(1)
+		.get();
+	if (!next) return null;
+
+	const now = Date.now();
+	await db
+		.delete(watchPartyQueue)
+		.where(and(eq(watchPartyQueue.roomId, roomId), eq(watchPartyQueue.id, next.id)))
+		.run();
+	await renumberQueue(roomId);
+	await db
+		.update(watchPartyRooms)
+		.set({
+			title: next.title,
+			mediaType: next.mediaType,
+			tmdbId: next.tmdbId,
+			season: next.season ?? null,
+			episode: next.episode ?? null,
+			playing: false,
+			position: 0,
+			positionAt: now,
+			seq: room.seq + 1,
+			lastActivityAt: now,
+			provider: next.provider ?? null,
+			providerName: next.providerName ?? null
+		})
+		.where(eq(watchPartyRooms.id, roomId))
+		.run();
+	publishRoom(roomId);
+	return {
+		id: next.id,
+		position: next.position,
+		title: next.title,
+		mediaType: next.mediaType as 'movie' | 'tv',
+		tmdbId: next.tmdbId,
+		season: next.season ?? undefined,
+		episode: next.episode ?? undefined,
+		provider:
+			next.provider && next.providerName ? { id: next.provider, name: next.providerName } : null,
+		addedBy: next.addedBy,
+		addedAt: next.addedAt
+	};
 }
 
 export async function getRoomTick(roomId: string) {
@@ -220,6 +432,7 @@ export async function getRoomState(
 			participants: [],
 			lastMessageId: 0,
 			messages: [],
+			queue: [],
 			kicked: null
 		};
 	}
@@ -312,6 +525,7 @@ export async function getRoomState(
 		participants,
 		lastMessageId: room.lastMessageId,
 		messages,
+		queue: await getQueueItems(roomId),
 		kicked:
 			room.kickedUserId === viewer.id && room.kickedAt
 				? { by: room.kickedByUsername ?? 'the host', at: room.kickedAt }

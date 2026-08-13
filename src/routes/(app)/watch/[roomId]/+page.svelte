@@ -25,9 +25,15 @@
 		Sparkles,
 		LogOut,
 		Skull,
-		MessageCircle
+		MessageCircle,
+		ListVideo,
+		ChevronUp,
+		ChevronDown,
+		X,
+		Play,
+		Plus
 	} from '@lucide/svelte';
-	import type { RoomState } from '$lib/server/watch-party/types';
+	import type { RoomState, RoomQueueItem } from '$lib/server/watch-party/types';
 
 	interface WatchData {
 		roomId: string;
@@ -63,6 +69,20 @@
 
 	let eventSource: EventSource | null = null;
 	let streamOpened = false;
+
+	interface QueueResult {
+		tmdbId: number;
+		title: string;
+		mediaType: 'movie' | 'tv';
+		year: string;
+		posterPath: string | null;
+	}
+	let queueSearch = '';
+	let queueResults: QueueResult[] = [];
+	let queueOpen = false;
+	let queueBusy = false;
+	let queueSubmitting = false;
+	let queueSearchTimer: ReturnType<typeof setTimeout> | null = null;
 
 	function mergeMessages(next: RoomState['messages']) {
 		if (next.length === 0) return;
@@ -100,6 +120,14 @@
 			soakEvent(
 				'playback',
 				`seq=${s.playback.seq} playing=${s.playback.playing} pos=${s.playback.position.toFixed(1)}`
+			);
+		}
+		if (s.media && state.media && s.media.tmdbId !== state.media.tmdbId) {
+			soakEvent(
+				'media',
+				`switch -> "${s.media.title}" (tmdb=${s.media.tmdbId} ${s.media.mediaType}${
+					s.media.season ? ` s${s.media.season}e${s.media.episode}` : ''
+				}) seq=${s.playback.seq} provider=${s.playback.provider?.id ?? 'null'}`
 			);
 		}
 		if (s.sound && s.sound.seq !== lastSoundSeq) {
@@ -193,6 +221,7 @@
 	onDestroy(() => {
 		if (kickTimer) clearTimeout(kickTimer);
 		if (refetchTimer) clearInterval(refetchTimer);
+		if (queueSearchTimer) clearTimeout(queueSearchTimer);
 		if (eventSource) eventSource.close();
 		if (browser) {
 			window.removeEventListener('pointerdown', unlockSound);
@@ -283,6 +312,90 @@
 		});
 	}
 
+	function onQueueSearchInput() {
+		if (queueSearchTimer) clearTimeout(queueSearchTimer);
+		queueSearchTimer = setTimeout(async () => {
+			const q = queueSearch.trim();
+			if (!q) {
+				queueResults = [];
+				queueOpen = false;
+				return;
+			}
+			const res = await api<{ items: Array<Record<string, unknown>> }>(
+				`/search?q=${encodeURIComponent(q)}&limit=6`
+			);
+			queueResults = (res?.items ?? [])
+				.filter((i) => {
+					const mt = i.mediaType === 'movie' || i.mediaType === 'tv' ? i.mediaType : null;
+					return mt && typeof i.tmdbId === 'number' && typeof i.title === 'string';
+				})
+				.map((i) => ({
+					tmdbId: i.tmdbId as number,
+					title: i.title as string,
+					mediaType: i.mediaType as 'movie' | 'tv',
+					year: String(i.releaseDate ?? '').slice(0, 4),
+					posterPath: (i.posterPath as string | null) ?? null
+				}));
+			queueOpen = queueResults.length > 0;
+		}, 350);
+	}
+
+	async function addToQueue(item: QueueResult) {
+		queueSubmitting = true;
+		await api(`/watch-party/rooms/${roomId}/queue`, {
+			method: 'POST',
+			body: JSON.stringify({
+				mediaType: item.mediaType,
+				tmdbId: item.tmdbId,
+				title: item.title,
+				season: item.mediaType === 'tv' ? 1 : undefined,
+				episode: item.mediaType === 'tv' ? 1 : undefined,
+				provider: state.playback.provider
+			})
+		});
+		queueSubmitting = false;
+		queueSearch = '';
+		queueResults = [];
+		queueOpen = false;
+		soakEvent('queue', `added ${item.mediaType} "${item.title}" (tmdb=${item.tmdbId})`);
+	}
+
+	async function removeQueueItem(item: RoomQueueItem) {
+		await api(`/watch-party/rooms/${roomId}/queue/${item.id}`, { method: 'DELETE' });
+		soakEvent('queue', `removed "${item.title}" (id=${item.id})`);
+	}
+
+	async function moveQueueItem(id: number, dir: -1 | 1) {
+		const items = state.queue;
+		const idx = items.findIndex((i) => i.id === id);
+		const target = idx + dir;
+		if (idx < 0 || target < 0 || target >= items.length) return;
+		const next = [...items];
+		[next[idx], next[target]] = [next[target], next[idx]];
+		await api(`/watch-party/rooms/${roomId}/queue/reorder`, {
+			method: 'POST',
+			body: JSON.stringify({ orderedIds: next.map((i) => i.id) })
+		});
+		soakEvent('queue', `reordered "${items[idx].title}" ${dir === -1 ? 'up' : 'down'}`);
+	}
+
+	async function playNext() {
+		if (state.queue.length === 0 || queueBusy) return;
+		queueBusy = true;
+		const res = await api<{ advanced: RoomQueueItem | null }>(
+			`/watch-party/rooms/${roomId}/queue/advance`,
+			{ method: 'POST' }
+		);
+		queueBusy = false;
+		const advanced = res?.advanced;
+		soakEvent(
+			'queue',
+			advanced
+				? `advanced -> "${advanced.title}" (tmdb=${advanced.tmdbId} ${advanced.mediaType})`
+				: 'advance: empty queue, no-op'
+		);
+	}
+
 	async function leave() {
 		soakEvent('leave', `room=${roomId}`);
 		await api(`/watch-party/leave`, { method: 'POST', body: JSON.stringify({ roomId }) });
@@ -350,6 +463,11 @@
 				<h1 class="room-title">{state.media?.title ?? 'Watch Party'}</h1>
 				{#if state.media?.mediaType === 'tv'}
 					<p class="room-sub">Season {state.media?.season} · Episode {state.media?.episode}</p>
+				{/if}
+				{#if state.queue.length > 0}
+					<p class="upnext-chip">
+						<ListVideo size={13} /> Up next: {state.queue[0].title}
+					</p>
 				{/if}
 			</div>
 			<div class="room-code-wrap">
@@ -448,6 +566,125 @@
 					</div>
 				{/each}
 			</div>
+		</div>
+
+		<div class="panel queue-panel">
+			<div class="panel-head">
+				<span class="panel-title"><ListVideo size={16} /> Next up</span>
+				{#if state.queue.length > 0}
+					<span class="queue-count">{state.queue.length}</span>
+				{/if}
+			</div>
+
+			{#if state.isHost}
+				<div class="queue-search">
+					<input
+						class="queue-search-input"
+						type="text"
+						bind:value={queueSearch}
+						oninput={onQueueSearchInput}
+						onblur={() => setTimeout(() => (queueOpen = false), 200)}
+						placeholder="Search movies & TV to add…"
+						aria-label="Search movies and TV shows to add to the queue"
+					/>
+					{#if queueOpen}
+						<div class="queue-results" role="listbox">
+							{#each queueResults as r, i (r.tmdbId + '-' + r.mediaType)}
+								<button
+									type="button"
+									class="queue-result"
+									role="option"
+									aria-selected="false"
+									disabled={queueSubmitting}
+									onclick={() => addToQueue(r)}
+								>
+									{#if r.posterPath}
+										<img class="queue-thumb" src={r.posterPath} alt="" loading="lazy" />
+									{:else}
+										<span class="queue-thumb queue-thumb-empty"><Trophy size={12} /></span>
+									{/if}
+									<span class="queue-result-text">
+										<span class="queue-result-title">{r.title}</span>
+										<span class="queue-result-meta"
+											>{r.mediaType === 'movie' ? 'Movie' : 'TV series'} · {r.year}{r.mediaType ===
+											'tv'
+												? ' · starts S01 E01'
+												: ''}</span
+										>
+									</span>
+									<Plus size={14} />
+								</button>
+							{/each}
+						</div>
+					{/if}
+				</div>
+			{/if}
+
+			<div class="queue-list">
+				{#if state.queue.length === 0}
+					<p class="queue-empty">
+						{state.isHost
+							? 'Nothing queued yet. Search above to add movies or TV.'
+							: "The host hasn't queued anything yet."}
+					</p>
+				{/if}
+				{#each state.queue as item, i (item.id)}
+					<div class="queue-item" class:first={i === 0}>
+						<span class="queue-pos">{i + 1}</span>
+						<span class="queue-item-text">
+							<span class="queue-item-title">{item.title}</span>
+							<span class="queue-item-meta">
+								{item.mediaType === 'movie'
+									? 'Movie'
+									: `TV · S${item.season ?? 1} E${item.episode ?? 1}`}
+								{#if i === 0}
+									<span class="queue-next-tag">up next</span>
+								{/if}
+							</span>
+						</span>
+						{#if state.isHost}
+							<span class="queue-actions">
+								<button
+									class="queue-act"
+									disabled={i === 0}
+									onclick={() => moveQueueItem(item.id, -1)}
+									title="Move up"
+									aria-label="Move up"><ChevronUp size={14} /></button
+								>
+								<button
+									class="queue-act"
+									disabled={i === state.queue.length - 1}
+									onclick={() => moveQueueItem(item.id, 1)}
+									title="Move down"
+									aria-label="Move down"><ChevronDown size={14} /></button
+								>
+								<button
+									class="queue-act queue-act-del"
+									onclick={() => removeQueueItem(item)}
+									title="Remove"
+									aria-label="Remove"><X size={14} /></button
+								>
+							</span>
+						{/if}
+					</div>
+				{/each}
+			</div>
+
+			{#if state.isHost}
+				<div class="queue-play-row">
+					<button
+						class="queue-play-btn"
+						disabled={state.queue.length === 0 || queueBusy}
+						onclick={playNext}
+						title={state.queue.length === 0
+							? 'The queue is empty'
+							: 'Stop the current movie and play the next one'}
+					>
+						<Play size={14} />
+						Play next{state.queue.length > 0 ? `: ${state.queue[0].title.slice(0, 28)}` : ''}
+					</button>
+				</div>
+			{/if}
 		</div>
 
 		<div class="panel fx-panel">
@@ -810,6 +1047,239 @@
 	}
 	.kick-btn:hover {
 		background: #3f3f46;
+	}
+
+	.upnext-chip {
+		display: inline-flex;
+		align-items: center;
+		gap: 6px;
+		margin-top: 8px;
+		font-size: 12px;
+		color: #a5b4fc;
+		background: rgba(124, 92, 252, 0.1);
+		border: 1px solid rgba(124, 92, 252, 0.25);
+		padding: 4px 10px;
+		border-radius: 999px;
+	}
+
+	.queue-count {
+		margin-left: auto;
+		font-size: 11px;
+		color: #a1a1aa;
+		background: #18181b;
+		border: 1px solid #3f3f46;
+		border-radius: 999px;
+		padding: 1px 8px;
+	}
+
+	.queue-search {
+		position: relative;
+		padding: 10px 14px 4px;
+	}
+	.queue-search-input {
+		width: 100%;
+		padding: 8px 12px;
+		background: #18181b;
+		border: 1px solid #3f3f46;
+		border-radius: 8px;
+		color: #f4f4f5;
+		font-size: 13px;
+		outline: none;
+	}
+	.queue-search-input:focus {
+		border-color: #818cf8;
+	}
+	.queue-results {
+		position: absolute;
+		left: 14px;
+		right: 14px;
+		top: 48px;
+		z-index: 30;
+		background: #161618;
+		border: 1px solid #27272a;
+		border-radius: 10px;
+		box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5);
+		overflow: hidden;
+	}
+	.queue-result {
+		display: flex;
+		align-items: center;
+		gap: 10px;
+		width: 100%;
+		padding: 8px 10px;
+		background: none;
+		border: none;
+		color: #e4e4e7;
+		cursor: pointer;
+		text-align: left;
+		font-size: 13px;
+	}
+	.queue-result:hover {
+		background: #1f1f23;
+	}
+	.queue-result:disabled {
+		opacity: 0.5;
+		cursor: default;
+	}
+	.queue-thumb {
+		width: 34px;
+		height: 48px;
+		object-fit: cover;
+		border-radius: 6px;
+		background: #27272a;
+		flex-shrink: 0;
+	}
+	.queue-thumb-empty {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		color: #52525b;
+	}
+	.queue-result-text {
+		display: flex;
+		flex-direction: column;
+		gap: 1px;
+		min-width: 0;
+		flex: 1;
+	}
+	.queue-result-title {
+		font-weight: 600;
+		white-space: nowrap;
+		overflow: hidden;
+		text-overflow: ellipsis;
+	}
+	.queue-result-meta {
+		font-size: 11px;
+		color: #71717a;
+	}
+
+	.queue-list {
+		display: flex;
+		flex-direction: column;
+		padding: 6px;
+		max-height: 240px;
+		overflow-y: auto;
+	}
+	.queue-item {
+		display: flex;
+		align-items: center;
+		gap: 10px;
+		padding: 8px 10px;
+		border-radius: 8px;
+	}
+	.queue-item:hover {
+		background: #18181b;
+	}
+	.queue-pos {
+		width: 18px;
+		height: 18px;
+		border-radius: 50%;
+		background: #18181b;
+		border: 1px solid #3f3f46;
+		color: #a1a1aa;
+		font-size: 11px;
+		font-weight: 700;
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		flex-shrink: 0;
+	}
+	.queue-item.first .queue-pos {
+		background: #4c1d95;
+		border-color: #7c3aed;
+		color: #e9d5ff;
+	}
+	.queue-item-text {
+		display: flex;
+		flex-direction: column;
+		gap: 1px;
+		min-width: 0;
+		flex: 1;
+	}
+	.queue-item-title {
+		font-size: 13px;
+		font-weight: 600;
+		color: #e4e4e7;
+		white-space: nowrap;
+		overflow: hidden;
+		text-overflow: ellipsis;
+	}
+	.queue-item-meta {
+		font-size: 11px;
+		color: #71717a;
+		display: inline-flex;
+		align-items: center;
+		gap: 6px;
+	}
+	.queue-next-tag {
+		font-size: 10px;
+		text-transform: uppercase;
+		letter-spacing: 0.4px;
+		color: #c4b5fd;
+		background: rgba(124, 92, 252, 0.12);
+		border: 1px solid rgba(124, 92, 252, 0.3);
+		border-radius: 999px;
+		padding: 1px 6px;
+	}
+	.queue-actions {
+		display: inline-flex;
+		gap: 2px;
+		flex-shrink: 0;
+	}
+	.queue-act {
+		width: 24px;
+		height: 24px;
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		background: #18181b;
+		color: #a1a1aa;
+		border: 1px solid #3f3f46;
+		border-radius: 6px;
+		cursor: pointer;
+	}
+	.queue-act:hover:not(:disabled) {
+		background: #27272a;
+		color: #f4f4f5;
+	}
+	.queue-act:disabled {
+		opacity: 0.3;
+		cursor: not-allowed;
+	}
+	.queue-act-del:hover:not(:disabled) {
+		color: #f87171;
+		border-color: #7f1d1d;
+	}
+	.queue-empty {
+		color: #52525b;
+		font-size: 12px;
+		padding: 10px 12px;
+		text-align: center;
+	}
+	.queue-play-row {
+		padding: 8px 14px 12px;
+	}
+	.queue-play-btn {
+		width: 100%;
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		gap: 8px;
+		padding: 9px 12px;
+		background: #7c3aed;
+		color: #fff;
+		border: none;
+		border-radius: 8px;
+		font-size: 13px;
+		font-weight: 600;
+		cursor: pointer;
+	}
+	.queue-play-btn:hover:not(:disabled) {
+		background: #6d28d9;
+	}
+	.queue-play-btn:disabled {
+		opacity: 0.4;
+		cursor: not-allowed;
 	}
 
 	.fx-row {

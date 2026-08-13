@@ -57,6 +57,19 @@ export interface RoomKick {
 	at: number;
 }
 
+export interface RoomQueueItem {
+	id: number;
+	position: number;
+	title: string;
+	mediaType: 'movie' | 'tv';
+	tmdbId: number;
+	season?: number;
+	episode?: number;
+	provider: { id: string; name: string } | null;
+	addedBy: string;
+	addedAt: number;
+}
+
 export interface RoomState {
 	closed: boolean;
 	roomId: string;
@@ -69,5 +82,6 @@ export interface RoomState {
 	participants: RoomParticipant[];
 	lastMessageId: number;
 	messages: RoomMessage[];
+	queue: RoomQueueItem[];
 	kicked: RoomKick | null;
 }

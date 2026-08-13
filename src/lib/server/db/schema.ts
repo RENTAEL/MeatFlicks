@@ -726,9 +726,33 @@ export const watchPartyMessages = sqliteTable(
 	]
 );
 
+export const watchPartyQueue = sqliteTable(
+	'watch_party_queue',
+	{
+		id: integer('id').primaryKey({ autoIncrement: true }),
+		roomId: text('room_id')
+			.notNull()
+			.references(() => watchPartyRooms.id, { onDelete: 'cascade' }),
+		position: integer('position').notNull(),
+		title: text('title').notNull(),
+		mediaType: text('media_type', { enum: ['movie', 'tv'] }).notNull(),
+		tmdbId: integer('tmdb_id').notNull(),
+		season: integer('season'),
+		episode: integer('episode'),
+		provider: text('provider'),
+		providerName: text('provider_name'),
+		addedBy: text('added_by').notNull(),
+		addedAt: integer('added_at')
+			.notNull()
+			.$defaultFn(() => Date.now())
+	},
+	(table) => [index('idx_wp_queue_room').on(table.roomId)]
+);
+
 export const watchPartyRoomsRelations = relations(watchPartyRooms, ({ many }) => ({
 	members: many(watchPartyMembers),
-	messages: many(watchPartyMessages)
+	messages: many(watchPartyMessages),
+	queue: many(watchPartyQueue)
 }));
 
 export const watchPartyMembersRelations = relations(watchPartyMembers, ({ one }) => ({
@@ -745,6 +769,13 @@ export const watchPartyMembersRelations = relations(watchPartyMembers, ({ one })
 export const watchPartyMessagesRelations = relations(watchPartyMessages, ({ one }) => ({
 	room: one(watchPartyRooms, {
 		fields: [watchPartyMessages.roomId],
+		references: [watchPartyRooms.id]
+	})
+}));
+
+export const watchPartyQueueRelations = relations(watchPartyQueue, ({ one }) => ({
+	room: one(watchPartyRooms, {
+		fields: [watchPartyQueue.roomId],
 		references: [watchPartyRooms.id]
 	})
 }));
