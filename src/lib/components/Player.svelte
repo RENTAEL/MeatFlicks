@@ -4,6 +4,7 @@
 	import { Play } from '@lucide/svelte';
 	import { playerPreferences } from '$lib/state/stores/playerPreferences.svelte';
 	import { sendEmbedCommand, extractYoutubeId, loadYoutubeApi } from '$lib/utils/embedCommands';
+	import { soakEvent, soakUpdate } from '$lib/soak/soak';
 
 	let {
 		tmdbId,
@@ -183,6 +184,7 @@
 	let reloadPending: { position: number; playing: boolean; at: number } | null = null;
 	let frameBump = $state(0);
 	let frameBuiltFromReload = false;
+	let lastEmbedPosCheckAt = 0;
 
 	$effect(() => {
 		const base = currentUrl;
@@ -196,6 +198,10 @@
 			url.hash = '#t=' + Math.max(0, Math.round(pending.position));
 			frameSrc = url.toString();
 			frameBuiltFromReload = true;
+			soakEvent(
+				'reload-frame',
+				`t=${Math.max(0, Math.round(pending.position))} autoplay=${pending.playing} provider=${currentProvider?.id ?? 'none'}`
+			);
 		} else {
 			frameSrc = base;
 			frameBuiltFromReload = false;
@@ -337,6 +343,10 @@
 			const eff = def - embedBaselineDeficit;
 			if (Math.abs(eff) > 2) {
 				embedBaselineDeficit = null;
+				soakEvent(
+					'drift',
+					`rate-diverged(embed silent) target=${target.toFixed(1)} current=${current.toFixed(1)} eff=${eff.toFixed(1)} -> reload`
+				);
 				return true;
 			}
 			embedBaselineDeficit = def;
@@ -354,6 +364,10 @@
 		const eff = def - embedBaselineDeficit;
 		if (Math.abs(eff) > 2) {
 			embedBaselineDeficit = null;
+			soakEvent(
+				'drift',
+				`rate-diverged target=${target.toFixed(1)} current=${current.toFixed(1)} eff=${eff.toFixed(1)} -> reload`
+			);
 			return true;
 		}
 		embedBaselineDeficit = def;
@@ -361,6 +375,12 @@
 	}
 
 	function setSyncState(status: SyncStatus) {
+		if (status.status !== lastSyncState.status) {
+			soakEvent(
+				'sync',
+				`${status.status}${status.status === 'drifted' ? ` drift=${status.drift}` : ''}`
+			);
+		}
 		lastSyncState = status;
 		onSyncState?.(status);
 	}
@@ -387,12 +407,20 @@
 		const now = Date.now();
 		if (!force && (now - lastSyncReloadAt < 8000 || syncReloadStreak >= 3)) {
 			const rs = latestRemote;
+			soakEvent(
+				'reload',
+				`suppressed pos=${position.toFixed(1)} playing=${playing} streak=${syncReloadStreak} provider=${currentProvider?.id ?? 'none'}`
+			);
 			updateSyncState(currentPosition(), rs ? targetOf(rs) : position);
 			return false;
 		}
 		if (force && syncReloadStreak >= 3) syncReloadStreak = 0;
 		lastSyncReloadAt = now;
 		syncReloadStreak++;
+		soakEvent(
+			'reload',
+			`triggered pos=${position.toFixed(1)} playing=${playing} force=${force} streak=${syncReloadStreak} provider=${currentProvider?.id ?? 'none'}`
+		);
 		syncingToHost = true;
 		needsTapToContinue = false;
 		setSyncState({ status: 'syncing', drift: 0 });
@@ -413,6 +441,7 @@
 		const idx = workingProviders.findIndex((p) => p.id === rp.id || p.name === rp.name);
 		if (idx < 0) return false;
 		if (idx !== currentIndex) {
+			soakEvent('provider', `switch ${currentProvider.id} -> ${rp.id} (remote)`);
 			switchTo(idx);
 		}
 		return true;
@@ -435,8 +464,15 @@
 		const target = targetOf(rs);
 		const current = currentPosition();
 		const needSeek = Math.abs(target - current) > 2;
+		soakEvent(
+			'apply',
+			`seq=${rs.seq} force=${forceReload} provider=${currentProvider?.id ?? 'none'} target=${target.toFixed(1)} current=${current.toFixed(1)} needSeek=${needSeek}`
+		);
 		if (ytPlayer && ytReady) {
-			if (needSeek) ytPlayer.seekTo(target, true);
+			if (needSeek) {
+				ytPlayer.seekTo(target, true);
+				soakEvent('seek', `yt->${target.toFixed(1)} playing=${rs.playing}`);
+			}
 			if (rs.playing) ytPlayer.playVideo();
 			else ytPlayer.pauseVideo();
 			playing = rs.playing;
@@ -465,7 +501,10 @@
 			markSyncApplied(rs);
 			return;
 		}
-		if (needSeek) sendEmbedCommand(frameRef, 'seekto', target);
+		if (needSeek) {
+			sendEmbedCommand(frameRef, 'seekto', target);
+			soakEvent('seek', `cmd->${target.toFixed(1)} playing=${rs.playing}`);
+		}
 		sendEmbedCommand(frameRef, rs.playing ? 'play' : 'pause');
 		playing = rs.playing;
 		elapsedSeconds = target;
@@ -517,6 +556,17 @@
 			const pos = hostPosition();
 			if (Math.abs(pos - lastHostReported) < 1) return;
 			lastHostReported = pos;
+			soakUpdate({
+				role: 'host',
+				hostPos: pos,
+				memberPos: pos,
+				drift: 0,
+				status: 'host',
+				provider: currentProvider?.id ?? null,
+				iframeLoaded: true,
+				seq: latestRemote?.seq ?? 0,
+				lastAction: ''
+			});
 			onPlaybackChange?.({ playing, position: pos, provider: currentProviderInfo() });
 		}, 8000);
 	}
@@ -534,17 +584,35 @@
 			if (!iframeLoaded || !latestRemote) return;
 			const target = targetOf(latestRemote);
 			const current = embedPositionEstimate();
+			if (
+				lastReload &&
+				lastReload.at !== lastEmbedPosCheckAt &&
+				Date.now() - lastReload.at > 4000
+			) {
+				if (embedEvent) {
+					lastEmbedPosCheckAt = lastReload.at;
+					const gap = Math.abs(embedEvent.position - lastReload.position);
+					soakEvent(
+						'embed-pos',
+						`post-reload target=${lastReload.position.toFixed(1)} reported=${embedEvent.position.toFixed(1)} gap=${gap.toFixed(1)} -> ${gap <= 12 ? 'RESTORED' : 'FAILED'}`
+					);
+				}
+			}
 			updateSyncState(current, target);
+			let action = 'tolerated';
 			if (Math.abs(target - current) > 2) {
 				if (ytPlayer && ytReady) {
 					ytPlayer.seekTo(target, true);
 					if (latestRemote.playing) ytPlayer.playVideo();
 					else ytPlayer.pauseVideo();
 					elapsedSeconds = target;
+					action = `yt seek->${target.toFixed(1)}`;
 				} else if (currentProvider?.id === 'vidlink') {
 					if (rateDiverged(target, current)) {
+						action = 'reload';
 						reloadSync(target, latestRemote.playing);
 					} else {
+						action = 'tolerated';
 						setSyncState({ status: 'synced', drift: 0 });
 						if (syncReloadStreak > 0) syncReloadStreak = 0;
 					}
@@ -552,6 +620,7 @@
 					sendEmbedCommand(frameRef, 'seekto', target);
 					sendEmbedCommand(frameRef, latestRemote.playing ? 'play' : 'pause');
 					elapsedSeconds = target;
+					action = `cmd seek->${target.toFixed(1)}`;
 				}
 			} else if (currentProvider?.id === 'vidlink') {
 				const embedSettled =
@@ -560,9 +629,25 @@
 					(!!embedEvent && Math.abs(embedEvent.position - lastReload.position) <= 8);
 				const embedFresh = !!embedEvent && Date.now() - embedEvent.at < 6000;
 				if (embedFresh && embedSettled && embedEvent!.playing !== latestRemote.playing) {
+					action = 'state-fix reload';
 					reloadSync(target, latestRemote.playing);
 				}
 			}
+			soakEvent(
+				'drift',
+				`check target=${target.toFixed(1)} current=${current.toFixed(1)} gap=${(target - current).toFixed(1)} -> ${action}`
+			);
+			soakUpdate({
+				role: 'member',
+				hostPos: target,
+				memberPos: current,
+				drift: Math.round(target - current),
+				status: lastSyncState.status,
+				provider: currentProvider?.id ?? null,
+				iframeLoaded: true,
+				seq: latestRemote.seq,
+				lastAction: action
+			});
 			maybeShowTapPrompt();
 		}, 5000);
 	}
@@ -954,6 +1039,10 @@
 
 	function switchTo(index: number) {
 		stopAutoSwitch();
+		soakEvent(
+			'provider',
+			`switch->${workingProviders[index]?.id ?? index} iframeLoaded=${iframeLoaded}`
+		);
 		iframeLoaded = false;
 		hasError = false;
 		currentIndex = index;
@@ -977,6 +1066,11 @@
 		iframeLoaded = true;
 		hasError = false;
 		loadedProviders.add(currentProvider?.id || '');
+		soakEvent(
+			'iframe',
+			`loaded provider=${currentProvider?.id ?? 'none'} builtFromReload=${frameBuiltFromReload}`
+		);
+		soakUpdate({ iframeLoaded: true });
 		stopAutoSwitch();
 		remoteAppliedSeq = -1;
 		syncingToHost = false;
@@ -993,6 +1087,8 @@
 	function onIframeError() {
 		hasError = true;
 		loadedProviders.delete(currentProvider?.id || '');
+		soakEvent('iframe-error', `provider=${currentProvider?.id ?? 'none'}`);
+		soakUpdate({ iframeLoaded: false });
 		if (workingProviders.length > 1 && !isAutoSwitching) {
 			isAutoSwitching = true;
 			switchToNext();

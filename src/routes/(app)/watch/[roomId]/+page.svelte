@@ -15,6 +15,8 @@
 		isSoundUnlocked
 	} from '$lib/watch-party/sounds';
 	import { randomKickMessage } from '$lib/watch-party/kickMessages';
+	import { isSoak, soakEvent, soakUpdate } from '$lib/soak/soak';
+	import SoakOverlay from '$lib/components/soak/SoakOverlay.svelte';
 	import {
 		Users,
 		Trophy,
@@ -60,6 +62,7 @@
 	let refetchTimer: ReturnType<typeof setInterval> | null = null;
 
 	let eventSource: EventSource | null = null;
+	let streamOpened = false;
 
 	function mergeMessages(next: RoomState['messages']) {
 		if (next.length === 0) return;
@@ -73,6 +76,7 @@
 	function handleKick(by: string, at: number) {
 		if (at === lastKickAt) return;
 		lastKickAt = at;
+		soakEvent('kick', `by=${by} at=${at}`);
 		kickMessage = randomKickMessage(by);
 		kicked = { by, at };
 		if (kickTimer) clearTimeout(kickTimer);
@@ -84,12 +88,19 @@
 
 	function handleState(s: RoomState) {
 		if (s.closed) {
+			soakEvent('closed', 'room ended');
 			closed = true;
 			lastSoundSeq = s.sound?.seq ?? lastSoundSeq;
 			return;
 		}
 		if (s.kicked) {
 			handleKick(s.kicked.by, s.kicked.at);
+		}
+		if (s.playback.seq !== state.playback.seq || s.playback.playing !== state.playback.playing) {
+			soakEvent(
+				'playback',
+				`seq=${s.playback.seq} playing=${s.playback.playing} pos=${s.playback.position.toFixed(1)}`
+			);
 		}
 		if (s.sound && s.sound.seq !== lastSoundSeq) {
 			lastSoundSeq = s.sound.seq;
@@ -126,11 +137,14 @@
 			}
 		});
 		eventSource.onopen = () => {
+			soakEvent('sse', streamOpened ? 'reconnect (open)' : 'open');
+			streamOpened = true;
 			api<RoomState>(`/watch-party/rooms/${roomId}?since=${lastMessageId}`).then((s) => {
 				if (s) handleState(s);
 			});
 		};
 		eventSource.onerror = () => {
+			soakEvent('sse-error', 'connection error (EventSource auto-reconnect pending)');
 			// EventSource reconnects automatically; onopen catches us up
 		};
 		if (!refetchTimer) {
@@ -165,6 +179,9 @@
 	}
 
 	onMount(async () => {
+		const role = user.id === data.initialState.host.userId ? 'host' : 'member';
+		soakUpdate({ role });
+		soakEvent('join', `room=${roomId} role=${role}`);
 		await api(`/watch-party/join`, { method: 'POST', body: JSON.stringify({ roomId }) });
 		connectStream();
 		preloadSounds();
@@ -216,6 +233,10 @@
 		lastPlaybackSignal = signal;
 		let action: 'play' | 'pause' | 'seek' = signal.playing ? 'play' : 'pause';
 		if (prev && prev.playing === signal.playing) action = 'seek';
+		soakEvent(
+			'host-signal',
+			`action=${action} pos=${signal.position.toFixed(1)} playing=${signal.playing}`
+		);
 		api(`/watch-party/rooms/${roomId}/playback`, {
 			method: 'POST',
 			body: JSON.stringify({ action, position: signal.position, provider: signal.provider ?? null })
@@ -263,6 +284,7 @@
 	}
 
 	async function leave() {
+		soakEvent('leave', `room=${roomId}`);
 		await api(`/watch-party/leave`, { method: 'POST', body: JSON.stringify({ roomId }) });
 		await goto(data.initialState.media?.mediaType === 'tv' ? '/tv' : '/movies');
 	}
@@ -593,6 +615,10 @@
 <button class="chat-fab" onclick={() => (chatOpen = true)} aria-label="Open room chat">
 	<MessageCircle size={22} />
 </button>
+
+{#if isSoak()}
+	<SoakOverlay />
+{/if}
 
 <style>
 	.watch-root {
