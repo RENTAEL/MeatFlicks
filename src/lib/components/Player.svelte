@@ -202,6 +202,12 @@
 	// the only way to resume it when the host plays again.
 	let pauseMirrored = false;
 	let lastFrameLoadAt = 0;
+	// Short grace after the member transitions paused -> playing: the member
+	// is legitimately behind the host (accumulated backlog), and reloading
+	// over it right away is what "the page reloads when I press play" felt
+	// like. During the grace the drift loop tolerates the gap instead.
+	const RESUME_GRACE_MS = 15000;
+	let resumeGraceUntil = 0;
 
 	$effect(() => {
 		const base = currentUrl;
@@ -254,10 +260,16 @@
 			const ev = d.data;
 			if (!ev || typeof ev.event !== 'string') return;
 			const pos = typeof ev.currentTime === 'number' ? ev.currentTime : 0;
+			const wasPlaying = memberIsPlaying();
 			embedEvent = { playing: ev.event !== 'pause', position: pos, at: Date.now() };
 			// Only timeupdate proves the video is actually advancing: a blocked
 			// embed can still fire a one-shot 'play' event with play() rejected.
 			if (ev.event === 'timeupdate') hasStartedPlayback = true;
+			// paused -> playing transition: start the post-resume grace so the
+			// backlog accumulated while paused doesn't instantly reload.
+			if (readOnly && ev.event !== 'pause' && !wasPlaying) {
+				resumeGraceUntil = Date.now() + RESUME_GRACE_MS;
+			}
 			soakEvent('embed-ev', `${ev.event} pos=${pos.toFixed(1)}`);
 			elapsedSeconds = pos;
 			if (ev.event === 'play') {
@@ -525,11 +537,14 @@
 		}
 		if (currentProvider?.id === 'vidlink') {
 			const current = embedPositionEstimate();
-			const needSeek = rateDiverged(target, current);
+			const inResumeGrace = Date.now() < resumeGraceUntil;
+			const needSeek = inResumeGrace
+				? Math.abs(target - current) > 2
+				: rateDiverged(target, current);
 			// Never reload to "fix" a paused/stalled/blocked member — the reload
 			// loop is the symptom of a video that won't play, and it can't fix
-			// that. Mirror the host's state with a command instead; the tap
-			// prompt covers autoplay-block.
+			// that. Attempt to mirror the host's state with a command instead;
+			// the tap prompt covers autoplay-block.
 			if (memberNotPlaying()) {
 				if (rs.playing && pauseMirrored) {
 					// Host resumed after a mirrored pause — reload the paused
@@ -548,7 +563,14 @@
 				return;
 			}
 			if (needSeek || forceReload) {
-				reloadSync(target, rs.playing, forceReload);
+				// During the post-resume grace the member is legitimately
+				// behind: tolerate instead of reloading over the accumulated
+				// backlog (the drift tick logs it as `resume grace`).
+				if (inResumeGrace && !forceReload) {
+					embedBaselineDeficit = null;
+				} else {
+					reloadSync(target, rs.playing, forceReload);
+				}
 			}
 			sendEmbedCommand(frameRef, rs.playing ? 'play' : 'pause');
 			if (embedBaselineDeficit !== null) setSyncState({ status: 'synced', drift: 0 });
@@ -679,6 +701,9 @@
 					elapsedSeconds = target;
 					action = `yt seek->${target.toFixed(1)}`;
 				} else if (currentProvider?.id === 'vidlink') {
+					// Host-relative state machine: the member's target state is
+					// the host's state. Paused while the host plays is a desync
+					// to fix (resume attempt), not a "leave it alone" gate.
 					if (!latestRemote.playing && memberIsPlaying()) {
 						// Host paused while this member is actually playing:
 						// mirror the pause with a paused positioning reload
@@ -688,13 +713,48 @@
 						pauseMirrored = true;
 						action = 'paused (host paused)';
 						reloadSync(target, false);
-					} else if (memberNotPlaying()) {
-						// paused / stalled / autoplay-blocked: the gap is flat-position
-						// noise, not a desync — never count the streak, never reload.
-						syncReloadStreak = 0;
+					} else if (!latestRemote.playing) {
+						// Host paused + member paused/stalled/blocked: states
+						// match — no drift counting, no reload, no resume.
+						if (syncReloadStreak > 0) syncReloadStreak = 0;
 						setSyncState({ status: 'synced', drift: 0 });
-						if (latestRemote.playing) sendEmbedCommand(frameRef, 'play');
-						action = 'gated (member not playing)';
+						action = 'matched (host paused)';
+					} else if (memberNotPlaying()) {
+						// Host playing + member not playing: desync. If this
+						// member was mirror-paused, resume it (one bounded
+						// reload — the only working "play" on vidlink; the
+						// SSE-driven resume usually fires first). Otherwise
+						// attempt a play command and stay gated — never
+						// auto-reload a non-playing member; the tap prompt
+						// covers autoplay-block.
+						if (pauseMirrored) {
+							if (Date.now() - lastSyncReloadAt > 8000) {
+								pauseMirrored = false;
+								soakEvent('resume', 'host resumed — reloading paused member');
+								reloadSync(target, true, true);
+								action = 'resumed (host resumed)';
+							} else {
+								action = 'resumed (recent reload)';
+							}
+						} else {
+							syncReloadStreak = 0;
+							sendEmbedCommand(frameRef, 'play');
+							setSyncState({ status: 'synced', drift: 0 });
+							action = 'gated (member not playing)';
+						}
+					} else if (Date.now() < resumeGraceUntil) {
+						// Member just resumed after being paused: the gap is
+						// accumulated backlog, not rate divergence. Tolerate it
+						// during the grace instead of instantly reloading; a
+						// single catch-up reload may fire after it expires.
+						if (syncReloadStreak > 0) syncReloadStreak = 0;
+						embedBaselineDeficit = null;
+						if (Math.abs(target - current) > 2) {
+							action = 'resume grace';
+						} else {
+							setSyncState({ status: 'synced', drift: 0 });
+							action = 'tolerated';
+						}
 					} else if (rateDiverged(target, current)) {
 						action = 'reload';
 						reloadSync(target, latestRemote.playing);
@@ -711,16 +771,28 @@
 				}
 			} else if (currentProvider?.id === 'vidlink') {
 				// Mirror the host's play/pause state, never rebuild the iframe
-				// for it: rebuilding to fix play-state is what looked like
+				// just to change play state: rebuilding is what looked like
 				// random pauses and fed the reload loop.
-				if (latestRemote.playing && memberNotPlaying()) {
-					syncReloadStreak = 0;
-					sendEmbedCommand(frameRef, 'play');
-					action = 'gated (member not playing)';
-				} else if (!latestRemote.playing && memberIsPlaying()) {
+				if (!latestRemote.playing && memberIsPlaying()) {
 					pauseMirrored = true;
 					action = 'paused (host paused)';
 					reloadSync(target, false);
+				} else if (!latestRemote.playing) {
+					if (syncReloadStreak > 0) syncReloadStreak = 0;
+					action = 'matched (host paused)';
+				} else if (memberNotPlaying()) {
+					// Same host-relative resume logic as the |gap|>2 branch:
+					// attempt a resume, never reload a non-playing member.
+					if (pauseMirrored && Date.now() - lastSyncReloadAt > 8000) {
+						pauseMirrored = false;
+						soakEvent('resume', 'host resumed — reloading paused member');
+						reloadSync(target, true, true);
+						action = 'resumed (host resumed)';
+					} else {
+						syncReloadStreak = 0;
+						sendEmbedCommand(frameRef, 'play');
+						action = 'gated (member not playing)';
+					}
 				}
 			}
 			soakEvent(

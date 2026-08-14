@@ -229,14 +229,18 @@ soak log shows `embed-pos FAILED` followed by the drift-reload loop capped at 3 
 
 ## Autoplay-blocked member & host-pause mirror (2026-08)
 
-- Members whose browser blocked autoplay never auto-reload: drift is gated on the member's
-  actual playback state (`memberIsPlaying` — last `[embed-ev]` freshness). A blocked member
-  gets a **"Tap to resume"** overlay; tapping force-reloads to the host position. Mid-playback
-  stalls are gated the same way (no overlay). See `Player.svelte` `maybeShowTapPrompt` /
-  `tapToContinue` / drift-tick gate.
-- Host pause/pause-while-member-stalled is mirrored with a single bounded paused reload
-  (`paused (host paused)`), and host resume force-reloads a mirror-paused member
-  (`host resumed — reloading paused member`). Both bounded by the 8s cooldown + 3-streak cap.
+- Drift gating is **host-relative and symmetric**: the member's target state is the host's
+  state (`Player.svelte` drift tick + `applyRemote`). Host playing + member paused is a
+  desync — a `play` command is attempted each tick (`gated (member not playing)`), never an
+  auto-reload; the **"Tap to resume"** overlay covers autoplay-block, and a mirror-paused
+  member gets one bounded resume reload (`resumed (host resumed)`). Host paused + member
+  paused is a match (`matched (host paused)`): no drift counting, no reload. Host paused +
+  member playing mirrors the pause (`paused (host paused)`, `pauseMirrored` flag); host play
+  resumes it (symmetric). After any paused→playing transition a 15s **resume grace**
+  (`resume grace`) tolerates the accumulated backlog instead of instantly reloading it; one
+  catch-up reload may fire after the grace.
+- Mid-playback stalls gate like pauses but show no overlay; autoplay-block shows the overlay
+  (tap → force reload to host position). See `maybeShowTapPrompt` / `tapToContinue`.
 - **vidlink has no inbound postMessage command protocol**: `sendEmbedCommand` play/pause/seek
   are inert on vidlink embeds (verified against the live player — no message handler in any
   static chunk). All control is URL-based (`#t=`, `autoplay`, cache-buster) via reloads.
