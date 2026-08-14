@@ -25,6 +25,8 @@ export const INITIAL_MESSAGES = 50;
 
 export const SOUND_EFFECTS: SoundEffect[] = ['suspense', 'jump', 'applause', 'boo'];
 
+let lastCleanupRun = 0;
+
 const CODE_ALPHABET = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
 const CODE_LENGTH = 6;
 
@@ -61,6 +63,8 @@ async function generateRoomCode(): Promise<string> {
 async function cleanupExpired() {
 	const now = Date.now();
 	try {
+		if (now - lastCleanupRun < 30_000) return;
+		lastCleanupRun = now;
 		const expired = await db
 			.select({ id: watchPartyRooms.id })
 			.from(watchPartyRooms)

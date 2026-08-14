@@ -5,12 +5,13 @@ import { getRoomState, getRoomTick, touchMemberActivity } from '$lib/server/watc
 import { requireUser, roomIdFromParams } from '$lib/server/watch-party/handlers';
 import { subscribeRoom } from '$lib/server/watch-party/events';
 
-const TICK_MS = 700;
+const TICK_MS = 1500;
 const HEARTBEAT_MS = 15000;
 const MAX_LIFETIME_MS = 50000;
 
 export const config = {
-	maxDuration: 60
+	maxDuration: 60,
+	memory: 256
 };
 
 export const GET: RequestHandler = async ({ params, locals, request }) => {

@@ -2,6 +2,7 @@ import { env } from '$lib/config/env';
 import { AFRIKAANS_FILMS } from '$lib/curated/afrikaans-films';
 import { formatMovie, toLibraryMovie } from '$lib/utils/tmdb';
 import type { LibraryMedia } from '$lib/types/library';
+import { withCache, buildCacheKey, CACHE_TTL_MEDIUM_SECONDS } from '$lib/server/cache';
 
 const TMDB_BASE = 'https://api.themoviedb.org/3';
 const UA = { 'User-Agent': 'MeatFlicks/1.0' };
@@ -57,9 +58,9 @@ export type AfrikaansBrowseParams = {
 	sort: AfrikaansBrowseSort | null;
 };
 
-export function parseAfrikaansBrowseParams(
-	params: { get(name: string): string | null }
-): AfrikaansBrowseParams {
+export function parseAfrikaansBrowseParams(params: {
+	get(name: string): string | null;
+}): AfrikaansBrowseParams {
 	const rawType = params.get('type');
 	const rawGenre = params.get('genre');
 	const rawDecade = params.get('decade');
@@ -68,13 +69,9 @@ export function parseAfrikaansBrowseParams(
 	const type: AfrikaansBrowseType =
 		rawType === 'reekse' ? 'tv' : rawType === 'alles' ? 'alles' : 'movie';
 	const genre =
-		rawGenre && AFRIKAANS_GENRES.some((g) => String(g) === rawGenre)
-			? Number(rawGenre)
-			: null;
+		rawGenre && AFRIKAANS_GENRES.some((g) => String(g) === rawGenre) ? Number(rawGenre) : null;
 	const decade =
-		rawDecade && AFRIKAANS_DECADES.some((d) => String(d) === rawDecade)
-			? Number(rawDecade)
-			: null;
+		rawDecade && AFRIKAANS_DECADES.some((d) => String(d) === rawDecade) ? Number(rawDecade) : null;
 	const sort =
 		rawSort && ['newest', 'rating', 'year', 'title', 'popularity'].includes(rawSort)
 			? (rawSort as AfrikaansBrowseSort)
@@ -168,25 +165,33 @@ async function tmdbDiscover(
 	params: URLSearchParams
 ): Promise<{ results: any[]; total_pages: number }> {
 	const qp = new URLSearchParams(params);
+	const cacheKey = buildCacheKey('afrikaans-discover', mediaType, qp.toString());
 	qp.set('api_key', env.TMDB_API_KEY);
 	qp.set('language', 'af');
 	qp.set('with_original_language', 'af');
 	qp.set('include_adult', 'false');
 	qp.set('include_video', 'false');
-	try {
-		const res = await fetch(`${TMDB_BASE}/discover/${mediaType}?${qp}`, {
-			headers: UA,
-			signal: AbortSignal.timeout(8000)
-		});
-		if (!res.ok) return { results: [], total_pages: 0 };
-		const data = await res.json();
-		return {
-			results: Array.isArray(data.results) ? data.results : [],
-			total_pages: Number(data.total_pages) || 0
-		};
-	} catch {
-		return { results: [], total_pages: 0 };
-	}
+	return withCache(
+		cacheKey,
+		CACHE_TTL_MEDIUM_SECONDS,
+		async () => {
+			try {
+				const res = await fetch(`${TMDB_BASE}/discover/${mediaType}?${qp}`, {
+					headers: UA,
+					signal: AbortSignal.timeout(8000)
+				});
+				if (!res.ok) return { results: [], total_pages: 0 };
+				const data = await res.json();
+				return {
+					results: Array.isArray(data.results) ? data.results : [],
+					total_pages: Number(data.total_pages) || 0
+				};
+			} catch {
+				return { results: [], total_pages: 0 };
+			}
+		},
+		{ swrSeconds: Math.floor(CACHE_TTL_MEDIUM_SECONDS / 2) }
+	);
 }
 
 function toRailItem(m: any, mediaType: 'movie' | 'tv'): LibraryMedia | null {

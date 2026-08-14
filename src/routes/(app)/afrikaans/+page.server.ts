@@ -1,6 +1,7 @@
 import { htmlCacheControl } from '$lib/server/caching';
 import { AFRIKAANS_FILMS } from '$lib/curated/afrikaans-films';
 import { env } from '$lib/config/env';
+import { withCache, buildCacheKey, CACHE_TTL_LONG_SECONDS } from '$lib/server/cache';
 import {
 	curatedRailItems,
 	fetchAfrikaansBrowse,
@@ -26,15 +27,20 @@ type LandingPayload = {
 let curatedCache: { data: LandingPayload; at: number } | null = null;
 
 async function fetchMovie(id: number) {
-	try {
-		const res = await fetch(
-			`${TMDB_BASE}/movie/${id}?api_key=${env.TMDB_API_KEY}&language=af`
-		);
-		if (!res.ok) return null;
-		return await res.json();
-	} catch {
-		return null;
-	}
+	return withCache(
+		buildCacheKey('afrikaans-curated', id),
+		CACHE_TTL_LONG_SECONDS,
+		async () => {
+			try {
+				const res = await fetch(`${TMDB_BASE}/movie/${id}?api_key=${env.TMDB_API_KEY}&language=af`);
+				if (!res.ok) return null;
+				return await res.json();
+			} catch {
+				return null;
+			}
+		},
+		{ swrSeconds: Math.floor(CACHE_TTL_LONG_SECONDS / 2) }
+	);
 }
 
 export async function load({ url, locals, setHeaders }) {
@@ -48,7 +54,10 @@ export async function load({ url, locals, setHeaders }) {
 		if (page === 1) {
 			if (curatedCache && Date.now() - curatedCache.at < CURATED_CACHE_TTL) {
 				const cached = curatedCache.data;
-				if (cacheKey === `${browseParams.type}|${browseParams.genre}|${browseParams.decade}|${browseParams.sort}|1`) {
+				if (
+					cacheKey ===
+					`${browseParams.type}|${browseParams.genre}|${browseParams.decade}|${browseParams.sort}|1`
+				) {
 					return cached;
 				}
 			}

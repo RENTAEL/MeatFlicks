@@ -7,7 +7,8 @@ const config = {
 	kit: {
 		adapter: adapter({
 			runtime: 'nodejs22.x',
-			esbuild: false
+			esbuild: false,
+			memory: 512
 		}),
 		alias: {
 			'@': './src',
