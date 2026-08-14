@@ -255,3 +255,33 @@ soak log shows `embed-pos FAILED` followed by the drift-reload loop capped at 3 
   member pauses within ~10s (member console `[reload] ... paused (host paused)`), then host
   presses play → member resumes (`host resumed — reloading paused member`), ≤1 reload each,
   no loop.
+
+## SSE tick 1500ms verification (cfbc43c, 2026-08-14)
+
+Fluid-memory reduction (cfbc43c) lowered the SSE poll `TICK_MS` 700 → 1500ms (same-instance
+pushes are instant via the in-process `subscribeRoom`; the tick is the cross-instance fallback
+that guarantees event delivery when host and member land on different serverless instances).
+Full probe matrix re-run against the deployed build to prove drift still holds ≤2s:
+
+| probe | result | measured drift bands | reloads |
+| ----- | ------ | -------------------- | ------- |
+| `ui-soak-clock.mjs 0`   | 8/8 PASS | 0.0s pre-join; post-join embed never advances headless (autoplay-blocked → `gated`, tap-prompt) — artifact, offset-independent | 0 after join reload |
+| `ui-soak-clock.mjs 5000`   | 8/8 PASS | same artifact band; skew +5s shows no reload loop (gaps identical to 0-offset) | 0 after join reload |
+| `ui-soak-clock.mjs -5000`  | 8/8 PASS | same artifact band; skew −5s shows no reload loop | 0 after join reload |
+| `ui-soak-stall.mjs` (run 1 + run 2) | 39/40 both | playing member tracked host at **−0.5…+0.3s** continuously (e.g. `gap=-0.4/-0.1/0.3` while target≈current); phase-D recovery gaps 0.0,0.0 | ≤1 legit catch-up reload per phase boundary; host 0 |
+| `ui-soak-queue.mjs` | 35/35 PASS | — | — |
+
+- The only stall FAIL (both runs, identical) is phase-E prep `timeupdates went stale` →
+  "HEADLESS EMBED UNPLAYABLE — skipping phase E" at ~+488s. Deterministic headless Chromium
+  artifact (embed stops emitting events mid-movie), unrelated to the tick change; phase E is
+  the accepted real-browser manual check (above).
+- **Measured gap band with a playing member: ≤0.5s** — the member extrapolates position
+  between `[playback]` frames (`expected = hostPos + (memberNow − frameReceivedAt)`), so a
+  1.5s poll adds no observable drift; the 2s threshold keeps 4× margin.
+- Reload-loop assertions (no >2 reloads post-join, no 3-streak) hold at all three clock
+  offsets — the clock-skew fix is unchanged by the slower tick.
+- **Cross-instance stress**: not forceable from the harness (both contexts share one local
+  Chrome; Vercel routes each EventSource arbitrarily, so instance affinity is unknowable).
+  The tick-poll fallback is exercised implicitly; an explicit manual check on two real
+  devices: host pauses → member follows within ~2s (console `[playback]` arrival ≤2s).
+- `TICK_MS = 1500` kept; memory win stands (SSE function 256MB + halved DB polls).
