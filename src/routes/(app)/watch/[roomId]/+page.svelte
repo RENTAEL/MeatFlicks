@@ -47,6 +47,11 @@
 	const user = data.user;
 
 	let state: RoomState = data.initialState;
+	// False until the first LIVE room frame lands (SSE stream / onopen
+	// catch-up / refetch). The SSR snapshot alone is not a confirmed host
+	// state — acting on it is the join-window race. Player holds all sync
+	// actions until this flips.
+	let stateConfirmed = false;
 	let closed = false;
 	let fxAllowed =
 		data.initialState.isHost ||
@@ -107,6 +112,7 @@
 	}
 
 	function handleState(s: RoomState) {
+		stateConfirmed = true;
 		if (s.closed) {
 			soakEvent('closed', 'room ended');
 			closed = true;
@@ -493,6 +499,7 @@
 				title={state.media.title}
 				readOnly={!state.isHost}
 				remoteSync={state.isHost ? null : state.playback}
+				remoteConfirmed={stateConfirmed}
 				{syncPoke}
 				{onPlaybackChange}
 				onSyncState={onMemberSyncState}

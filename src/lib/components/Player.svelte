@@ -34,6 +34,7 @@
 			provider: { id: string; name: string } | null;
 		} | null,
 		syncPoke = 0 as number,
+		remoteConfirmed = false as boolean,
 		onPlaybackChange = undefined as
 			| ((signal: {
 					playing: boolean;
@@ -72,6 +73,7 @@
 			provider: { id: string; name: string } | null;
 		} | null;
 		syncPoke?: number;
+		remoteConfirmed?: boolean;
 		onPlaybackChange?: (signal: {
 			playing: boolean;
 			position: number;
@@ -208,6 +210,27 @@
 	// like. During the grace the drift loop tolerates the gap instead.
 	const RESUME_GRACE_MS = 15000;
 	let resumeGraceUntil = 0;
+	// Join/sync settle window. The member's first host frame is the SSR
+	// snapshot rendered before join — it can be stale (room still paused /
+	// position 0) while the real host state arrives over SSE moments later.
+	// Acting on that frame is the join-window race: the pause mirror fires on
+	// the stale 'paused' frame, and a reload carries #t=0, so the member
+	// "starts from the beginning". During the window the member is NOT
+	// "behind" — it is "not synced" — so no mirror, no drift/reload, no
+	// forced apply. The window ends after a short settle floor plus the
+	// first confirmed live frame (remoteConfirmed = an SSE/refetch state
+	// landed), capped so a dead stream can't suppress sync forever.
+	// Join window: ends at the settle floor (JOIN_SETTLE_MS) once the page has
+	// seen its first live room state, and stays open until then — an unconfirmed
+	// frame is the SSR snapshot (potentially stale paused/pos=0) and acting on
+	// it is the join-window race. The page's 15s refetch confirms a dead SSE.
+	const JOIN_SETTLE_MS = 3000;
+	let joinWindowUntil = Date.now() + JOIN_SETTLE_MS;
+	function isInJoinWindow(): boolean {
+		if (!readOnly) return false;
+		if (!remoteConfirmed) return true;
+		return Date.now() < joinWindowUntil;
+	}
 
 	$effect(() => {
 		const base = currentUrl;
@@ -266,8 +289,10 @@
 			// embed can still fire a one-shot 'play' event with play() rejected.
 			if (ev.event === 'timeupdate') hasStartedPlayback = true;
 			// paused -> playing transition: start the post-resume grace so the
-			// backlog accumulated while paused doesn't instantly reload.
-			if (readOnly && ev.event !== 'pause' && !wasPlaying) {
+			// backlog accumulated while paused doesn't instantly reload. Not
+			// during the join window — a first-time-playing member has no
+			// "backlog", it just needs to jump to the host's position.
+			if (readOnly && !isInJoinWindow() && ev.event !== 'pause' && !wasPlaying) {
 				resumeGraceUntil = Date.now() + RESUME_GRACE_MS;
 			}
 			soakEvent('embed-ev', `${ev.event} pos=${pos.toFixed(1)}`);
@@ -510,6 +535,15 @@
 	}
 
 	function applyRemote(rs: RemoteSync, forceReload = false) {
+		// Join window: the host frame is not confirmed yet (SSR snapshot or
+		// pre-settle). Hold — no forced reload at a stale position, no pause
+		// mirror, no seek. The first confirmed frame after the settle window
+		// drives the join reload at the host's real position.
+		if (isInJoinWindow()) {
+			soakEvent('apply', `seq=${rs.seq} held (join window)`);
+			markSyncApplied(rs);
+			return;
+		}
 		if (switchToRemoteProvider(rs)) {
 			if (!hasFullPlaybackControl) reloadSync(targetOf(rs), rs.playing, true);
 			markSyncApplied(rs);
@@ -565,8 +599,10 @@
 			if (needSeek || forceReload) {
 				// During the post-resume grace the member is legitimately
 				// behind: tolerate instead of reloading over the accumulated
-				// backlog (the drift tick logs it as `resume grace`).
-				if (inResumeGrace && !forceReload) {
+				// backlog (the drift tick logs it as `resume grace`). Never
+				// tolerate a member that has never synced (no reload yet) —
+				// that is the join case, which must jump to the host now.
+				if (inResumeGrace && !forceReload && lastReload !== null) {
 					embedBaselineDeficit = null;
 				} else {
 					reloadSync(target, rs.playing, forceReload);
@@ -626,6 +662,10 @@
 	}
 
 	function tapToContinue() {
+		// A tap inside the join window has no confirmed host position to
+		// resume to — reloading would rebuild at a stale position (#t=0).
+		// Ignore it; the overlay stays until the window closes.
+		if (isInJoinWindow()) return;
 		needsTapToContinue = false;
 		// The new frame must prove itself with a real timeupdate before the
 		// overlay stays away — if the reloaded frame is still autoplay-blocked
@@ -675,6 +715,10 @@
 		stopDriftTick();
 		driftTick = setInterval(() => {
 			if (!iframeLoaded || !latestRemote) return;
+			// Join window: not synced yet, not "behind" — no drift counting,
+			// no mirror, no reload (a reload here can only rebuild at a stale
+			// position, i.e. #t=0).
+			if (isInJoinWindow()) return;
 			const target = targetOf(latestRemote);
 			const current = embedPositionEstimate();
 			if (

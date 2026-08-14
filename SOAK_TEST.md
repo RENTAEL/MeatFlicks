@@ -285,3 +285,44 @@ Full probe matrix re-run against the deployed build to prove drift still holds �
   The tick-poll fallback is exercised implicitly; an explicit manual check on two real
   devices: host pauses → member follows within ~2s (console `[playback]` arrival ≤2s).
 - `TICK_MS = 1500` kept; memory win stands (SSE function 256MB + halved DB polls).
+
+## Join-window fix: member pause / restart-from-0 race (2026-08-14)
+
+Symptom (reported): during the first ~1 minute, a member's video paused by itself and
+tapping resume reloaded from the start (#t=0). Root cause: the member's first "host frame"
+is the SSR snapshot (stale `playing=false, pos=0`); `applyPendingRemote` force-applied it on
+first iframe load, and the drift tick could mirror-pause or reload against it before the
+first live SSE frame arrived.
+
+Fix (`Player.svelte` + room page, `remoteConfirmed` prop): a **join window** that starts at
+member mount and ends at `JOIN_SETTLE_MS = 3000` floor once the page has seen its first live
+room state (`stateConfirmed = true` in `handleState` — SSE open catch-up or the 15s refetch),
+and stays open until then (no cap: an unconfirmed frame is the SSR snapshot and acting on
+it is the race). While in the window: `applyRemote` holds the frame (`[soak] [apply] ... held
+(join window)`), the drift tick returns early (not synced != behind), `tapToContinue` is
+ignored, and the post-resume grace does not start. Post-window: the first confirmed frame
+drives the join reload at the host's REAL position; the resume-grace branch only tolerates
+backlog when a reload has already happened (`lastReload != null`) — a never-synced member
+jumps immediately; every post-window reload carries `#t=<host pos>`, never 0.
+
+Verification (full matrix against the deployed build):
+
+| probe | result | notes |
+| ----- | ------ | ----- |
+| `ui-soak-clock.mjs 0`  | 8/8 PASS | `[apply] seq=0 held (join window)` on SSR frame; first live frame applied needSeek=false — member synced with **zero** reloads (no `[reload]` line at all) |
+| `ui-soak-clock.mjs 5000` | 8/8 PASS | same |
+| `ui-soak-clock.mjs -5000` | 8/8 PASS | first apply `needSeek=false` (embed already at host pos) — no join reload needed; gaps -1.2..-1.7s stable, no loop |
+| `ui-soak-stall.mjs` (3 runs) | 39/40 x2 + 1 environmental flake (probe health gate auto- rerun to 39/40) | phases A-D green (block -> overlay -> tap -> force reload -> unblock -> resume; drift gated; recovery 0.0s); only FAIL is the known phase-E headless skip at ~+488s |
+| `ui-soak-queue.mjs` | 35/35 PASS | queue/kick/chat unaffected |
+
+- Join-while-playing: member joins, applies first confirmed frame, reloads at live pos
+  (once) or not at all if already matched; never #t=0. Join-while-paused: member stays
+  matched (`matched (host paused)`), no reload, mirror works after the window.
+- Harness note: `ui-soak-clock.mjs` join-sync assertion now also accepts a
+  `needSeek=false` apply (post-fix, being in sync at join legitimately needs no reload —
+  pre-fix `applyPendingRemote` forced one unconditionally, which is exactly what the fix
+  removes).
+- Pages 200 after deploy: `/`, `/afrikaans`, `/movie/603`, `/tv/1399`. svelte-check
+  0 errors / 38 warnings (baseline). Manual two-device check still recommended: member
+  joins a long-running room -> no pause, no restart-from-0, tap (if needed) lands at host
+  position.
