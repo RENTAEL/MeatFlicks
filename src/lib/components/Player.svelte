@@ -172,87 +172,74 @@
 	let frameSrc = $state('');
 	let syncingToHost = $state(false);
 	let needsTapToContinue = $state(false);
-	let lastSyncReloadAt = 0;
-	let syncReloadStreak = 0;
 	let latestRemote: RemoteSync | null = null;
 	// The drift target is anchored to the member's own clock: when a new
 	// SSE frame arrives, we record the local receipt time and extrapolate
 	// from that. The host's positionAt is only a frame-time reference, so
 	// host/member wall-clock skew cancels out instead of looking like a
 	// growing drift (which used to trigger the 3-streak auto-reload loop).
+	// The host is the source of truth; the member is a dumb mirror. Each host
+	// event (provider switch, play/pause flip, position jump) is applied to
+	// the element exactly once — no windows, no settle periods, no cooldowns,
+	// no reload streaks. vidlink-class embeds accept no runtime commands
+	// (empirically verified), so "seeking" on them means rebuilding the iframe
+	// with #t= + autoplay= — the only control they honor. The element's real
+	// position re-anchors the comparison, so a build that lands is never
+	// repeated.
 	let frameReceivedAt = 0;
 	let frameReceivedSeq = -1;
-	let lastReload: { at: number; position: number; playing: boolean } | null = null;
-	let embedBaselineDeficit: number | null = null;
 	let lastHostReported = -1;
 	let lastHostPost = 0;
 	let hostTick: ReturnType<typeof setInterval> | null = null;
 	let driftTick: ReturnType<typeof setInterval> | null = null;
 	let isCoarse = $state(false);
 	let lastSyncState: SyncStatus = { status: 'synced', drift: 0 };
-	let reloadPending: { position: number; playing: boolean; at: number } | null = null;
 	let frameBump = $state(0);
-	let frameBuiltFromReload = false;
-	let lastEmbedPosCheckAt = 0;
-	// True once the member's embed has actually reported playback (any
-	// non-pause PLAYER_EVENT, or YouTube state 1) since the current frame
-	// loaded. Distinguishes "autoplay-blocked / never started" from a
-	// mid-playback stall when deciding whether to show the tap prompt.
+	let builtByUs = false;
+	// The host event this member's element was last built to reflect. The
+	// comparison is re-anchored to the element's real position on every
+	// timeupdate, so `stateChanged` is effectively "|hostTarget − elementPos|
+	// > SYNC_GAP_S or the play state flipped".
+	let lastBuilt: {
+		seq: number;
+		position: number;
+		playing: boolean;
+		providerId: string | null;
+		at: number;
+	} | null = null;
+	// True once the member's embed has reported a real timeupdate — the only
+	// proof the video is actually advancing. Reset on every rebuild.
 	let hasStartedPlayback = false;
-	// True after the host-pause mirror reload paused this member: the paused
-	// reloaded frame looks exactly like an intentional pause, so this flag is
-	// the only way to resume it when the host plays again.
-	let pauseMirrored = false;
+	// When the current frame last loaded; used by the blocked-embed guard and
+	// the tap prompt.
 	let lastFrameLoadAt = 0;
-	// Short grace after the member transitions paused -> playing: the member
-	// is legitimately behind the host (accumulated backlog), and reloading
-	// over it right away is what "the page reloads when I press play" felt
-	// like. During the grace the drift loop tolerates the gap instead.
-	const RESUME_GRACE_MS = 15000;
-	let resumeGraceUntil = 0;
-	// Join/sync settle window. The member's first host frame is the SSR
-	// snapshot rendered before join — it can be stale (room still paused /
-	// position 0) while the real host state arrives over SSE moments later.
-	// Acting on that frame is the join-window race: the pause mirror fires on
-	// the stale 'paused' frame, and a reload carries #t=0, so the member
-	// "starts from the beginning". During the window the member is NOT
-	// "behind" — it is "not synced" — so no mirror, no drift/reload, no
-	// forced apply. The window ends after a short settle floor plus the
-	// first confirmed live frame (remoteConfirmed = an SSE/refetch state
-	// landed), capped so a dead stream can't suppress sync forever.
-	// Join window: ends at the settle floor (JOIN_SETTLE_MS) once the page has
-	// seen its first live room state, and stays open until then — an unconfirmed
-	// frame is the SSR snapshot (potentially stale paused/pos=0) and acting on
-	// it is the join-window race. The page's 15s refetch confirms a dead SSE.
-	const JOIN_SETTLE_MS = 3000;
-	let joinWindowUntil = Date.now() + JOIN_SETTLE_MS;
-	function isInJoinWindow(): boolean {
-		if (!readOnly) return false;
-		if (!remoteConfirmed) return true;
-		return Date.now() < joinWindowUntil;
-	}
+	// The gap (seconds) that defines "in sync". The watchdog corrects only
+	// beyond this.
+	const SYNC_GAP_S = 5;
+
+	// A requested element rebuild, buffered through the $effect below so the
+	// URL is built from the CURRENT provider (a rebuild may follow a provider
+	// switch). Setting a new src (with the `_` cache-buster) forces the iframe
+	// to reload — the only control vidlink-class embeds accept.
+	let buildRequest: { position: number; playing: boolean } | null = null;
+	let buildNonce = 0;
 
 	$effect(() => {
 		const base = currentUrl;
 		void frameBump;
-		const pending = reloadPending;
-		if (pending) {
-			reloadPending = null;
+		const req = buildRequest;
+		if (req) {
+			buildRequest = null;
 			const url = new URL(base);
-			url.searchParams.set('autoplay', pending.playing ? 'true' : 'false');
-			url.searchParams.set('_', String(pending.at));
-			url.hash = '#t=' + Math.max(0, Math.round(pending.position));
+			url.searchParams.set('autoplay', req.playing ? 'true' : 'false');
+			url.searchParams.set('_', String(++buildNonce));
+			url.hash = '#t=' + Math.max(0, Math.round(req.position));
 			frameSrc = url.toString();
-			frameBuiltFromReload = true;
-			soakEvent(
-				'reload-frame',
-				`t=${Math.max(0, Math.round(pending.position))} autoplay=${pending.playing} provider=${currentProvider?.id ?? 'none'}`
-			);
+			builtByUs = true;
 		} else {
 			frameSrc = base;
-			frameBuiltFromReload = false;
+			builtByUs = false;
 		}
-		syncReloadStreak = 0;
 	});
 
 	$effect(() => {
@@ -283,17 +270,14 @@
 			const ev = d.data;
 			if (!ev || typeof ev.event !== 'string') return;
 			const pos = typeof ev.currentTime === 'number' ? ev.currentTime : 0;
-			const wasPlaying = memberIsPlaying();
 			embedEvent = { playing: ev.event !== 'pause', position: pos, at: Date.now() };
 			// Only timeupdate proves the video is actually advancing: a blocked
 			// embed can still fire a one-shot 'play' event with play() rejected.
-			if (ev.event === 'timeupdate') hasStartedPlayback = true;
-			// paused -> playing transition: start the post-resume grace so the
-			// backlog accumulated while paused doesn't instantly reload. Not
-			// during the join window — a first-time-playing member has no
-			// "backlog", it just needs to jump to the host's position.
-			if (readOnly && !isInJoinWindow() && ev.event !== 'pause' && !wasPlaying) {
-				resumeGraceUntil = Date.now() + RESUME_GRACE_MS;
+			// lastBuilt.position is deliberately NOT re-anchored here — it must
+			// stay the applied host target, or the host-move-back check compares
+			// against the member's own (possibly ahead) position.
+			if (ev.event === 'timeupdate') {
+				hasStartedPlayback = true;
 			}
 			soakEvent('embed-ev', `${ev.event} pos=${pos.toFixed(1)}`);
 			elapsedSeconds = pos;
@@ -336,121 +320,37 @@
 		return currentProvider ? { id: currentProvider.id, name: currentProvider.name } : null;
 	}
 
-	function currentPosition(): number {
-		if (ytPlayer && ytReady) return ytPlayer.getCurrentTime?.() ?? elapsedSeconds;
-		if (embedEvent && Date.now() - embedEvent.at < 6000) return embedEvent.position;
-		return elapsedSeconds;
-	}
-
 	// Host-side position estimate: extrapolates from the last known embed
 	// state (even when PLAYER_EVENTs go stale), so reported positions stay
 	// accurate through sparse event streams instead of falling back to the
-	// timer-driven elapsedSeconds (which ignores pauses and reloads).
+	// timer-driven elapsedSeconds (which ignores pauses).
 	function hostPosition(): number {
 		if (ytPlayer && ytReady) return ytPlayer.getCurrentTime?.() ?? elapsedSeconds;
 		if (embedEvent) {
 			return embedEvent.position + (embedEvent.playing ? (Date.now() - embedEvent.at) / 1000 : 0);
 		}
-		if (lastReload) {
-			return lastReload.position + (lastReload.playing ? (Date.now() - lastReload.at) / 1000 : 0);
-		}
 		return elapsedSeconds;
 	}
 
-	function embedPositionEstimate(): number {
-		if (embedEvent && Date.now() - embedEvent.at < 6000) {
-			// If we just reloaded (within 20s) and the embed is reporting a position
-			// far from where we loaded (e.g. near 0 while #t= was 15), the embed
-			// hasn't seeked yet — prefer the lastReload extrapolation to avoid a loop.
-			if (lastReload && Date.now() - lastReload.at < 20000) {
-				const reloadEst =
-					lastReload.position + (lastReload.playing ? (Date.now() - lastReload.at) / 1000 : 0);
-				if (Math.abs(embedEvent.position - lastReload.position) > 8) {
-					return reloadEst;
-				}
-			}
-			return embedEvent.position + (embedEvent.playing ? (Date.now() - embedEvent.at) / 1000 : 0);
-		}
-		if (lastReload) {
-			return lastReload.position + (lastReload.playing ? (Date.now() - lastReload.at) / 1000 : 0);
-		}
-		return elapsedSeconds;
+	// The element's REAL position, extrapolated from its last fresh event.
+	// null when the embed is silent (paused / blocked / still starting) —
+	// a silent element's flat position is not "behind", so nothing to sync.
+	function elementPosition(): number | null {
+		if (!embedEvent) return null;
+		if (Date.now() - embedEvent.at > 6000) return null;
+		return embedEvent.position + (embedEvent.playing ? (Date.now() - embedEvent.at) / 1000 : 0);
 	}
 
-	function targetOf(rs: RemoteSync): number {
+	// The host's extrapolated position at this instant. The host's positionAt
+	// is only a frame-time reference, so host/member wall-clock skew cancels
+	// out instead of looking like a growing drift.
+	function hostTarget(rs: RemoteSync): number {
 		if (!rs.playing) return rs.position;
 		const elapsed =
 			rs.seq === frameReceivedSeq && frameReceivedAt > 0
 				? (Date.now() - frameReceivedAt) / 1000
 				: (Date.now() - rs.positionAt) / 1000;
 		return Math.max(0, rs.position + elapsed);
-	}
-
-	// The member's real playback state as reported by the embed. A member that
-	// is paused, stalled, buffering, or autoplay-blocked is NOT "behind": its
-	// position is flat by definition while the host advances, so any drift gap
-	// is meaningless and a reload cannot fix it. Only an actively-playing
-	// member that genuinely diverges from the host warrants a reload.
-	function memberIsPlaying(): boolean {
-		return !!embedEvent && Date.now() - embedEvent.at < 6000 && embedEvent.playing;
-	}
-
-	function memberNotPlaying(): boolean {
-		if (!embedEvent) {
-			// No PLAYER_EVENTs at all: allow the join / cold-start window before
-			// treating the frame as non-playing (a silent blocked embed loops
-			// forever otherwise).
-			return Date.now() - lastFrameLoadAt > 12000;
-		}
-		return !memberIsPlaying();
-	}
-
-	// Once the embed is live and reporting fresh positions, a constant lag
-	// (video started a few seconds behind the requested #t) is a fixed offset,
-	// not a sync error we can fix by reloading — reloading only pays the cold
-	// start deficit again. Only treat RATE divergence from the committed
-	// baseline as a real desync. Returns true when a reload is warranted.
-	function rateDiverged(target: number, current: number): boolean {
-		const ev = embedEvent;
-		const lr = lastReload;
-		// embed silent (paused / still starting, no PLAYER_EVENTs): trust the
-		// committed trajectory; reload only when the room genuinely moves away.
-		if (!ev) {
-			if (!lr || Date.now() - lr.at < 3000) return false;
-			const def = target - current;
-			if (embedBaselineDeficit === null) embedBaselineDeficit = def;
-			const eff = def - embedBaselineDeficit;
-			if (Math.abs(eff) > 2) {
-				embedBaselineDeficit = null;
-				soakEvent(
-					'drift',
-					`rate-diverged(embed silent) target=${target.toFixed(1)} current=${current.toFixed(1)} eff=${eff.toFixed(1)} -> reload`
-				);
-				return true;
-			}
-			embedBaselineDeficit = def;
-			return false;
-		}
-		if (Date.now() - ev.at >= 6000) return Math.abs(target - current) > 2;
-		// cold-start / structural-deficit check: embed far from its expected
-		// trajectory (still seeking to the load point, or #t cold-start lag) —
-		// outside the structural tolerance, fall back to raw gap.
-		if (!lr) return Math.abs(target - current) > 2;
-		const expected = lr.position + (lr.playing ? (Date.now() - lr.at) / 1000 : 0);
-		if (Math.abs(ev.position - expected) > 12) return Math.abs(target - current) > 2;
-		const def = target - current;
-		if (embedBaselineDeficit === null) embedBaselineDeficit = def;
-		const eff = def - embedBaselineDeficit;
-		if (Math.abs(eff) > 2) {
-			embedBaselineDeficit = null;
-			soakEvent(
-				'drift',
-				`rate-diverged target=${target.toFixed(1)} current=${current.toFixed(1)} eff=${eff.toFixed(1)} -> reload`
-			);
-			return true;
-		}
-		embedBaselineDeficit = def;
-		return false;
 	}
 
 	function setSyncState(status: SyncStatus) {
@@ -466,9 +366,8 @@
 
 	function updateSyncState(current: number, target: number) {
 		const drift = target - current;
-		if (Math.abs(drift) <= 2) {
+		if (Math.abs(drift) <= SYNC_GAP_S) {
 			setSyncState({ status: 'synced', drift: 0 });
-			if (syncReloadStreak > 0) syncReloadStreak = 0;
 		} else {
 			setSyncState({ status: 'drifted', drift: Math.round(drift) });
 		}
@@ -482,146 +381,146 @@
 		onPlaybackChange?.({ playing, position: pos, provider: currentProviderInfo() });
 	}
 
-	function reloadSync(position: number, playing: boolean, force = false): boolean {
+	// Rebuild the current source at the given position + play state — the ONLY
+	// control vidlink-class embeds accept (load-time #t= and autoplay=). This
+	// is how a host event is applied: exactly once per changed event.
+	function requestBuild(position: number, playing: boolean) {
 		const now = Date.now();
-		if (!force && (now - lastSyncReloadAt < 8000 || syncReloadStreak >= 3)) {
-			const rs = latestRemote;
-			soakEvent(
-				'reload',
-				`suppressed pos=${position.toFixed(1)} playing=${playing} streak=${syncReloadStreak} provider=${currentProvider?.id ?? 'none'}`
-			);
-			updateSyncState(currentPosition(), rs ? targetOf(rs) : position);
-			return false;
-		}
-		if (force && syncReloadStreak >= 3) syncReloadStreak = 0;
-		lastSyncReloadAt = now;
-		syncReloadStreak++;
-		soakEvent(
-			'reload',
-			`triggered pos=${position.toFixed(1)} playing=${playing} force=${force} streak=${syncReloadStreak} provider=${currentProvider?.id ?? 'none'}`
-		);
+		lastBuilt = {
+			seq: latestRemote?.seq ?? 0,
+			position,
+			playing,
+			providerId: currentProvider?.id ?? null,
+			at: now
+		};
+		hasStartedPlayback = false;
+		embedEvent = null;
+		lastFrameLoadAt = now;
+		elapsedSeconds = position;
+		iframeLoaded = false;
 		syncingToHost = true;
 		needsTapToContinue = false;
 		setSyncState({ status: 'syncing', drift: 0 });
-		embedEvent = null;
-		embedBaselineDeficit = null;
-		lastReload = { at: now, position, playing };
-		elapsedSeconds = position;
-		reloadPending = { at: now, position, playing };
-		iframeLoaded = false;
+		soakEvent(
+			'build',
+			`t=${Math.max(0, Math.round(position))} playing=${playing} provider=${currentProvider?.id ?? 'none'}`
+		);
+		buildRequest = { position, playing };
 		frameBump++;
-		return true;
 	}
 
-	function switchToRemoteProvider(rs: RemoteSync): boolean {
-		const rp = rs.provider;
-		if (!rp || !currentProvider) return false;
-		if (currentProvider.id === rp.id) return false;
-		const idx = workingProviders.findIndex((p) => p.id === rp.id || p.name === rp.name);
+	function switchToProviderId(id: string): boolean {
+		const idx = workingProviders.findIndex((p) => p.id === id || p.name === id);
 		if (idx < 0) return false;
 		if (idx !== currentIndex) {
-			soakEvent('provider', `switch ${currentProvider.id} -> ${rp.id} (remote)`);
+			soakEvent('provider', `switch ${currentProvider?.id ?? 'none'} -> ${id} (remote)`);
 			switchTo(idx);
 		}
 		return true;
 	}
 
-	function applyPendingRemote() {
-		const rs = latestRemote;
-		if (!rs || rs.seq === remoteAppliedSeq) return;
-		remoteAppliedSeq = rs.seq;
-		remotePokedSeq = syncPoke;
-		applyRemote(rs, true);
-	}
-
-	function applyRemote(rs: RemoteSync, forceReload = false) {
-		// Join window: the host frame is not confirmed yet (SSR snapshot or
-		// pre-settle). Hold — no forced reload at a stale position, no pause
-		// mirror, no seek. The first confirmed frame after the settle window
-		// drives the join reload at the host's real position.
-		if (isInJoinWindow()) {
-			soakEvent('apply', `seq=${rs.seq} held (join window)`);
+	// Apply one host event to the mirror. Idempotent by construction: the
+	// element is only ever rebuilt when the host state actually changed
+	// (provider switch, play/pause flip, or |target − elementPos| > SYNC_GAP_S
+	// while the element is proven to play). A silent/blocked element is never
+	// rebuilt — the tap prompt covers it.
+	function applyHostState(rs: RemoteSync, force = false) {
+		if (!iframeLoaded || !currentProvider || !currentUrl) {
 			markSyncApplied(rs);
 			return;
 		}
-		if (switchToRemoteProvider(rs)) {
-			if (!hasFullPlaybackControl) reloadSync(targetOf(rs), rs.playing, true);
-			markSyncApplied(rs);
-			return;
-		}
-		const target = targetOf(rs);
-		const current = currentPosition();
-		const needSeek = Math.abs(target - current) > 2;
-		soakEvent(
-			'apply',
-			`seq=${rs.seq} force=${forceReload} provider=${currentProvider?.id ?? 'none'} target=${target.toFixed(1)} current=${current.toFixed(1)} needSeek=${needSeek}`
-		);
-		if (ytPlayer && ytReady) {
-			if (needSeek) {
-				ytPlayer.seekTo(target, true);
-				soakEvent('seek', `yt->${target.toFixed(1)} playing=${rs.playing}`);
+		const target = hostTarget(rs);
+		const b = lastBuilt;
+		// 1. Source event: the host switched provider — rebuild on the new
+		//    source at the host's position + play state.
+		if (rs.provider && rs.provider.id !== currentProvider.id) {
+			if (switchToProviderId(rs.provider.id)) {
+				soakEvent(
+					'apply',
+					`seq=${rs.seq} action=source-switch target=${target.toFixed(1)} playing=${rs.playing}`
+				);
+				requestBuild(target, rs.playing);
 			}
-			if (rs.playing) ytPlayer.playVideo();
-			else ytPlayer.pauseVideo();
-			playing = rs.playing;
-			elapsedSeconds = target;
-			updateSyncState(current, target);
 			markSyncApplied(rs);
 			return;
 		}
-		if (currentProvider?.id === 'vidlink') {
-			const current = embedPositionEstimate();
-			const inResumeGrace = Date.now() < resumeGraceUntil;
-			const needSeek = inResumeGrace
-				? Math.abs(target - current) > 2
-				: rateDiverged(target, current);
-			// Never reload to "fix" a paused/stalled/blocked member — the reload
-			// loop is the symptom of a video that won't play, and it can't fix
-			// that. Attempt to mirror the host's state with a command instead;
-			// the tap prompt covers autoplay-block.
-			if (memberNotPlaying()) {
-				if (rs.playing && pauseMirrored) {
-					// Host resumed after a mirrored pause — reload the paused
-					// member back in at the host's position (playing). Forced:
-					// the pause mirror may have reloaded <8s ago, and the 8s
-					// gate must not strand a paused member on a playing host.
-					pauseMirrored = false;
-					soakEvent('resume', 'host resumed — reloading paused member');
-					reloadSync(target, true, true);
-				} else {
-					sendEmbedCommand(frameRef, rs.playing ? 'play' : 'pause');
-					embedBaselineDeficit = null;
-					setSyncState({ status: 'synced', drift: 0 });
-				}
+		// 2. Full-control providers (YouTube): command-level seek/play/pause —
+		//    never rebuild.
+		if (hasFullPlaybackControl) {
+			if (!ytPlayer || !ytReady) {
 				markSyncApplied(rs);
 				return;
 			}
-			if (needSeek || forceReload) {
-				// During the post-resume grace the member is legitimately
-				// behind: tolerate instead of reloading over the accumulated
-				// backlog (the drift tick logs it as `resume grace`). Never
-				// tolerate a member that has never synced (no reload yet) —
-				// that is the join case, which must jump to the host now.
-				if (inResumeGrace && !forceReload && lastReload !== null) {
-					embedBaselineDeficit = null;
-				} else {
-					reloadSync(target, rs.playing, forceReload);
-				}
+			const cur = ytPlayer.getCurrentTime?.() ?? 0;
+			if (force || Math.abs(target - cur) > SYNC_GAP_S) {
+				ytPlayer.seekTo(target, true);
+				soakEvent(
+					'apply',
+					`seq=${rs.seq} action=seek target=${target.toFixed(1)} gap=${(target - cur).toFixed(1)}`
+				);
 			}
-			sendEmbedCommand(frameRef, rs.playing ? 'play' : 'pause');
-			if (embedBaselineDeficit !== null) setSyncState({ status: 'synced', drift: 0 });
-			else updateSyncState(current, target);
+			if (rs.playing !== playing) {
+				if (rs.playing) ytPlayer.playVideo();
+				else ytPlayer.pauseVideo();
+				playing = rs.playing;
+				soakEvent('apply', `seq=${rs.seq} action=${rs.playing ? 'play' : 'pause'} (yt)`);
+			}
+			elapsedSeconds = target;
+			updateSyncState(cur, target);
 			markSyncApplied(rs);
 			return;
 		}
-		if (needSeek) {
-			sendEmbedCommand(frameRef, 'seekto', target);
-			soakEvent('seek', `cmd->${target.toFixed(1)} playing=${rs.playing}`);
+		// 3. Blind embeds (vidlink-class): apply each host event exactly once.
+		//    The state changed when the host emitted a new event (provider
+		//    switch, play/pause flip, position move-back) or the member fell
+		//    BEHIND by more than the gap. A member that is AHEAD of a paused
+		//    host is never re-built: the pause event was already applied and
+		//    an embed that defies autoplay=false can't be re-poked without
+		//    looping forever.
+		const anchor = elementPosition();
+		const cur = anchor ?? b?.position ?? target;
+		const stateChanged =
+			force ||
+			!b ||
+			rs.playing !== b.playing ||
+			target - cur > SYNC_GAP_S ||
+			(b !== null && rs.position < b.position - SYNC_GAP_S);
+		if (stateChanged) {
+			// Host playing but this element never proved playback (blocked/
+			// silent embed): never rebuild — the tap prompt handles it once.
+			// EXCEPT when the last build was a deliberate paused mirror
+			// (lastBuilt.playing === false): the embed was loaded with
+			// autoplay=false on purpose, so a resume flip must build
+			// (playing=true), not block.
+			if (
+				rs.playing &&
+				b?.playing !== false &&
+				!hasStartedPlayback &&
+				Date.now() - lastFrameLoadAt > 4000
+			) {
+				soakEvent('apply', `seq=${rs.seq} action=blocked target=${target.toFixed(1)}`);
+				maybeShowTapPrompt();
+				updateSyncState(cur, target);
+				markSyncApplied(rs);
+				return;
+			}
+			const action = force
+				? 'resync'
+				: !b
+					? 'join'
+					: rs.playing !== b.playing
+						? 'play-state'
+						: 'position';
+			soakEvent(
+				'apply',
+				`seq=${rs.seq} action=${action} target=${target.toFixed(1)} cur=${cur.toFixed(1)} gap=${(target - cur).toFixed(1)} playing=${rs.playing}`
+			);
+			requestBuild(target, rs.playing);
+			markSyncApplied(rs);
+			return;
 		}
-		sendEmbedCommand(frameRef, rs.playing ? 'play' : 'pause');
-		playing = rs.playing;
-		elapsedSeconds = target;
-		updateSyncState(current, target);
+		// 4. States already match — nothing to do.
+		updateSyncState(cur, target);
 		markSyncApplied(rs);
 	}
 
@@ -644,41 +543,37 @@
 			needsTapToContinue = false;
 			return;
 		}
-		const yt = !!ytPlayer && ytReady;
-		const isPlaying = yt ? playing : memberIsPlaying();
-		const fresh = !!embedEvent && Date.now() - embedEvent.at < 15000;
-		const prev = needsTapToContinue;
-		if (isCoarse) {
-			needsTapToContinue = !fresh || !isPlaying;
-		} else if (!hasStartedPlayback) {
-			// autoplay-blocked / never started: give the embed a few seconds to
-			// autostart, then prompt for a tap instead of reload-looping.
-			const loadedAt = embedEvent?.at ?? lastFrameLoadAt;
-			needsTapToContinue = !isPlaying && Date.now() - loadedAt >= 5000;
-		} else {
+		// Host is playing but this element never proved playback (silent or
+		// autoplay-blocked embed): show the tap overlay once, a few seconds
+		// after load, instead of rebuilding in a loop. `hasStartedPlayback`
+		// (a real timeupdate) is the only proof the video advances.
+		const progressed = hasStartedPlayback;
+		if (progressed) {
 			needsTapToContinue = false;
+			return;
 		}
-		if (needsTapToContinue && !prev) soakEvent('tap-prompt', 'shown');
+		const loadedAt = embedEvent?.at ?? lastFrameLoadAt;
+		if (Date.now() - loadedAt < 5000) return;
+		const prev = needsTapToContinue;
+		needsTapToContinue = true;
+		if (!prev) soakEvent('tap-prompt', 'shown');
 	}
 
 	function tapToContinue() {
-		// A tap inside the join window has no confirmed host position to
-		// resume to — reloading would rebuild at a stale position (#t=0).
-		// Ignore it; the overlay stays until the window closes.
-		if (isInJoinWindow()) return;
 		needsTapToContinue = false;
-		// The new frame must prove itself with a real timeupdate before the
-		// overlay stays away — if the reloaded frame is still autoplay-blocked
-		// (gesture lost through the iframe reload), the overlay comes back.
 		hasStartedPlayback = false;
-		if (!latestRemote) return;
-		const target = targetOf(latestRemote);
-		if (currentProvider?.id === 'vidlink') {
-			reloadSync(target, true, true);
-		} else if (ytPlayer && ytReady) {
+		const rs = latestRemote;
+		if (!rs) return;
+		const target = hostTarget(rs);
+		// A tap IS the user gesture: seek + play under it. Never rebuild just
+		// to change play state.
+		if (ytPlayer && ytReady) {
+			ytPlayer.seekTo(target, true);
 			ytPlayer.playVideo();
+			playing = true;
+			elapsedSeconds = target;
 		} else {
-			sendEmbedCommand(frameRef, 'play');
+			requestBuild(target, true);
 		}
 	}
 
@@ -715,144 +610,40 @@
 		stopDriftTick();
 		driftTick = setInterval(() => {
 			if (!iframeLoaded || !latestRemote) return;
-			// Join window: not synced yet, not "behind" — no drift counting,
-			// no mirror, no reload (a reload here can only rebuild at a stale
-			// position, i.e. #t=0).
-			if (isInJoinWindow()) return;
-			const target = targetOf(latestRemote);
-			const current = embedPositionEstimate();
-			if (
-				lastReload &&
-				lastReload.at !== lastEmbedPosCheckAt &&
-				Date.now() - lastReload.at > 4000
-			) {
-				if (embedEvent) {
-					lastEmbedPosCheckAt = lastReload.at;
-					const gap = Math.abs(embedEvent.position - lastReload.position);
-					soakEvent(
-						'embed-pos',
-						`post-reload target=${lastReload.position.toFixed(1)} reported=${embedEvent.position.toFixed(1)} gap=${gap.toFixed(1)} -> ${gap <= 12 ? 'RESTORED' : 'FAILED'}`
-					);
-				}
-			}
+			const rs = latestRemote;
+			const target = hostTarget(rs);
+			// The element's real position; null when it's silent (paused,
+			// blocked, or still starting) — fall back to the last built
+			// position, then the target itself.
+			const current = elementPosition() ?? lastBuilt?.position ?? target;
+			const gap = target - current;
 			updateSyncState(current, target);
-			let action = 'tolerated';
-			if (Math.abs(target - current) > 2) {
-				if (ytPlayer && ytReady) {
-					ytPlayer.seekTo(target, true);
-					if (latestRemote.playing) ytPlayer.playVideo();
-					else ytPlayer.pauseVideo();
-					elapsedSeconds = target;
-					action = `yt seek->${target.toFixed(1)}`;
-				} else if (currentProvider?.id === 'vidlink') {
-					// Host-relative state machine: the member's target state is
-					// the host's state. Paused while the host plays is a desync
-					// to fix (resume attempt), not a "leave it alone" gate.
-					if (!latestRemote.playing && memberIsPlaying()) {
-						// Host paused while this member is actually playing:
-						// mirror the pause with a paused positioning reload
-						// (vidlink embeds have no working pause command). Only
-						// fires while the member plays — a paused/stalled/
-						// blocked member stays put and gated, so no loop.
-						pauseMirrored = true;
-						action = 'paused (host paused)';
-						reloadSync(target, false);
-					} else if (!latestRemote.playing) {
-						// Host paused + member paused/stalled/blocked: states
-						// match — no drift counting, no reload, no resume.
-						if (syncReloadStreak > 0) syncReloadStreak = 0;
-						setSyncState({ status: 'synced', drift: 0 });
-						action = 'matched (host paused)';
-					} else if (memberNotPlaying()) {
-						// Host playing + member not playing: desync. If this
-						// member was mirror-paused, resume it (one bounded
-						// reload — the only working "play" on vidlink; the
-						// SSE-driven resume usually fires first). Otherwise
-						// attempt a play command and stay gated — never
-						// auto-reload a non-playing member; the tap prompt
-						// covers autoplay-block.
-						if (pauseMirrored) {
-							if (Date.now() - lastSyncReloadAt > 8000) {
-								pauseMirrored = false;
-								soakEvent('resume', 'host resumed — reloading paused member');
-								reloadSync(target, true, true);
-								action = 'resumed (host resumed)';
-							} else {
-								action = 'resumed (recent reload)';
-							}
-						} else {
-							syncReloadStreak = 0;
-							sendEmbedCommand(frameRef, 'play');
-							setSyncState({ status: 'synced', drift: 0 });
-							action = 'gated (member not playing)';
-						}
-					} else if (Date.now() < resumeGraceUntil) {
-						// Member just resumed after being paused: the gap is
-						// accumulated backlog, not rate divergence. Tolerate it
-						// during the grace instead of instantly reloading; a
-						// single catch-up reload may fire after it expires.
-						if (syncReloadStreak > 0) syncReloadStreak = 0;
-						embedBaselineDeficit = null;
-						if (Math.abs(target - current) > 2) {
-							action = 'resume grace';
-						} else {
-							setSyncState({ status: 'synced', drift: 0 });
-							action = 'tolerated';
-						}
-					} else if (rateDiverged(target, current)) {
-						action = 'reload';
-						reloadSync(target, latestRemote.playing);
-					} else {
-						action = 'tolerated';
-						setSyncState({ status: 'synced', drift: 0 });
-						if (syncReloadStreak > 0) syncReloadStreak = 0;
-					}
-				} else {
-					sendEmbedCommand(frameRef, 'seekto', target);
-					sendEmbedCommand(frameRef, latestRemote.playing ? 'play' : 'pause');
-					elapsedSeconds = target;
-					action = `cmd seek->${target.toFixed(1)}`;
-				}
-			} else if (currentProvider?.id === 'vidlink') {
-				// Mirror the host's play/pause state, never rebuild the iframe
-				// just to change play state: rebuilding is what looked like
-				// random pauses and fed the reload loop.
-				if (!latestRemote.playing && memberIsPlaying()) {
-					pauseMirrored = true;
-					action = 'paused (host paused)';
-					reloadSync(target, false);
-				} else if (!latestRemote.playing) {
-					if (syncReloadStreak > 0) syncReloadStreak = 0;
-					action = 'matched (host paused)';
-				} else if (memberNotPlaying()) {
-					// Same host-relative resume logic as the |gap|>2 branch:
-					// attempt a resume, never reload a non-playing member.
-					if (pauseMirrored && Date.now() - lastSyncReloadAt > 8000) {
-						pauseMirrored = false;
-						soakEvent('resume', 'host resumed — reloading paused member');
-						reloadSync(target, true, true);
-						action = 'resumed (host resumed)';
-					} else {
-						syncReloadStreak = 0;
-						sendEmbedCommand(frameRef, 'play');
-						action = 'gated (member not playing)';
-					}
-				}
+			if (Math.abs(gap) > SYNC_GAP_S) {
+				// Watchdog: host moved away by more than the gap — apply the
+				// host event again (a seek, or a play/pause flip). Idempotent:
+				// an apply that lands closes the gap; a blocked element is
+				// handled by the prompt, not more rebuilds.
+				soakEvent(
+					'drift',
+					`check target=${target.toFixed(1)} current=${current.toFixed(1)} gap=${gap.toFixed(1)} -> correct`
+				);
+				applyHostState(rs);
+			} else {
+				soakEvent(
+					'drift',
+					`check target=${target.toFixed(1)} current=${current.toFixed(1)} gap=${gap.toFixed(1)} -> tolerated`
+				);
 			}
-			soakEvent(
-				'drift',
-				`check target=${target.toFixed(1)} current=${current.toFixed(1)} gap=${(target - current).toFixed(1)} -> ${action}`
-			);
 			soakUpdate({
 				role: 'member',
 				hostPos: target,
 				memberPos: current,
-				drift: Math.round(target - current),
+				drift: Math.round(gap),
 				status: lastSyncState.status,
 				provider: currentProvider?.id ?? null,
 				iframeLoaded: true,
-				seq: latestRemote.seq,
-				lastAction: action
+				seq: rs.seq,
+				lastAction: Math.abs(gap) > SYNC_GAP_S ? 'correct' : 'tolerated'
 			});
 			maybeShowTapPrompt();
 		}, 5000);
@@ -893,7 +684,7 @@
 		const isUserResync = poke !== remotePokedSeq;
 		remoteAppliedSeq = rs.seq;
 		remotePokedSeq = poke;
-		applyRemote(rs, isUserResync);
+		applyHostState(rs, isUserResync);
 	});
 
 	function formatAirDate(iso: string | null) {
@@ -1136,8 +927,11 @@
 							lastFrameLoadAt = Date.now();
 							stopAutoSwitch();
 							applyVolume();
+							// The member's YT player just became controllable:
+							// apply the latest host event (position + play state)
+							// right away.
 							if (latestRemote && latestRemote.seq !== remoteAppliedSeq) {
-								applyPendingRemote();
+								applyHostState(latestRemote, true);
 							}
 						},
 						onStateChange: (event: any) => {
@@ -1194,9 +988,8 @@
 		loadedProviders = new Set();
 		iframeLoaded = false;
 		hasError = false;
-		syncReloadStreak = 0;
 		embedEvent = null;
-		lastReload = null;
+		lastBuilt = null;
 		lastHostReported = -1;
 		lastHostPost = 0;
 		hasStartedPlayback = false;
@@ -1260,14 +1053,14 @@
 		iframeLoaded = false;
 		hasError = false;
 		currentIndex = index;
-		syncReloadStreak = 0;
+		buildRequest = null;
 		embedEvent = null;
-		lastReload = null;
+		lastBuilt = null;
 		lastHostReported = -1;
 		lastHostPost = 0;
 		hasStartedPlayback = false;
 		lastFrameLoadAt = 0;
-		pauseMirrored = false;
+		syncingToHost = false;
 		startAutoSwitch();
 		if (!readOnly) {
 			onPlaybackChange?.({ playing, position: hostPosition(), provider: currentProviderInfo() });
@@ -1286,20 +1079,31 @@
 		lastFrameLoadAt = Date.now();
 		soakEvent(
 			'iframe',
-			`loaded provider=${currentProvider?.id ?? 'none'} builtFromReload=${frameBuiltFromReload}`
+			`loaded provider=${currentProvider?.id ?? 'none'} builtFromReload=${builtByUs}`
 		);
 		soakUpdate({ iframeLoaded: true });
 		stopAutoSwitch();
-		remoteAppliedSeq = -1;
 		syncingToHost = false;
 		needsTapToContinue = false;
 		lastHostReported = -1;
 		lastHostPost = 0;
-		if (latestRemote && latestRemote.seq !== remoteAppliedSeq && !frameBuiltFromReload) {
-			applyPendingRemote();
+		// Replay: a host event that arrived while this iframe was mid-reload
+		// (the SSE gate drops frames while !iframeLoaded) is un-applied — apply
+		// it now. A load we built ourselves is normally already marked (the
+		// SSE effect marks the seq before building), so applyHostState sees a
+		// matching state and does nothing; a fresh join (builtByUs=false) gets
+		// the snapshot force-apply.
+		if (latestRemote && latestRemote.seq !== remoteAppliedSeq) {
+			remoteAppliedSeq = latestRemote.seq;
+			remotePokedSeq = syncPoke;
+			applyHostState(latestRemote, !builtByUs);
 		}
-		frameBuiltFromReload = false;
 		maybeShowTapPrompt();
+		setTimeout(() => {
+			// The element never proved playback within 5s of load (silent or
+			// autoplay-blocked) — show the tap prompt instead of rebuilding.
+			if (!hasStartedPlayback) maybeShowTapPrompt();
+		}, 5000);
 	}
 
 	function onIframeError() {

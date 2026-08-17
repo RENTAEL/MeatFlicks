@@ -182,9 +182,7 @@ report(
 
 const allLines = soakLines(memberLogs);
 const joinReloadIdx = allLines.findIndex((l) => l.includes('builtFromReload=true'));
-const reloadsAfterJoin = allLines
-	.slice(joinReloadIdx + 1)
-	.filter((l) => l.includes('[reload] triggered'));
+const reloadsAfterJoin = allLines.slice(joinReloadIdx + 1).filter((l) => l.includes('[build]'));
 // The skew bug reloaded every ~10s (5+ times in the window, streaking to 3).
 // Skew-free drift may still legitimately reload once (host pause / rate-diverged
 // event), but never in a loop: assert <= 2 and no 3-streak.

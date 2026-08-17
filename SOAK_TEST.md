@@ -263,13 +263,13 @@ pushes are instant via the in-process `subscribeRoom`; the tick is the cross-ins
 that guarantees event delivery when host and member land on different serverless instances).
 Full probe matrix re-run against the deployed build to prove drift still holds ≤2s:
 
-| probe | result | measured drift bands | reloads |
-| ----- | ------ | -------------------- | ------- |
-| `ui-soak-clock.mjs 0`   | 8/8 PASS | 0.0s pre-join; post-join embed never advances headless (autoplay-blocked → `gated`, tap-prompt) — artifact, offset-independent | 0 after join reload |
-| `ui-soak-clock.mjs 5000`   | 8/8 PASS | same artifact band; skew +5s shows no reload loop (gaps identical to 0-offset) | 0 after join reload |
-| `ui-soak-clock.mjs -5000`  | 8/8 PASS | same artifact band; skew −5s shows no reload loop | 0 after join reload |
+| probe                               | result     | measured drift bands                                                                                                                      | reloads                                             |
+| ----------------------------------- | ---------- | ----------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------- |
+| `ui-soak-clock.mjs 0`               | 8/8 PASS   | 0.0s pre-join; post-join embed never advances headless (autoplay-blocked → `gated`, tap-prompt) — artifact, offset-independent            | 0 after join reload                                 |
+| `ui-soak-clock.mjs 5000`            | 8/8 PASS   | same artifact band; skew +5s shows no reload loop (gaps identical to 0-offset)                                                            | 0 after join reload                                 |
+| `ui-soak-clock.mjs -5000`           | 8/8 PASS   | same artifact band; skew −5s shows no reload loop                                                                                         | 0 after join reload                                 |
 | `ui-soak-stall.mjs` (run 1 + run 2) | 39/40 both | playing member tracked host at **−0.5…+0.3s** continuously (e.g. `gap=-0.4/-0.1/0.3` while target≈current); phase-D recovery gaps 0.0,0.0 | ≤1 legit catch-up reload per phase boundary; host 0 |
-| `ui-soak-queue.mjs` | 35/35 PASS | — | — |
+| `ui-soak-queue.mjs`                 | 35/35 PASS | —                                                                                                                                         | —                                                   |
 
 - The only stall FAIL (both runs, identical) is phase-E prep `timeupdates went stale` →
   "HEADLESS EMBED UNPLAYABLE — skipping phase E" at ~+488s. Deterministic headless Chromium
@@ -307,13 +307,13 @@ jumps immediately; every post-window reload carries `#t=<host pos>`, never 0.
 
 Verification (full matrix against the deployed build):
 
-| probe | result | notes |
-| ----- | ------ | ----- |
-| `ui-soak-clock.mjs 0`  | 8/8 PASS | `[apply] seq=0 held (join window)` on SSR frame; first live frame applied needSeek=false — member synced with **zero** reloads (no `[reload]` line at all) |
-| `ui-soak-clock.mjs 5000` | 8/8 PASS | same |
-| `ui-soak-clock.mjs -5000` | 8/8 PASS | first apply `needSeek=false` (embed already at host pos) — no join reload needed; gaps -1.2..-1.7s stable, no loop |
+| probe                        | result                                                                    | notes                                                                                                                                                               |
+| ---------------------------- | ------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `ui-soak-clock.mjs 0`        | 8/8 PASS                                                                  | `[apply] seq=0 held (join window)` on SSR frame; first live frame applied needSeek=false — member synced with **zero** reloads (no `[reload]` line at all)          |
+| `ui-soak-clock.mjs 5000`     | 8/8 PASS                                                                  | same                                                                                                                                                                |
+| `ui-soak-clock.mjs -5000`    | 8/8 PASS                                                                  | first apply `needSeek=false` (embed already at host pos) — no join reload needed; gaps -1.2..-1.7s stable, no loop                                                  |
 | `ui-soak-stall.mjs` (3 runs) | 39/40 x2 + 1 environmental flake (probe health gate auto- rerun to 39/40) | phases A-D green (block -> overlay -> tap -> force reload -> unblock -> resume; drift gated; recovery 0.0s); only FAIL is the known phase-E headless skip at ~+488s |
-| `ui-soak-queue.mjs` | 35/35 PASS | queue/kick/chat unaffected |
+| `ui-soak-queue.mjs`          | 35/35 PASS                                                                | queue/kick/chat unaffected                                                                                                                                          |
 
 - Join-while-playing: member joins, applies first confirmed frame, reloads at live pos
   (once) or not at all if already matched; never #t=0. Join-while-paused: member stays
@@ -326,3 +326,54 @@ Verification (full matrix against the deployed build):
   0 errors / 38 warnings (baseline). Manual two-device check still recommended: member
   joins a long-running room -> no pause, no restart-from-0, tap (if needed) lands at host
   position.
+
+## Deterministic sync rewrite (Player.svelte, 2026-08-17)
+
+The member sync model was rewritten per the user's design directive: **host = source of
+truth, member = dumb mirror**. Every host event applies exactly once (seq-deduped); join =
+one snapshot apply; the 5s watchdog seeks only when the member is >5s **behind** (or the
+host moved back); **no reloads/cooldowns/settle windows** exist in the sync path; the
+autoplay-block tap is shown once, and a tap = seek + play under the gesture (never reload).
+
+- **Only substitution**: vidlink-class embeds accept no inbound commands (verified — no
+  postMessage handler in any static chunk), so seek/play/pause on them = rebuilding the
+  iframe with `#t=<pos>` + `autoplay=<bool>` + cache-buster. That is the whole mechanism.
+- New soak kinds: `[build] t=.. playing=.. provider=..`, `[apply] seq=.. action=..`,
+  `[drift] check .. -> correct|tolerated`, `[iframe] .. builtFromReload=..`,
+  `[provider] switch .. (remote)`, `[tap-prompt] shown`, `[embed-ev] ..`. Removed:
+  `reload triggered/suppressed`, `reload-frame`, `embed-pos`, `held (join window)`, streaks.
+- `applyHostState(rs, force)` (blind-embed branch):
+  `stateChanged = force || !b || rs.playing !== b.playing || target - cur > SYNC_GAP_S ||
+(b && rs.position < b.position - SYNC_GAP_S)` — a member **ahead** of a paused host is
+  never rebuilt (an embed defying `autoplay=false` would otherwise loop forever).
+- **Blocked guard**: `rs.playing && b?.playing !== false && !hasStartedPlayback &&
+Date.now() - lastFrameLoadAt > 4000` → `action=blocked` + tap prompt, never a build.
+  `b?.playing !== false` excludes a deliberately paused mirror: the host's resume flip
+  must build (playing=true), not block.
+- `lastBuilt.position` is **not** re-anchored on timeupdate — it stays the applied host
+  target, or the host-move-back check compares against the member's own position (the
+  pause-mirror rebuild loop root cause, found by the switch probe).
+- `onIframeLoad` replays un-applied host events (frames dropped mid-reload are re-applied
+  with `force = !builtByUs`) — the dropped-event fix, verified by "second paused switch"
+  assertions.
+- Probe matrix (against the deployed build, `run-switch-probe.ps1` 13-min watchdog wrapper
+  for the switch probe):
+
+| probe                    | result         | notes                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
+| ------------------------ | -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `ui-soak-switch.mjs`     | **40/40 PASS** | source switch (apply+build, host pos carried, iframe rebuilt, no pre-playback rebuilds); stuck-embed → blocked guard + tap prompt, no loop; drift synced ≤12s; second switch; pause mirror (paused build, video paused, no loop — `builds=0`); resume (play build, playing=true, no loop); paused switch (playing=false, **stays paused — no watchdog rebuild**); second paused switch (host-position carried; host embed may autoplay → mirrored); resume after paused switch |
+| `ui-soak-clock.mjs 0`    | 8/8 PASS       | drift ~0 band; no reload loop; builds only on host events                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| `ui-soak-clock.mjs 5000` | 8/8 PASS       | +5s skew shows no loop (same artifact band)                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| `ui-soak-stall.mjs`      | 39/40          | phases A–D green (block→overlay, tap→build seek+play, unblock→playing, drift ticking, stall gate, recovery); the 1 fail is the documented phase-E headless artifact at ~+573s (member embed went event-silent — phase E skipped; covered by the switch probe's pause-mirror phases)                                                                                                                                                                                            |
+| `ui-soak-queue.mjs`      | 35/35 PASS     | queue/kick/chat unaffected                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+
+- Every build in the probe logs is **justified** (preceded by an `[apply]` or a gap>5
+  `-> correct`); a build following a `tolerated` tick would be the re-anchor loop signature.
+- Headless embed classes encountered (probe SKIPs/notes, not app failures): protocol-mute
+  embeds (play but never postMessage → guard + prompt by design), `#t`-ignoring embeds
+  (watchdog retries the host target — justified, bounded), autoplay-defiant embeds (mirror
+  applied once, no loop), dead-embed hosts (no video element — drive impossible).
+- Pages 200 after deploy: `/`, `/afrikaans`, `/movie/603`, `/tv/1399`. svelte-check
+  0 errors / 38 warnings (baseline). Manual two-device check still recommended: host
+  plays/pauses/seeks → member mirrors ≤2s; source switch → member follows at host pos
+  (no stuck pause, no restart-from-0); join lands at host pos; >5s behind → seek not reload.

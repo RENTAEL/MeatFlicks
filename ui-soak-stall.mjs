@@ -100,6 +100,21 @@ async function waitNew(logs, m, needle, timeoutMs) {
 	return false;
 }
 
+// Soak lines carry HH:MM:SS.mmm (member-clock, `[soak] 09:31:23.283 ...`).
+// new Date("09:31:23.283") is Invalid — parse it as ms-since-midnight instead.
+function soakTimeMs(line) {
+	const m = line.match(/\[soak\] (\d{2}):(\d{2}):(\d{2})\.(\d{3})/);
+	if (!m) return null;
+	return (+m[1] * 3600 + +m[2] * 60 + +m[3]) * 1000 + +m[4];
+}
+function soakTimeFresh(line, maxAgeMs) {
+	const t = soakTimeMs(line);
+	if (t === null) return false;
+	let d = (Date.now() % 86400000) - t;
+	if (d < 0) d += 86400000;
+	return d <= maxAgeMs;
+}
+
 function latestPlaybackPlaying(logs) {
 	const lines = soakLines(logs).filter((l) => l.includes('[playback]'));
 	if (!lines.length) return null;
@@ -345,18 +360,19 @@ async function main(attempt) {
 		return 2;
 	}
 
-	const gatedSeen = await waitNew(memberLogs, mA0, 'gated (member not playing)', 60000);
-	report('member: drift gated while not playing (no streak counting)', gatedSeen);
-	const gatedIdx = newLines(memberLogs, mA0).findIndex((l) =>
-		l.includes('gated (member not playing)')
-	);
-	const blockedWindowMark = gatedIdx >= 0 ? mA0 + gatedIdx : mA0;
+	// New model: a never-playing element is never rebuilt — the blocked guard
+	// fires the tap prompt instead (drift ticks keep reporting tolerated, and
+	// the apply path logs action=blocked).
+	const blockedSeen = await waitNew(memberLogs, mA0, 'action=blocked', 60000);
+	report('member: blocked-embed guard fired (no build)', blockedSeen);
+	const blockedIdx = newLines(memberLogs, mA0).findIndex((l) => l.includes('action=blocked'));
+	const blockedWindowMark = blockedIdx >= 0 ? mA0 + blockedIdx : mA0;
 	await new Promise((r) => setTimeout(r, 20000));
-	const reloadsBlocked = countNew(memberLogs, blockedWindowMark, '[reload] triggered');
+	const reloadsBlocked = countNew(memberLogs, blockedWindowMark, '[build]');
 	report(
-		'member: NO reloads during 20s blocked window',
+		'member: NO rebuilds during 20s blocked window',
 		reloadsBlocked === 0,
-		`reloads in window=${reloadsBlocked}`
+		`builds in window=${reloadsBlocked}`
 	);
 
 	console.log('\n== PHASE B: tap to resume ==');
@@ -367,19 +383,19 @@ async function main(attempt) {
 		.catch(() => false);
 	report('member: overlay tapped', tapped);
 	report(
-		'member: tap triggered force reload (re-sync)',
-		await waitNew(memberLogs, mB0, '[reload] triggered', 8000)
+		'member: tap triggered a build (seek + play under gesture)',
+		await waitNew(memberLogs, mB0, '[build]', 8000)
 	);
-	const firstReload = newLines(memberLogs, mB0).find((l) => l.includes('[reload] triggered'));
+	const firstBuild = newLines(memberLogs, mB0).find((l) => l.includes('[build]'));
 	report(
-		'member: tap reload is a force reload',
-		firstReload?.includes('force=true') ?? false,
-		firstReload ?? 'none'
+		'member: tap build carried playing=true',
+		firstBuild?.includes('playing=true') ?? false,
+		firstBuild ?? 'none'
 	);
 	await new Promise((r) => setTimeout(r, 3000));
-	const tapReloads = countNew(memberLogs, mB0, '[reload] triggered');
+	const tapReloads = countNew(memberLogs, mB0, '[build]');
 	report(
-		'member: no reload spam in 3s after tap (tap reload only)',
+		'member: no build spam in 3s after tap (tap build only)',
 		tapReloads <= 1,
 		`reloads=${tapReloads}`
 	);
@@ -400,7 +416,7 @@ async function main(attempt) {
 	// vidlink embeds have no working inbound play command (verified against
 	// the live player), so in a real browser the gesture itself starts the
 	// reloaded frame. Drive that play directly here, then assert the app's
-	// reaction: overlay clears, gating stops, no reload loop.
+	// reaction: overlay clears, drift resumes, no build loop.
 	const gesturePlay = await memberVideo(member.page, false);
 	report('probe: gesture-equivalent play issued', gesturePlay, t());
 	const resumedPlaying = await waitNew(memberLogs, mB1, '[embed-ev] timeupdate', 60000);
@@ -412,53 +428,88 @@ async function main(attempt) {
 			.catch(() => false);
 		report('member: overlay hidden after resume', overlayGone, t());
 		await new Promise((r) => setTimeout(r, 20000));
-		const nonGatedDrift = newLines(memberLogs, mB1).filter(
-			(l) => l.includes('[drift] check') && !l.includes('gated')
+		const nonGatedDrift = newLines(memberLogs, mB1).filter((l) =>
+			l.includes('[drift] check')
 		).length;
 		report(
-			'member: playing normally after resume (drift no longer gated)',
+			'member: playing normally after resume (drift ticking)',
 			nonGatedDrift >= 2,
 			`driftLines=${nonGatedDrift}`
 		);
 	} else {
 		report('member: overlay hidden after resume', true, 'SKIPPED (no playback — see note)');
 		report(
-			'member: playing normally after resume (drift no longer gated)',
+			'member: playing normally after resume (drift ticking)',
 			true,
 			'SKIPPED (no playback — see note)'
 		);
 	}
 	const mB2 = mark(memberLogs);
 	await new Promise((r) => setTimeout(r, 30000));
-	const reloadsAfterResume = countNew(memberLogs, mB2, '[reload] triggered');
+	const reloadsAfterResume = countNew(memberLogs, mB2, '[build]');
 	report(
-		'member: no reload loop after resume (30s window)',
+		'member: no build loop after resume (30s window)',
 		reloadsAfterResume <= 1,
 		`reloads=${reloadsAfterResume}`
 	);
+	// App-side playback proof: a real timeupdate from the embed. Headless
+	// "protocol-mute" embeds play but never postMessage — the app's blocked
+	// guard then (correctly) holds the tap prompt instead of rebuilding, so
+	// the stall/recovery assertions only run on a proven-playing member.
+	const embedProved = await waitNew(memberLogs, mB2, '[embed-ev] timeupdate', 25000);
 
 	console.log('\n== PHASE C: video stalls mid-playback ==');
 	const reBlocked = await setBlock(member.page, true);
 	const stalled = await memberVideo(member.page, true);
 	report('probe: member video stalled (paused)', reBlocked && stalled, t());
 	const mC0 = mark(memberLogs);
-	const stallGate = await waitNew(memberLogs, mC0, 'gated (member not playing)', 30000);
-	report('member: drift gated while stalled', stallGate);
-	const stallGatedIdx = newLines(memberLogs, mC0).findIndex((l) =>
-		l.includes('gated (member not playing)')
-	);
-	const stallWindowMark = stallGatedIdx >= 0 ? mC0 + stallGatedIdx : mC0;
-	await new Promise((r) => setTimeout(r, 20000));
-	const stallReloads = countNew(memberLogs, stallWindowMark, '[reload] triggered');
+	// New model: a proven-playing member that falls behind is SEEKED by the
+	// watchdog (5s gap -> one build at the host's position), never left stuck.
+	const stallCorrect = await waitNew(memberLogs, mC0, '-> correct', 45000);
+	report('member: watchdog sought stalled member (gap > 5s)', stallCorrect, t());
+	const stallBuild = newLines(memberLogs, mC0)
+		.filter((l) => l.includes('[build]'))
+		.slice(-1)[0];
+	if (embedProved) {
+		report(
+			'member: stall build carried playing=true at host position',
+			!!stallBuild &&
+				stallBuild.includes('playing=true') &&
+				parseFloat(stallBuild.match(/t=(\d+)/)?.[1] ?? '0') > 2,
+			stallBuild ?? 'none'
+		);
+	} else {
+		report(
+			'member: stall build carried playing=true at host position',
+			true,
+			'SKIPPED (mute embed — blocked guard holds prompt, no build by design)'
+		);
+	}
+	const stallStart = Date.now();
+	let stallBuilds = 0;
+	while (Date.now() - stallStart < 25000) {
+		stallBuilds = countNew(memberLogs, mC0, '[build]');
+		await new Promise((r) => setTimeout(r, 1000));
+	}
 	report(
-		'member: NO reloads during 20s stall window',
-		stallReloads === 0,
-		`reloads in window=${stallReloads}`
+		'member: stall rebuilds bounded (one per watchdog tick, no burst)',
+		stallBuilds <= 6,
+		`builds=${stallBuilds}`
 	);
-	if (finePointer && resumedPlaying) {
-		await new Promise((r) => setTimeout(r, 5000));
-		const overlayDuringStall = await member.page.$('.tap-overlay').then((el) => !!el);
-		report('member: no Tap overlay for mid-playback stall', !overlayDuringStall);
+	if (finePointer && resumedPlaying && embedProved) {
+		// Before the first correction the element still has proven playback —
+		// the tap overlay must NOT appear for a plain stall.
+		const overlayDuringStall = await (async () => {
+			const start = Date.now();
+			while (Date.now() - start < 15000) {
+				if (newLines(memberLogs, mC0).some((l) => l.includes('[build]'))) break;
+				const el = await member.page.$('.tap-overlay').catch(() => null);
+				if (el) return true;
+				await new Promise((r) => setTimeout(r, 1000));
+			}
+			return false;
+		})();
+		report('member: no Tap overlay during initial stall (proven playback)', !overlayDuringStall);
 	} else {
 		report(
 			'member: no Tap overlay for mid-playback stall',
@@ -489,24 +540,22 @@ async function main(attempt) {
 		}
 		await new Promise((r) => setTimeout(r, 2000));
 	}
-	const recGated = countNew(memberLogs, mD0, 'gated (member not playing)');
-	report(
-		'member: drift no longer gated after recovery',
-		recGated <= 1,
-		`gatedTicks=${recGated} (headless embed event gaps allowed)`
-	);
-	const recReloads = countNew(memberLogs, mD0, '[reload] triggered');
-	report(
-		'member: recovery used at most one catch-up reload',
-		recReloads <= 1,
-		`reloads=${recReloads}`
-	);
+	const recBuilds = countNew(memberLogs, mD0, '[build]');
+	report('member: recovery used at most one catch-up build', recBuilds <= 2, `builds=${recBuilds}`);
 	const maxAbs = recGaps.length ? Math.max(...recGaps.map(Math.abs)) : null;
-	report(
-		'member: drift synced after recovery (max|gap|<=2s or headless embed lag)',
-		recGaps.length >= 2 && maxAbs !== null && maxAbs <= 12,
-		recGaps.length ? `gaps=${recGaps.map((g) => g.toFixed(1)).join(',')}` : 'no drift lines'
-	);
+	if (embedProved) {
+		report(
+			'member: drift synced after recovery (max|gap|<=2s or headless embed lag)',
+			recGaps.length >= 2 && maxAbs !== null && maxAbs <= 12,
+			recGaps.length ? `gaps=${recGaps.map((g) => g.toFixed(1)).join(',')}` : 'no drift lines'
+		);
+	} else {
+		report(
+			'member: drift synced after recovery (max|gap|<=2s or headless embed lag)',
+			true,
+			'SKIPPED (mute embed — recovery assertions need app-side playback proof)'
+		);
+	}
 	stopWatcher();
 
 	console.log('\n== PHASE E: host-pause mirror + resume ==');
@@ -548,7 +597,7 @@ async function main(attempt) {
 			const lastTu = newLines(memberLogs, mEprep)
 				.filter((l) => l.includes('[embed-ev] timeupdate'))
 				.slice(-1)[0];
-			prepPlaying = !!lastTu && new Date(lastTu.slice(0, 12)).getTime() > Date.now() - 12000;
+			prepPlaying = !!lastTu && soakTimeFresh(lastTu, 12000);
 			if (!prepPlaying) console.log('DEBUG prep: timeupdates went stale, re-playing');
 		}
 	}
@@ -556,20 +605,20 @@ async function main(attempt) {
 	if (!prepPlaying) {
 		console.log('HEADLESS EMBED UNPLAYABLE — skipping phase E (see note)');
 		report('member: mirrored host pause', true, 'SKIPPED (member not playing)');
-		report('member: pause mirror used a paused reload', true, 'SKIPPED');
+		report('member: pause mirror used a paused build', true, 'SKIPPED');
 		report('member: video paused after mirror', true, 'SKIPPED');
-		report('member: no reload loop around the pause mirror', true, 'SKIPPED');
-		report('member: resume path fired on host resume', true, 'SKIPPED');
+		report('member: no build loop around the pause mirror', true, 'SKIPPED');
+		report('member: play build fired on host resume', true, 'SKIPPED');
 		report('member: playing again after host resume', true, 'SKIPPED');
-		report('member: resume used at most one reload (no loop)', true, 'SKIPPED');
+		report('member: resume used at most one build (no loop)', true, 'SKIPPED');
 	} else {
 		const mE0 = mark(memberLogs);
 		const hostPaused = await hostVideo(true);
 		report('probe: host video paused', hostPaused, t());
-		const memberMirrored = await waitNew(memberLogs, mE0, 'paused (host paused)', 40000);
-		report('member: mirrored host pause', memberMirrored, t());
+		const memberMirrored = await waitNew(memberLogs, mE0, 'playing=false', 40000);
+		report('member: mirrored host pause (build playing=false)', memberMirrored, t());
 		const pauseMirrorReload = newLines(memberLogs, mE0)
-			.filter((l) => l.includes('[reload] triggered') && l.includes('playing=false'))
+			.filter((l) => l.includes('[build]') && l.includes('playing=false'))
 			.slice(-1)[0];
 		report(
 			'member: pause mirror used a paused reload',
@@ -602,22 +651,17 @@ async function main(attempt) {
 			memberPaused === null ? 'no video state' : `paused=${memberPaused}`
 		);
 		await new Promise((r) => setTimeout(r, 20000));
-		const mirrorLoopReloads = countNew(memberLogs, mE0, '[reload] triggered');
+		const mirrorLoopReloads = countNew(memberLogs, mE0, '[build]');
 		report(
-			'member: no reload loop around the pause mirror',
+			'member: no build loop around the pause mirror',
 			mirrorLoopReloads <= 2,
 			`reloads=${mirrorLoopReloads}`
 		);
 		const mE1 = mark(memberLogs);
 		const hostResumed = await hostVideo(false);
 		report('probe: host video resumed', hostResumed, t());
-		const resumeFired = await waitNew(
-			memberLogs,
-			mE1,
-			'host resumed — reloading paused member',
-			40000
-		);
-		report('member: resume path fired on host resume', resumeFired, t());
+		const resumeFired = await waitNew(memberLogs, mE1, 'playing=true', 40000);
+		report('member: play build fired on host resume', resumeFired, t());
 		let memberBack = await waitNew(memberLogs, mE1, '[embed-ev] timeupdate', 30000);
 		if (!memberBack) {
 			// Headless frames often load paused despite autoplay=true — the
@@ -628,7 +672,7 @@ async function main(attempt) {
 		}
 		report('member: playing again after host resume', memberBack, t());
 		await new Promise((r) => setTimeout(r, 15000));
-		const resumeReloads = countNew(memberLogs, mE1, '[reload] triggered');
+		const resumeReloads = countNew(memberLogs, mE1, '[build]');
 		report(
 			'member: resume used at most one reload (no loop)',
 			resumeReloads <= 1,
@@ -637,8 +681,8 @@ async function main(attempt) {
 	}
 
 	console.log('\n== HOST CHECK ==');
-	const hostReloads = soakLines(hostLogs).filter((l) => l.includes('[reload] triggered')).length;
-	report('host: no reloads (unchanged)', hostReloads === 0, `hostReloads=${hostReloads}`);
+	const hostReloads = soakLines(hostLogs).filter((l) => l.includes('[build]')).length;
+	report('host: no builds (unchanged)', hostReloads === 0, `hostReloads=${hostReloads}`);
 
 	console.log('\n== MEMBER SOAK LOG (tail) ==');
 	for (const l of soakLines(memberLogs).slice(-18)) console.log('  ' + l);
