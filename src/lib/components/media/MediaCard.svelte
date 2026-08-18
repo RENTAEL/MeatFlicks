@@ -12,6 +12,7 @@
 	import type { LibraryMovie } from '$lib/types/library';
 	import { getImageUrl, getSrcSet, POSTER_SIZES } from '$lib/utils/image';
 	import ProviderBadges from '$lib/components/ProviderBadges.svelte';
+	import HoverPreview from '$lib/components/media/HoverPreview.svelte';
 	import { openMediaSheet } from '$lib/state/stores/mediaSheetStore.svelte';
 
 	let {
@@ -59,17 +60,6 @@
 		img.src =
 			"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 342 513'%3E%3Crect fill='%23333' width='342' height='513'/%3E%3Ctext x='171' y='256' text-anchor='middle' fill='%23666' font-size='20'%3ENo Image%3C/text%3E%3C/svg%3E";
 	}
-
-	let trailerKey = $derived.by(() => {
-		if (!movie?.trailerUrl) return null;
-		const url = movie.trailerUrl;
-		const ytMatch = url.match(
-			/(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([a-zA-Z0-9_-]+)/
-		);
-		if (ytMatch) return ytMatch[1];
-		if (/^[a-zA-Z0-9_-]{11}$/.test(url)) return url;
-		return null;
-	});
 
 	let ratingLabel = $derived(
 		movie?.rating && typeof movie.rating === 'number' ? movie.rating.toFixed(1) : null
@@ -132,7 +122,12 @@
 	}
 </script>
 
-<div class="media-card group relative {showPreview ? 'z-50' : 'z-10'}">
+<div
+	class="media-card group relative {showPreview ? 'z-50' : 'z-10'}"
+	role="group"
+	onmouseenter={startHover}
+	onmouseleave={endHover}
+>
 	<div
 		class="card-inner relative h-40 w-28 sm:h-52 sm:w-36 md:h-72 md:w-48 overflow-hidden rounded-xl bg-background/60 backdrop-blur-sm transition-all duration-500 ease-out {showPreview
 			? 'z-50 scale-[1.12] shadow-[0_0_30px_oklch(0.6_0.2_300/0.4),0_0_60px_oklch(0.5_0.18_280/0.2),0_20px_60px_oklch(0_0_0/0.5)]'
@@ -147,31 +142,25 @@
 						>{movie.title}</span
 					>
 				</div>
-				{#if showPreview && trailerKey}
-					<div class="video-fade-in absolute inset-0 z-20">
-						<iframe
-							src="https://www.youtube.com/embed/{trailerKey}?autoplay=1&mute=1&loop=1&playlist={trailerKey}&controls=0&showinfo=0&rel=0&iv_load_policy=3&modestbranding=1"
-							title="{movie.title} Trailer"
-							class="h-full w-full"
-							style="pointer-events: none;"
-							loading="lazy"
-							allow="autoplay; fullscreen; encrypted-media; picture-in-picture"
-						></iframe>
-						<div
-							class="absolute inset-0 bg-linear-to-t from-background/90 via-background/10 to-transparent"
-						></div>
-					</div>
+				<HoverPreview
+					src={movie.trailerUrl}
+					alt={`${movie.title} Trailer`}
+					active={showPreview}
+					class="video-fade-in"
+				/>
+				{#if showPreview && movie.trailerUrl}
+					<div
+						class="absolute inset-0 z-20 pointer-events-none bg-linear-to-t from-background/90 via-background/10 to-transparent"
+					></div>
 				{/if}
 
 				<a
 					href={detailsHref}
 					data-sveltekit-preload-data="hover"
-					class="relative block h-full w-full overflow-hidden {showPreview && trailerKey
+					class="relative block h-full w-full overflow-hidden {showPreview && movie.trailerUrl
 						? 'opacity-0 transition-opacity duration-300'
 						: ''}"
 					aria-label={movie.title}
-					onmouseenter={startHover}
-					onmouseleave={endHover}
 					onclick={handlePosterClick}
 					style="touch-action: manipulation; -webkit-tap-highlight-color: transparent;"
 				>
