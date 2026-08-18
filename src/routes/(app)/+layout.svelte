@@ -6,6 +6,7 @@
 	import MobileHeader from '$lib/components/mobile/MobileHeader.svelte';
 	import Footer from '$lib/components/navigation/Footer.svelte';
 	import MediaDetailSheet from '$lib/components/media/MediaDetailSheet.svelte';
+	import PreviewPopout from '$lib/components/media/PreviewPopout.svelte';
 	import GlobalErrorDisplay from '$lib/components/global/GlobalErrorDisplay.svelte';
 	import { NotificationPortal } from '$lib/components/global';
 	import SearchOverlay from '$lib/components/SearchOverlay.svelte';
@@ -124,6 +125,8 @@
 <SearchOverlay />
 
 <UblockPopup />
+
+<PreviewPopout />
 
 {#if $menuOpen}
 	<div

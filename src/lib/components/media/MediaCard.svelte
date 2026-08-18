@@ -148,18 +148,11 @@
 					active={showPreview}
 					class="video-fade-in"
 				/>
-				{#if showPreview && movie.trailerUrl}
-					<div
-						class="absolute inset-0 z-20 pointer-events-none bg-linear-to-t from-background/90 via-background/10 to-transparent"
-					></div>
-				{/if}
 
 				<a
 					href={detailsHref}
 					data-sveltekit-preload-data="hover"
-					class="relative block h-full w-full overflow-hidden {showPreview && movie.trailerUrl
-						? 'opacity-0 transition-opacity duration-300'
-						: ''}"
+					class="relative block h-full w-full overflow-hidden"
 					aria-label={movie.title}
 					onclick={handlePosterClick}
 					style="touch-action: manipulation; -webkit-tap-highlight-color: transparent;"

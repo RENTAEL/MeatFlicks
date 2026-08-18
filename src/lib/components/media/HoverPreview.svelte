@@ -1,5 +1,7 @@
 <script lang="ts">
 	import { browser } from '$app/environment';
+	import { onDestroy } from 'svelte';
+	import { openPopout, closePopout } from '$lib/state/stores/popoutPreviewStore.svelte';
 
 	let {
 		src,
@@ -14,32 +16,23 @@
 	} = $props();
 
 	let rootEl = $state<HTMLElement | null>(null);
-	let videoEl: HTMLVideoElement | undefined = $state();
-	let iframeEl: HTMLIFrameElement | undefined = $state();
 
 	let canHover = $state(false);
 	let isNear = $state(true);
-	let failed = $state(false);
-
-	let hasHover = $derived(
-		browser && window.matchMedia('(hover: hover) and (pointer: fine)').matches
-	);
-
-	let youtubeKey = $derived.by(() => {
-		if (!src) return null;
-		const ytMatch = src.match(
-			/(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([a-zA-Z0-9_-]+)/
-		);
-		if (ytMatch) return ytMatch[1];
-		if (/^[a-zA-Z0-9_-]{11}$/.test(src)) return src;
-		return null;
-	});
-
-	let isMp4 = $derived(!!src && !youtubeKey && /\.(mp4|webm|ogv|m4v)(\?|#|$)/i.test(src));
 
 	$effect(() => {
 		if (!browser) return;
-		canHover = hasHover;
+		canHover = window.matchMedia('(hover: hover) and (pointer: fine)').matches;
+	});
+
+	let hasSrc = $derived.by(() => {
+		if (!src) return false;
+		const ytMatch = src.match(
+			/(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([a-zA-Z0-9_-]+)/
+		);
+		if (ytMatch) return true;
+		if (/^[a-zA-Z0-9_-]{11}$/.test(src)) return true;
+		return /\.(mp4|webm|ogv|m4v)(\?|#|$)/i.test(src);
 	});
 
 	let io: IntersectionObserver | null = null;
@@ -60,67 +53,23 @@
 		};
 	});
 
-	const shouldShow = $derived(active && isNear && !failed);
-
-	function start() {
-		if (youtubeKey) {
-			if (iframeEl && !iframeEl.src) {
-				iframeEl.src = `https://www.youtube-nocookie.com/embed/${youtubeKey}?autoplay=1&mute=1&loop=1&playlist=${youtubeKey}&controls=0&showinfo=0&rel=0&iv_load_policy=3&modestbranding=1&playsinline=1`;
-			}
-		} else if (isMp4 && videoEl && src) {
-			if (videoEl.src !== src) videoEl.src = src;
-			videoEl.muted = true;
-			videoEl.play().catch(() => {
-				failed = true;
-			});
-		}
-	}
-
-	function stop() {
-		if (videoEl && isMp4) {
-			videoEl.pause();
-			videoEl.currentTime = 0;
-		}
-		if (iframeEl && youtubeKey && iframeEl.src) {
-			iframeEl.removeAttribute('src');
-		}
-	}
-
 	$effect(() => {
-		if (shouldShow && src && (youtubeKey || isMp4)) start();
-		else stop();
+		if (active && isNear && hasSrc && canHover && rootEl && src) {
+			openPopout(rootEl, src, alt.replace(/\s*Trailer$/i, ''));
+		} else {
+			closePopout();
+		}
+	});
+
+	onDestroy(() => {
+		closePopout();
 	});
 </script>
 
-{#if canHover && (youtubeKey || isMp4)}
+{#if canHover && hasSrc}
 	<div
 		bind:this={rootEl}
-		class="hover-preview absolute inset-0 z-20 pointer-events-none overflow-hidden"
+		class="hover-preview pointer-events-none absolute inset-0 {wrapperClass}"
 		aria-hidden="true"
-	>
-		{#if youtubeKey}
-			<iframe
-				bind:this={iframeEl}
-				title={alt}
-				class="hover-preview-frame h-full w-full {wrapperClass}"
-				style="pointer-events: none;"
-				hidden={!shouldShow}
-				allow="autoplay; encrypted-media"
-				tabindex="-1"
-			></iframe>
-		{:else if isMp4}
-			<video
-				bind:this={videoEl}
-				class="hover-preview-video h-full w-full object-cover {wrapperClass}"
-				preload="none"
-				muted
-				playsinline
-				loop
-				hidden={!shouldShow}
-				onerror={() => {
-					failed = true;
-				}}
-			></video>
-		{/if}
-	</div>
+	></div>
 {/if}
