@@ -2,32 +2,20 @@
 <html lang="en" data-theme="dark">
 	<head>
 		<script>
-			(function() {
+			(function () {
 				try {
 					var theme = localStorage.getItem('streamium-theme');
 					if (theme) document.documentElement.setAttribute('data-theme', theme);
-				} catch(e) {}
+				} catch (e) {}
 			})();
 		</script>
 		<script>
 			if ('serviceWorker' in navigator) {
-				navigator.serviceWorker.getRegistrations().then(function(regs) {
-					for (var i = 0; i < regs.length; i++) {
-						regs[i].unregister();
-					}
-				}).then(function() {
-					if (window.caches) {
-						caches.keys().then(function(keys) {
-							for (var j = 0; j < keys.length; j++) {
-								caches.delete(keys[j]);
-							}
-						});
-					}
-				}).then(function() {
-					navigator.serviceWorker.register('/service-worker.js', { scope: '/' }).catch(function(err) {
+				navigator.serviceWorker
+					.register('/service-worker.js', { scope: '/' })
+					.catch(function (err) {
 						console.warn('Service worker registration failed:', err);
 					});
-				});
 			}
 		</script>
 		<meta charset="utf-8" />
@@ -45,7 +33,7 @@
 		<link rel="apple-touch-icon" href="/icon-192.png" />
 		%sveltekit.head%
 	</head>
-	<body data-sveltekit-preload-data="hover" style="overflow-x: hidden; max-width: 100vw;">
+	<body data-sveltekit-preload-data="hover" style="overflow-x: hidden; max-width: 100vw">
 		<div id="cosmic-bg">
 			<div id="nebula-1"></div>
 			<div id="nebula-2"></div>
@@ -60,20 +48,12 @@
 					'color: #c94b8c',
 					'font-size: 20px',
 					'font-weight: bold',
-					'padding: 8px 0',
+					'padding: 8px 0'
 				].join(';');
 
-				var sub = [
-					'color: #9898ab',
-					'font-size: 13px',
-					'font-style: italic',
-				].join(';');
+				var sub = ['color: #9898ab', 'font-size: 13px', 'font-style: italic'].join(';');
 
-				var link = [
-					'color: #7c5cfc',
-					'font-size: 13px',
-					'text-decoration: underline',
-				].join(';');
+				var link = ['color: #7c5cfc', 'font-size: 13px', 'text-decoration: underline'].join(';');
 
 				console.log(
 					'%c\n ╔═══════════════════════════════════╗\n ║                                   ║\n ║     🎬  S T R E A M I U M        ║\n ║                                   ║\n ╚═══════════════════════════════════╝',
@@ -81,14 +61,20 @@
 				);
 
 				console.log('%c👋 Hey there, fellow nerd! You found the secret console.', sub);
-				console.log("%cThis whole thing was hand-built by the developer — one developer, too much coffee, and a questionable amount of Stack Overflow tabs.", sub);
+				console.log(
+					'%cThis whole thing was hand-built by the developer — one developer, too much coffee, and a questionable amount of Stack Overflow tabs.',
+					sub
+				);
 				console.log('%c', '');
-				console.log('%cIf you find a bug, no you didn\'t. 😎', sub);
-				console.log('%cBut seriously — welcome. Poke around. Just don\'t break the login.', sub);
+				console.log("%cIf you find a bug, no you didn't. 😎", sub);
+				console.log("%cBut seriously — welcome. Poke around. Just don't break the login.", sub);
 				console.log('%c', '');
 				console.log('%c— the developer, your friendly neighborhood solo dev', link);
 				console.log('%c', '');
-				console.log('%cP.S. If you\'re reading this instead of watching content, go watch something. 🍿', 'color: #66667a; font-size: 11px;');
+				console.log(
+					"%cP.S. If you're reading this instead of watching content, go watch something. 🍿",
+					'color: #66667a; font-size: 11px;'
+				);
 			})();
 		</script>
 	</body>
