@@ -236,11 +236,15 @@
 			url.hash = '#t=' + Math.max(0, Math.round(req.position));
 			frameSrc = url.toString();
 			builtByUs = true;
-		} else if (readOnly && latestRemote && remoteAppliedSeq === -1) {
+		} else if (readOnly && remoteSync && remoteAppliedSeq === -1 && !hasFullPlaybackControl) {
 			// Member joined with a host state before the first iframe ever
 			// rendered: hold the base URL until the join build lands (see the
 			// remote-sync effect), so the FIRST load already carries #t= +
-			// autoplay — one load, no base-load-then-rebuild.
+			// autoplay — one load, no base-load-then-rebuild. Keyed off the
+			// reactive remoteSync (not latestRemote, which is a plain let and
+			// can be stale in the flush where the room state arrives) so the
+			// hold is evaluated with the real room state in every flush. Only
+			// for blind embeds — full-control providers load the base and seek.
 			builtByUs = true;
 		} else {
 			frameSrc = base;
