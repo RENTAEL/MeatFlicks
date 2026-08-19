@@ -1,6 +1,6 @@
 import { db } from '$lib/server/db';
 import { media, collections, genres, mediaGenres, watchHistory } from '$lib/server/db/schema';
-import { eq, and, isNotNull, desc, asc, sql, gte, lte, inArray } from 'drizzle-orm';
+import { eq, and, desc, asc, sql, gte, lte, inArray } from 'drizzle-orm';
 import type { CollectionRecord, GenreRecord, MediaRow, MediaSummary } from '$lib/server/db';
 import { mapRowsToSummaries, getGenreNameMap } from '$lib/server/db/movie-select';
 import type { MovieFilters, SortOptions } from '$lib/types/filters';
@@ -45,14 +45,8 @@ export const libraryRepository = {
 				const rows = await db
 					.select()
 					.from(media)
-					.where(
-						and(
-							isNotNull(media.rating),
-							eq(media.mediaType, mediaType),
-							releasedMedia
-						)
-					)
-					.orderBy(desc(media.rating), desc(media.releaseDate), asc(media.title))
+					.where(and(eq(media.mediaType, mediaType), releasedMedia))
+					.orderBy(desc(media.releaseDate), desc(media.rating), asc(media.title))
 					.limit(take);
 				return await mapRowsToSummaries(rows as MediaRow[]);
 			});
@@ -196,14 +190,7 @@ export const libraryRepository = {
 		const normalizedGenre = genreName.trim().toLowerCase();
 
 		try {
-			const cacheKey = buildCacheKey(
-				'media',
-				'genre',
-				mediaType,
-				normalizedGenre,
-				take,
-				skip
-			);
+			const cacheKey = buildCacheKey('media', 'genre', mediaType, normalizedGenre, take, skip);
 			return await withCache<MediaSummary[]>(cacheKey, CACHE_TTL_MEDIUM_SECONDS, async () => {
 				const idMap = await getGenreNameMap();
 				const genreId = idMap.get(normalizedGenre);
@@ -215,13 +202,9 @@ export const libraryRepository = {
 					.from(media)
 					.innerJoin(mediaGenres, eq(mediaGenres.mediaId, media.id))
 					.where(
-						and(
-							eq(mediaGenres.genreId, genreId),
-							eq(media.mediaType, mediaType),
-							releasedMedia
-						)
+						and(eq(mediaGenres.genreId, genreId), eq(media.mediaType, mediaType), releasedMedia)
 					)
-					.orderBy(desc(media.rating), desc(media.releaseDate), asc(media.title))
+					.orderBy(desc(media.releaseDate), desc(media.rating), asc(media.title))
 					.limit(take)
 					.offset(skip);
 
@@ -365,13 +348,7 @@ export const libraryRepository = {
 			let countQuery = db.select({ count: sql<number>`count(DISTINCT ${media.id})` }).from(media);
 			const conditions: any[] = [];
 
-			countQuery = this.applyFilters(
-				countQuery,
-				conditions,
-				filters,
-				idMap,
-				mediaType
-			);
+			countQuery = this.applyFilters(countQuery, conditions, filters, idMap, mediaType);
 
 			const result = await countQuery;
 			return result[0]?.count || 0;

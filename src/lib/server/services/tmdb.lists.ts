@@ -103,6 +103,30 @@ export async function fetchPopularTvIds(limit = 20): Promise<number[]> {
 	);
 }
 
+const daysAgoParam = (days: number): string => {
+	const d = new Date();
+	d.setDate(d.getDate() - days);
+	return d.toISOString().slice(0, 10);
+};
+
+export async function fetchNewReleaseMovieIds(limit = 100): Promise<number[]> {
+	const params = {
+		sort_by: 'primary_release_date.desc',
+		'primary_release_date.gte': daysAgoParam(90),
+		'primary_release_date.lte': todayParam(),
+		'vote_count.gte': 10
+	};
+
+	const cacheKey = buildCacheKey('tmdb', 'new-releases', 'movie', JSON.stringify(params), limit);
+
+	return withCache(
+		cacheKey,
+		LIST_TTL,
+		() => fetchTmdbListIds('/discover/movie', params, limit, 'tmdb-new-releases'),
+		{ swrSeconds: LIST_TTL / 2 }
+	);
+}
+
 export async function discoverMovieIds(options: DiscoverMovieOptions = {}): Promise<number[]> {
 	const {
 		genreId,

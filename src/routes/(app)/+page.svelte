@@ -297,7 +297,7 @@
 
 							{#if trendingMovies.length > 0}
 								{#if TrendingMediaSlider}
-									<TrendingMediaSlider title="Trending Movies" movies={trendingMovies} />
+									<TrendingMediaSlider title="New Releases" movies={trendingMovies} />
 								{:else}
 									<div bind:this={trendingMediaRef.value} class="w-full">
 										<MediaRowSkeleton />
@@ -307,7 +307,7 @@
 
 							{#if trendingTv.length > 0}
 								{#if TrendingMediaSlider}
-									<TrendingMediaSlider title="Trending TV Series" movies={trendingTv} />
+									<TrendingMediaSlider title="New TV Series" movies={trendingTv} />
 								{:else}
 									<div bind:this={trendingTvRef.value} class="w-full">
 										<MediaRowSkeleton />

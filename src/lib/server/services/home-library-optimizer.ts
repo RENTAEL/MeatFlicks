@@ -9,6 +9,7 @@ import {
 import {
 	discoverMovieIds,
 	discoverTvIds,
+	fetchNewReleaseMovieIds,
 	fetchPopularMovieIds,
 	fetchPopularTvIds,
 	fetchTrendingMovieIds,
@@ -25,6 +26,7 @@ type RefreshTaskKey =
 	| 'popular'
 	| 'genrePools'
 	| 'highRated'
+	| 'newReleases'
 	| 'trendingTv'
 	| 'popularTv'
 	| 'genrePoolsTv';
@@ -48,6 +50,7 @@ const DEFAULT_STATE: RefreshState = {
 		popular: null,
 		genrePools: null,
 		highRated: null,
+		newReleases: null,
 		trendingTv: null,
 		popularTv: null,
 		genrePoolsTv: null
@@ -61,6 +64,7 @@ const REFRESH_WINDOWS: Record<RefreshTaskKey, number> = {
 	popular: DAY,
 	genrePools: DAY,
 	highRated: DAY * 7,
+	newReleases: DAY,
 	trendingTv: DAY,
 	popularTv: DAY,
 	genrePoolsTv: DAY
@@ -96,33 +100,88 @@ const ensureDataDirectory = async () => {
 	await mkdir('data', { recursive: true });
 };
 
+const STATE_CACHE_KEY = 'home-library-state';
+const STATE_TTL_MS = 365 * DAY;
+
+const normalizeState = (parsed: Partial<RefreshState>): RefreshState => {
+	if (typeof parsed.version !== 'number' || !parsed.lastRun) {
+		return { ...DEFAULT_STATE };
+	}
+	return {
+		version: STATE_VERSION,
+		lastRun: {
+			trending: parsed.lastRun.trending ?? null,
+			popular: parsed.lastRun.popular ?? null,
+			genrePools: parsed.lastRun.genrePools ?? null,
+			highRated: parsed.lastRun.highRated ?? null,
+			newReleases: (parsed.lastRun as any).newReleases ?? null,
+			trendingTv: (parsed.lastRun as any).trendingTv ?? null,
+			popularTv: (parsed.lastRun as any).popularTv ?? null,
+			genrePoolsTv: (parsed.lastRun as any).genrePoolsTv ?? null
+		}
+	};
+};
+
+const loadStateFromDb = async (): Promise<RefreshState | null> => {
+	try {
+		const { db } = await import('$lib/server/db');
+		const { cache } = await import('$lib/server/db/schema');
+		const { eq } = await import('drizzle-orm');
+
+		const rows = await db
+			.select({ data: cache.data, expiresAt: cache.expiresAt })
+			.from(cache)
+			.where(eq(cache.key, STATE_CACHE_KEY))
+			.limit(1);
+
+		const row = rows[0];
+		if (!row || row.expiresAt <= Date.now()) return null;
+
+		const parsed = JSON.parse(row.data) as Partial<RefreshState>;
+		return normalizeState(parsed);
+	} catch (error) {
+		return null;
+	}
+};
+
+const saveStateToDb = async (state: RefreshState): Promise<void> => {
+	try {
+		const { db } = await import('$lib/server/db');
+		const { cache } = await import('$lib/server/db/schema');
+
+		const payload = JSON.stringify(state);
+		const expiresAt = Date.now() + STATE_TTL_MS;
+
+		await db
+			.insert(cache)
+			.values({ key: STATE_CACHE_KEY, data: payload, expiresAt })
+			.onConflictDoUpdate({ target: cache.key, set: { data: payload, expiresAt } });
+	} catch (error) {
+		logger.warn({ error }, '[home-library] Failed to persist state to database');
+	}
+};
+
 const loadState = async (): Promise<RefreshState> => {
+	const dbState = await loadStateFromDb();
+	if (dbState) return dbState;
+
 	try {
 		const raw = await readFile(STATE_PATH, 'utf8');
 		const parsed = JSON.parse(raw) as Partial<RefreshState>;
-		if (typeof parsed.version !== 'number' || !parsed.lastRun) {
-			return { ...DEFAULT_STATE };
-		}
-		return {
-			version: STATE_VERSION,
-			lastRun: {
-				trending: parsed.lastRun.trending ?? null,
-				popular: parsed.lastRun.popular ?? null,
-				genrePools: parsed.lastRun.genrePools ?? null,
-				highRated: parsed.lastRun.highRated ?? null,
-				trendingTv: (parsed.lastRun as any).trendingTv ?? null,
-				popularTv: (parsed.lastRun as any).popularTv ?? null,
-				genrePoolsTv: (parsed.lastRun as any).genrePoolsTv ?? null
-			}
-		};
+		return normalizeState(parsed);
 	} catch (error) {
 		return { ...DEFAULT_STATE };
 	}
 };
 
 const saveState = async (state: RefreshState): Promise<void> => {
-	await ensureDataDirectory();
-	await writeFile(STATE_PATH, JSON.stringify(state, null, 2), 'utf8');
+	await saveStateToDb(state);
+	try {
+		await ensureDataDirectory();
+		await writeFile(STATE_PATH, JSON.stringify(state, null, 2), 'utf8');
+	} catch (error) {
+		logger.warn({ error }, '[home-library] Failed to persist state to file');
+	}
 };
 
 const isTaskDue = (state: RefreshState, task: RefreshTaskKey): boolean => {
@@ -143,11 +202,13 @@ const ingestMedia = async (tmdbIds: number[], options: IngestOptions) => {
 		const { inArray, and, eq } = await import('drizzle-orm');
 
 		const existingMovies = await db
-			.select({ tmdbId: movies.tmdbId })
+			.select({ tmdbId: movies.tmdbId, title: movies.title })
 			.from(movies)
 			.where(and(inArray(movies.tmdbId, batchIds), eq(movies.mediaType, mediaType)));
 
-		const existingTmdbIds = new Set(existingMovies.map((m) => m.tmdbId));
+		const existingTmdbIds = new Set(
+			existingMovies.filter((m) => m.title !== `Media ${m.tmdbId}`).map((m) => m.tmdbId)
+		);
 		const idsToFetch = batchIds.filter((id) => !existingTmdbIds.has(id));
 
 		if (idsToFetch.length === 0) continue;
@@ -285,6 +346,14 @@ const runHighRatedTask = async () => {
 	await ingestMedia(ids, { label: 'high-rated', minRating: 7, mediaType: 'movie' });
 };
 
+const NEW_RELEASES_FETCH_LIMIT = 60;
+
+const runNewReleasesTask = async () => {
+	logger.info('[home-library] Running new releases refresh task');
+	const ids = await fetchNewReleaseMovieIds(NEW_RELEASES_FETCH_LIMIT);
+	await ingestMedia(ids, { label: 'new-releases', mediaType: 'movie' });
+};
+
 const runTrendingTvTask = async () => {
 	logger.info('[home-library] Running trending TV refresh task');
 	const ids = await fetchTrendingTvIds(TRENDING_FETCH_LIMIT);
@@ -320,6 +389,7 @@ const TASK_ORDER: RefreshTaskKey[] = [
 	'popular',
 	'genrePools',
 	'highRated',
+	'newReleases',
 	'trendingTv',
 	'popularTv',
 	'genrePoolsTv'
@@ -338,6 +408,9 @@ const runTask = async (task: RefreshTaskKey) => {
 			break;
 		case 'highRated':
 			await runHighRatedTask();
+			break;
+		case 'newReleases':
+			await runNewReleasesTask();
 			break;
 		case 'trendingTv':
 			await runTrendingTvTask();
