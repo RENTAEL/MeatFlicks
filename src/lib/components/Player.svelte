@@ -236,6 +236,12 @@
 			url.hash = '#t=' + Math.max(0, Math.round(req.position));
 			frameSrc = url.toString();
 			builtByUs = true;
+		} else if (readOnly && latestRemote && remoteAppliedSeq === -1) {
+			// Member joined with a host state before the first iframe ever
+			// rendered: hold the base URL until the join build lands (see the
+			// remote-sync effect), so the FIRST load already carries #t= +
+			// autoplay — one load, no base-load-then-rebuild.
+			builtByUs = true;
 		} else {
 			frameSrc = base;
 			builtByUs = false;
@@ -680,8 +686,27 @@
 		}
 		latestRemote = rs;
 		if (rs.seq === remoteAppliedSeq && poke === remotePokedSeq) return;
-		if (!iframeLoaded) return;
 		const isUserResync = poke !== remotePokedSeq;
+		if (!iframeLoaded) {
+			// Join: the very first frame should land on the host's target, not
+			// on the base URL (position 0) followed by a rebuild. Building the
+			// initial load with #t= + autoplay turns two sequential iframe
+			// loads into one — the second load is what makes a joining member
+			// sit on "Syncing to host..." for minutes on slow devices.
+			if (readOnly && currentProvider && currentUrl && !hasFullPlaybackControl) {
+				if (rs.provider && rs.provider.id !== currentProvider.id) {
+					switchToProviderId(rs.provider.id);
+				}
+				remoteAppliedSeq = rs.seq;
+				remotePokedSeq = poke;
+				// Throttle retries for embeds that never fire onload: rebuild at
+				// most every 3s instead of on every SSE frame (1.5s).
+				if (Date.now() - lastFrameLoadAt >= 3000) {
+					requestBuild(hostTarget(rs), rs.playing);
+				}
+			}
+			return;
+		}
 		remoteAppliedSeq = rs.seq;
 		remotePokedSeq = poke;
 		applyHostState(rs, isUserResync);
