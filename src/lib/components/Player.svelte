@@ -693,17 +693,25 @@
 			// initial load with #t= + autoplay turns two sequential iframe
 			// loads into one — the second load is what makes a joining member
 			// sit on "Syncing to host..." for minutes on slow devices.
-			if (readOnly && currentProvider && currentUrl && !hasFullPlaybackControl) {
+			// Exactly ONE build: gated on remoteAppliedSeq === -1 (nothing ever
+			// applied yet), and the seq is marked BEFORE the build so frames
+			// arriving while the iframe is still loading are dropped. A retry
+			// here would replace the in-flight src and cancel the load — a
+			// slow embed would then never complete loading and the member
+			// would rebuild forever.
+			if (
+				remoteAppliedSeq === -1 &&
+				readOnly &&
+				currentProvider &&
+				currentUrl &&
+				!hasFullPlaybackControl
+			) {
 				if (rs.provider && rs.provider.id !== currentProvider.id) {
 					switchToProviderId(rs.provider.id);
 				}
 				remoteAppliedSeq = rs.seq;
 				remotePokedSeq = poke;
-				// Throttle retries for embeds that never fire onload: rebuild at
-				// most every 3s instead of on every SSE frame (1.5s).
-				if (Date.now() - lastFrameLoadAt >= 3000) {
-					requestBuild(hostTarget(rs), rs.playing);
-				}
+				requestBuild(hostTarget(rs), rs.playing);
 			}
 			return;
 		}
