@@ -248,6 +248,14 @@ try {
 			.catch(() => null);
 	while (Date.now() - startWait < 240000) {
 		const lines = newLines(memberLogs, m);
+		// Count builds BEFORE firstIframe is set — build and iframe-load lines
+		// can land in the same poll batch, and firstIframe must not be set
+		// before the batch's builds are counted.
+		if (!firstIframe) {
+			for (const l of lines) {
+				if (l.includes('[build]') && !buildsBeforeIframe.includes(l)) buildsBeforeIframe.push(l);
+			}
+		}
 		if (!firstJoin) {
 			const l = lines.find((x) => x.includes('[join]'));
 			if (l) firstJoin = { t: Date.now() - t0, line: l };
@@ -281,14 +289,6 @@ try {
 		if (!firstTu) {
 			for (const l of lines) {
 				if (l.includes('[build]') && !buildsBeforeTu.includes(l)) buildsBeforeTu.push(l);
-			}
-		}
-		// Count [build]s before the first iframe load — must be exactly 1.
-		// The reload-loop regression fired a build every ~3s while the embed
-		// was still loading (each one cancelling the in-flight load).
-		if (!firstIframe) {
-			for (const l of lines) {
-				if (l.includes('[build]') && !buildsBeforeIframe.includes(l)) buildsBeforeIframe.push(l);
 			}
 		}
 		// sample overlay every ~2s until playback starts
