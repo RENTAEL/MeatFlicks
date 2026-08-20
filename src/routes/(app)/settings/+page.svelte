@@ -83,6 +83,7 @@
 	}
 
 	const browser = typeof navigator !== 'undefined' ? navigator.userAgent : '';
+	const isIos = /iPhone|iPad|iPod|iOS/i.test(browser);
 
 	const links = {
 		chrome:
@@ -245,6 +246,64 @@
 				</p>
 			</div>
 		</div>
+	{:else}
+		<!-- Mobile Browsing (mobile only) -->
+		<div class="settings-section">
+			<div class="section-header">
+				<span class="section-icon">📱</span>
+				<div>
+					<h2 class="section-title">Mobile Browsing</h2>
+					<p class="section-desc">
+						Phones don't do browser extensions, so the desktop adblocker is off the table here.
+						These browsers block popups and ads all by themselves.
+					</p>
+				</div>
+			</div>
+
+			<div class="mobile-browser-row">
+				<div class="ublock-card">
+					<div class="ublock-info">
+						<div>
+							<h3 class="ublock-name">Brave Browser</h3>
+							<p class="ublock-desc">
+								Ad blocking and popup blocking built straight in. Fast, private, no setup.
+							</p>
+						</div>
+					</div>
+					<a
+						href={isIos
+							? 'https://apps.apple.com/app/brave-private-web-browser/id1052879175'
+							: 'https://play.google.com/store/apps/details?id=com.brave.browser'}
+						target="_blank"
+						rel="noopener"
+						class="ublock-install-btn"
+					>
+						Get Brave →
+					</a>
+				</div>
+
+				<div class="ublock-card">
+					<div class="ublock-info">
+						<div>
+							<h3 class="ublock-name">Firefox</h3>
+							<p class="ublock-desc">
+								Comes with strict tracking protection on by default — popups don't stand a chance.
+							</p>
+						</div>
+					</div>
+					<a
+						href={isIos
+							? 'https://apps.apple.com/app/firefox-private-safe-browser/id989804926'
+							: 'https://play.google.com/store/apps/details?id=org.mozilla.firefox'}
+						target="_blank"
+						rel="noopener"
+						class="ublock-install-btn"
+					>
+						Get Firefox →
+					</a>
+				</div>
+			</div>
+		</div>
 	{/if}
 
 	<!-- Account -->
@@ -361,6 +420,18 @@
 		display: flex;
 		flex-direction: column;
 		gap: 1rem;
+	}
+
+	.mobile-browser-row {
+		display: grid;
+		grid-template-columns: 1fr;
+		gap: 1rem;
+	}
+
+	@media (min-width: 560px) {
+		.mobile-browser-row {
+			grid-template-columns: 1fr 1fr;
+		}
 	}
 
 	.ublock-info {

@@ -25,6 +25,7 @@
 	import PreviewSwitcher from '$lib/components/branding/PreviewSwitcher.svelte';
 	import UblockPopup from '$lib/components/UblockPopup.svelte';
 	import AdblockerIntroPopup from '$lib/components/AdblockerIntroPopup.svelte';
+	import MobileBrowserPopup from '$lib/components/MobileBrowserPopup.svelte';
 	import UserFab from '$lib/components/UserFab.svelte';
 	import DeveloperBadge from '$lib/components/DeveloperBadge.svelte';
 
@@ -134,6 +135,8 @@
 <UblockPopup />
 
 <AdblockerIntroPopup isLoggedIn={!!$page.data?.user} />
+
+<MobileBrowserPopup />
 
 <PreviewPopout />
 

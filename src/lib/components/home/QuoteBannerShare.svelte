@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { Share2, Download, Loader2, Check, Instagram } from '@lucide/svelte';
+	import { Share2, Download, Loader2, Check, Instagram, Link2 } from '@lucide/svelte';
 	import type { DailyQuoteClient } from '$lib/state/stores/dailyQuotes.svelte';
 	import { QUOTE_CATEGORY_LABELS } from '$lib/state/stores/dailyQuotes.svelte';
 	import {
@@ -14,6 +14,7 @@
 
 	let imageUrl = $state('');
 	let busy = $state(false);
+	let copied = $state(false);
 	let status = $state<'idle' | 'shared' | 'downloaded' | 'failed' | 'cancelled'>('idle');
 
 	const title = $derived(`Daily ${QUOTE_CATEGORY_LABELS[quote.category]} Quote — Streamium`);
@@ -21,7 +22,7 @@
 
 	onMount(() => {
 		let disposed = false;
-		renderQuoteBanner(quote)
+		renderQuoteBanner(quote, shareUrl)
 			.then((blob) => {
 				if (disposed) {
 					URL.revokeObjectURL(URL.createObjectURL(blob));
@@ -54,12 +55,24 @@
 		if (busy) return;
 		busy = true;
 		try {
-			await downloadQuoteBanner(quote);
+			await downloadQuoteBanner(quote, shareUrl);
 			status = 'downloaded';
 		} catch {
 			status = 'failed';
 		} finally {
 			busy = false;
+		}
+	}
+
+	async function handleCopyLink() {
+		try {
+			await navigator.clipboard.writeText(shareUrl);
+			copied = true;
+			setTimeout(() => {
+				copied = false;
+			}, 2000);
+		} catch {
+			status = 'failed';
 		}
 	}
 </script>
@@ -100,10 +113,21 @@
 			<Download class="size-4" aria-hidden="true" />
 			Save image
 		</button>
+		<button type="button" class="banner-btn" onclick={handleCopyLink}>
+			{#if copied}
+				<Check class="size-4" aria-hidden="true" />
+			{:else}
+				<Link2 class="size-4" aria-hidden="true" />
+			{/if}
+			{copied ? 'Copied!' : 'Copy link'}
+		</button>
 	</div>
 
 	{#if status === 'downloaded'}
-		<p class="banner-status">Image saved — post it on Instagram!</p>
+		<p class="banner-status">
+			Image saved — the QR on it opens the site. When posting to Instagram Stories, add the link
+			sticker with the copied link for a direct tap-through.
+		</p>
 	{:else if status === 'failed'}
 		<p class="banner-status banner-status-error">
 			Couldn’t share the image — try saving it instead.
