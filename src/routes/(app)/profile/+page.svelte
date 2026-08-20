@@ -17,17 +17,32 @@
 
 	let { profile, stats, history, watchlist: watchlistItems } = $derived(data);
 
-	const tabs = [
+	const tabs: { id: TabId; label: string }[] = [
 		{ id: 'overview', label: 'Overview' },
 		{ id: 'history', label: `History (${stats.watchedCount})` },
-		{ id: 'watchlist', label: `Watchlist (${stats.watchlistCount})` }
+		{ id: 'watchlist', label: `Watchlist (${stats.watchlistCount})` },
+		{ id: 'quotes', label: 'Saved Quotes' }
 	];
 
-	let activeTab = $state('overview');
+	type TabId = 'overview' | 'history' | 'watchlist' | 'quotes';
+
+	let activeTab = $state<TabId>('overview');
 	let editingName = $state(false);
 	let saveError = $state('');
 	let removed: string[] = $state([]);
 	let clearingHistory = $state(false);
+
+	type SavedQuotesModule = typeof import('$lib/components/profile/SavedQuotesSection.svelte');
+	let savedQuotesComp = $state<SavedQuotesModule['default'] | null>(null);
+
+	function onTabChange(id: TabId) {
+		activeTab = id;
+		if (id === 'quotes' && !savedQuotesComp) {
+			import('$lib/components/profile/SavedQuotesSection.svelte').then((m) => {
+				savedQuotesComp = m.default;
+			});
+		}
+	}
 
 	function formatDate(ts: number) {
 		return new Date(ts).toLocaleDateString('en-ZA', {
@@ -176,7 +191,7 @@
 			<button
 				class="tab-btn"
 				class:active={activeTab === tab.id}
-				onclick={() => (activeTab = tab.id)}
+				onclick={() => onTabChange(tab.id)}
 			>
 				{tab.label}
 			</button>
@@ -341,6 +356,19 @@
 				</p>
 			{/if}
 		</section>
+	{/if}
+
+	{#if activeTab === 'quotes'}
+		{#if savedQuotesComp}
+			<savedQuotesComp></savedQuotesComp>
+		{:else}
+			<section class="section">
+				<div class="section-head">
+					<h2>Saved Quotes</h2>
+				</div>
+				<p class="empty-state">Loading your saved quotes…</p>
+			</section>
+		{/if}
 	{/if}
 </div>
 

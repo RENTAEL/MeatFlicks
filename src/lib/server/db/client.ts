@@ -481,6 +481,21 @@ const runInitSql = async (client: Client) => {
 			"updatedAt" INTEGER NOT NULL
 		)`);
 
+		await client.execute(`CREATE TABLE IF NOT EXISTS saved_quotes (
+			"id" TEXT PRIMARY KEY,
+			"userId" TEXT NOT NULL REFERENCES users("id") ON DELETE CASCADE,
+			"quoteText" TEXT NOT NULL,
+			"quoteAuthor" TEXT NOT NULL DEFAULT 'Unknown',
+			"category" TEXT NOT NULL DEFAULT 'general',
+			"createdAt" INTEGER NOT NULL
+		)`);
+		await client.execute(
+			`CREATE INDEX IF NOT EXISTS "idx_saved_quotes_user" ON saved_quotes ("userId")`
+		);
+		await client.execute(
+			`CREATE INDEX IF NOT EXISTS "idx_saved_quotes_created" ON saved_quotes ("createdAt")`
+		);
+
 		if (!isTurso()) {
 			await client.execute('PRAGMA optimize');
 		}

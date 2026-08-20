@@ -220,6 +220,26 @@ export const watchlist = sqliteTable(
 	]
 );
 
+export const savedQuotes = sqliteTable(
+	'saved_quotes',
+	{
+		id: text('id').primaryKey(),
+		userId: text('userId')
+			.notNull()
+			.references(() => users.id, { onDelete: 'cascade' }),
+		quoteText: text('quoteText').notNull(),
+		quoteAuthor: text('quoteAuthor').notNull().default('Unknown'),
+		category: text('category').notNull().default('general'),
+		createdAt: integer('createdAt')
+			.notNull()
+			.$defaultFn(() => Date.now())
+	},
+	(table) => [
+		index('idx_saved_quotes_user').on(table.userId),
+		index('idx_saved_quotes_created').on(table.createdAt)
+	]
+);
+
 export const watchHistory = sqliteTable(
 	'watch_history',
 	{

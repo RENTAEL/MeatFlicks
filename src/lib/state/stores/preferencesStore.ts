@@ -1,4 +1,5 @@
 import { writable, type Writable } from 'svelte/store';
+import type { QuoteCategory } from './dailyQuotes.svelte';
 
 export type PlaybackQuality = 'auto' | 'high' | 'medium' | 'low';
 
@@ -32,6 +33,7 @@ export type AppPreferences = {
 	limitDownloadSize: boolean;
 	autoManageDownloads: boolean;
 	autoSyncWatchlist: boolean;
+	quoteCategory: QuoteCategory;
 };
 
 export const DEFAULT_PREFERENCES: AppPreferences = {
@@ -63,7 +65,8 @@ export const DEFAULT_PREFERENCES: AppPreferences = {
 	betaAnnouncements: false,
 	limitDownloadSize: true,
 	autoManageDownloads: false,
-	autoSyncWatchlist: true
+	autoSyncWatchlist: true,
+	quoteCategory: 'general'
 };
 
 const STORAGE_KEY = 'streamium.preferences';

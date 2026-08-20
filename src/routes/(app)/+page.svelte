@@ -10,7 +10,7 @@
 	import { useLazyComponentOnVisible } from '$lib/utils/lazyLoad.svelte';
 	import { Button } from '$lib/components/ui/button';
 	import { ErrorState } from '$lib/components/ui';
-	import { Loader2, RefreshCw } from '@lucide/svelte';
+	import { Loader2, Quote, RefreshCw } from '@lucide/svelte';
 	import DiscoveryEngine from '$lib/components/DiscoveryEngine.svelte';
 	import ContentCalendar from '$lib/components/ContentCalendar.svelte';
 	import { goto } from '$app/navigation';
@@ -25,6 +25,26 @@
 		const clean = wpCode.trim().toUpperCase();
 		if (!WP_CODE_RE.test(clean)) return;
 		goto(`/watch/${clean}`);
+	}
+
+	// Daily Quotes — the section is a dynamic import, loaded only on first
+	// open so it never touches the initial bundle or first paint.
+	type DQModule = typeof import('$lib/components/home/DailyQuoteSection.svelte');
+	let dqOpen = $state(false);
+	let DQSection = $state<DQModule['default'] | null>(null);
+	let dqLoading = $state(false);
+
+	async function openDailyQuotes() {
+		if (dqOpen) return;
+		dqOpen = true;
+		if (!DQSection) {
+			dqLoading = true;
+			try {
+				DQSection = (await import('$lib/components/home/DailyQuoteSection.svelte')).default;
+			} finally {
+				dqLoading = false;
+			}
+		}
 	}
 
 	let continueWatchingRef = $state({ value: null as HTMLElement | null });
@@ -219,8 +239,23 @@
 			</button>
 		</form>
 		<a class="wp-strip-link" href="/watch-party">Start one →</a>
+		<button
+			class="dq-chip"
+			type="button"
+			onclick={openDailyQuotes}
+			disabled={dqLoading}
+			aria-label="Daily Quotes"
+			title="Daily Quotes"
+		>
+			<Quote size={14} aria-hidden="true" />
+			<span>DQ</span>
+		</button>
 	</div>
 </section>
+
+{#if dqOpen && DQSection}
+	<DQSection onclose={() => (dqOpen = false)} />
+{/if}
 
 <div class="page-transition min-h-screen text-foreground">
 	<div class="mx-auto w-full py-2 pr-2 pl-0 sm:pr-2 sm:pl-0 lg:pr-2 lg:pl-0">
@@ -627,5 +662,35 @@
 
 	.wp-strip-link:hover {
 		text-decoration: underline;
+	}
+
+	.dq-chip {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.35rem;
+		padding: 0.45rem 0.9rem;
+		border-radius: var(--radius-full);
+		border: 1px solid var(--border-stream);
+		background: var(--bg-card);
+		color: var(--text-secondary);
+		font-size: 0.8rem;
+		font-weight: var(--font-weight-semibold);
+		letter-spacing: 0.04em;
+		cursor: pointer;
+		transition:
+			color 0.15s ease,
+			border-color 0.15s ease,
+			background 0.15s ease;
+	}
+
+	.dq-chip:hover:not(:disabled) {
+		color: var(--text-primary);
+		border-color: var(--accent-color, #818cf8);
+		background: var(--bg-root);
+	}
+
+	.dq-chip:disabled {
+		opacity: 0.6;
+		cursor: default;
 	}
 </style>
