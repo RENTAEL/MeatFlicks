@@ -4,7 +4,12 @@ import { hash } from '@node-rs/argon2';
 import { db } from '$lib/server/db';
 import { users } from '$lib/server/db/schema';
 import { getCsrfToken } from '$lib/server/csrf';
-import { encryptSession, createSessionCookieName, getSessionCookieOptions } from '$lib/server/session-crypto';
+import {
+	encryptSession,
+	createSessionCookieName,
+	getSessionCookieOptions
+} from '$lib/server/session-crypto';
+import { clearUserRevocation } from '$lib/server/session-revocation';
 import type { Actions, PageServerLoad } from './$types';
 import { eq, or } from 'drizzle-orm';
 
@@ -35,13 +40,8 @@ export const actions: Actions = {
 			});
 		}
 		const normalizedEmail =
-			typeof email === 'string' && email.trim() !== ''
-				? email.trim().toLowerCase()
-				: null;
-		if (
-			normalizedEmail !== null &&
-			!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)
-		) {
+			typeof email === 'string' && email.trim() !== '' ? email.trim().toLowerCase() : null;
+		if (normalizedEmail !== null && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)) {
 			return fail(400, {
 				message: 'Invalid email address'
 			});
@@ -91,8 +91,10 @@ export const actions: Actions = {
 				username: normalizedUsername,
 				role: 'USER',
 				expiresAt: Date.now() + 86400 * 1000 * 30,
+				issuedAt: Date.now()
 			});
 			cookies.set(createSessionCookieName(), cookie, getSessionCookieOptions());
+			await clearUserRevocation(userId);
 		} catch (e) {
 			console.error(e);
 			return fail(500, {

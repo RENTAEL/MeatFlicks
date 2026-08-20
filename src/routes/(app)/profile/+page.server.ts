@@ -171,7 +171,8 @@ export const actions: Actions = {
 					userId: locals.user.id,
 					username: newUsername,
 					role: locals.user.role,
-					expiresAt: Date.now() + 86400 * 1000 * 30
+					expiresAt: Date.now() + 86400 * 1000 * 30,
+					issuedAt: Date.now()
 				}),
 				getSessionCookieOptions()
 			);

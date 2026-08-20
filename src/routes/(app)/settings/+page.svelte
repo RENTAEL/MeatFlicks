@@ -11,12 +11,18 @@
 	import { themes, SOFIA_THEME } from '$lib/themes';
 	import type { OverrideToken, ThemeOverrides } from '$lib/stores/theme';
 	import AdminPanel from '$lib/components/admin/AdminPanel.svelte';
+	import { isDesktopDevice } from '$lib/utils/device';
 
 	$: user = $page.data?.user;
 	$: firebaseUser = authStore.state.user;
 	$: isSofia =
 		getBranding(firebaseUser) ??
 		(user ? getBranding({ displayName: user.username, email: user.email }) : null) === 'sofia';
+
+	let isDesktop = true;
+	onMount(() => {
+		isDesktop = isDesktopDevice();
+	});
 
 	const sofiaTokens: { token: OverrideToken; label: string }[] = [
 		{ token: 'accent', label: 'Accent' },
@@ -199,45 +205,47 @@
 		</div>
 	</div>
 
-	<!-- Popup Blocking (existing) -->
-	<div class="settings-section">
-		<div class="section-header">
-			<span class="section-icon">🛡️</span>
-			<div>
-				<h2 class="section-title">Popup Blocking</h2>
-				<p class="section-desc">
-					Some video providers open popup windows. Install a lightweight ad blocker to prevent this
-					automatically.
-				</p>
-			</div>
-		</div>
-
-		<div class="ublock-card">
-			<div class="ublock-info">
+	<!-- Popup Blocking (desktop only) -->
+	{#if isDesktop}
+		<div class="settings-section">
+			<div class="section-header">
+				<span class="section-icon">🛡️</span>
 				<div>
-					<h3 class="ublock-name">uBlock Origin Lite</h3>
-					<p class="ublock-desc">
-						Free, open-source, Manifest V3 compliant. Runs with minimal permissions — only blocks
-						what you want it to. Won't slow down your browser.
+					<h2 class="section-title">Popup Blocking</h2>
+					<p class="section-desc">
+						Some video providers open popup windows. Install a lightweight ad blocker to prevent
+						this automatically.
 					</p>
 				</div>
 			</div>
 
-			<a href={getStoreLink()} target="_blank" rel="noopener" class="ublock-install-btn">
-				<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-					<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-					<polyline points="7 10 12 15 17 10" />
-					<line x1="12" y1="12" x2="12" y2="3" />
-				</svg>
-				Install uBlock Origin Lite
-			</a>
+			<div class="ublock-card">
+				<div class="ublock-info">
+					<div>
+						<h3 class="ublock-name">uBlock Origin Lite</h3>
+						<p class="ublock-desc">
+							Free, open-source, Manifest V3 compliant. Runs with minimal permissions — only blocks
+							what you want it to. Won't slow down your browser.
+						</p>
+					</div>
+				</div>
 
-			<p class="ublock-note">
-				Already installed? Great — you're protected. If popups still appear, make sure the extension
-				is enabled for this site.
-			</p>
+				<a href={getStoreLink()} target="_blank" rel="noopener" class="ublock-install-btn">
+					<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+						<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+						<polyline points="7 10 12 15 17 10" />
+						<line x1="12" y1="12" x2="12" y2="3" />
+					</svg>
+					Install uBlock Origin Lite
+				</a>
+
+				<p class="ublock-note">
+					Already installed? Great — you're protected. If popups still appear, make sure the
+					extension is enabled for this site.
+				</p>
+			</div>
 		</div>
-	</div>
+	{/if}
 
 	<!-- Account -->
 	<div class="settings-section">

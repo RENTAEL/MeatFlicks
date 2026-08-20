@@ -11,6 +11,8 @@
 	} from '$lib/state/stores/dailyQuotes.svelte';
 	import { savedQuotesStore, type SavedQuote } from '$lib/state/stores/savedQuotesStore.svelte';
 	import { Quote, Bookmark, Check, X, Loader2, LogIn } from '@lucide/svelte';
+	import ShareButton from '$lib/components/utils/ShareButton.svelte';
+	import { buildQuoteShareUrl } from '$lib/utils/quoteShare';
 
 	let { onclose }: { onclose: () => void } = $props();
 
@@ -20,6 +22,10 @@
 	let loadError = $state(false);
 	let saveState = $state<'idle' | 'saving' | 'saved' | 'error'>('idle');
 	let savedCount = $state(0);
+
+	const shareUrl = $derived(
+		quote ? new URL(buildQuoteShareUrl(quote), page.url.origin).toString() : ''
+	);
 
 	let overlayEl: HTMLElement;
 
@@ -145,27 +151,36 @@
 		</div>
 
 		<div class="dq-actions">
-			{#if !page.data.user}
-				<a class="dq-login" href="/login">
-					<LogIn size={14} aria-hidden="true" />
-					Sign in to save quotes
-				</a>
-			{:else if quote}
-				<button
-					type="button"
-					class="dq-save"
-					disabled={saveState === 'saving' || saveState === 'saved'}
-					onclick={saveQuote}
-				>
-					{#if saveState === 'saved'}
-						<Check size={15} aria-hidden="true" />
-						Saved
-					{:else}
-						<Bookmark size={15} aria-hidden="true" />
-						{saveState === 'saving' ? 'Saving…' : 'Save quote'}
-					{/if}
-				</button>
-			{/if}
+			<div class="dq-primary">
+				{#if !page.data.user}
+					<a class="dq-login" href="/login">
+						<LogIn size={14} aria-hidden="true" />
+						Sign in to save quotes
+					</a>
+				{:else if quote}
+					<button
+						type="button"
+						class="dq-save"
+						disabled={saveState === 'saving' || saveState === 'saved'}
+						onclick={saveQuote}
+					>
+						{#if saveState === 'saved'}
+							<Check size={15} aria-hidden="true" />
+							Saved
+						{:else}
+							<Bookmark size={15} aria-hidden="true" />
+							{saveState === 'saving' ? 'Saving…' : 'Save quote'}
+						{/if}
+					</button>
+				{/if}
+				{#if quote}
+					<ShareButton
+						url={shareUrl}
+						title={`Daily ${QUOTE_CATEGORY_LABELS[quote.category]} Quote — Streamium`}
+						description={`“${quote.quote}” — ${quote.author}`}
+					/>
+				{/if}
+			</div>
 			{#if savedCount > 0}
 				<a class="dq-library" href="/profile">
 					{savedCount} saved in your profile
@@ -340,6 +355,13 @@
 		flex-wrap: wrap;
 		gap: 0.6rem;
 		margin-top: 1.25rem;
+	}
+
+	.dq-primary {
+		display: flex;
+		align-items: center;
+		flex-wrap: wrap;
+		gap: 0.6rem;
 	}
 
 	.dq-save {

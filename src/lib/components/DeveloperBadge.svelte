@@ -5,11 +5,11 @@
 	let messageIndex = $state(0);
 
 	const messages = [
-		"Hand-crafted by the developer. No AI was harmed in the making of this site. 🤖👀",
+		'Hand-crafted by the developer. No AI was harmed in the making of this site. 🤖👀',
 		"the developer built this. The bugs are also his. You're welcome. 🐛",
 		"Made by the developer. He definitely didn't forget a semicolon somewhere. Probably.",
 		"This site runs on caffeine and the developer's questionable life choices. ☕",
-		"the developer wrote this. If it breaks, blame him, not the tech stack. 😎",
+		'the developer wrote this. If it breaks, blame him, not the tech stack. 😎'
 	];
 
 	function cycleMessage() {
@@ -25,7 +25,7 @@
 	}
 </script>
 
-<div class="gavin-badge-wrapper">
+<div class="gavin-badge-wrapper" data-app-ui>
 	<button
 		class="gavin-badge-btn"
 		onclick={handleClick}
@@ -37,10 +37,7 @@
 	</button>
 
 	{#if open}
-		<div
-			class="gavin-popup"
-			transition:scale={{ start: 0.8, duration: 250 }}
-		>
+		<div class="gavin-popup" transition:scale={{ start: 0.8, duration: 250 }}>
 			<div class="popup-arrow"></div>
 			<div class="popup-content">
 				<div class="popup-avatar">
@@ -50,9 +47,7 @@
 					<p class="popup-message">{messages[messageIndex]}</p>
 					<p class="popup-hint">Click to cycle →</p>
 				</div>
-				<button class="popup-close" onclick={() => (open = false)} aria-label="Close">
-					✕
-				</button>
+				<button class="popup-close" onclick={() => (open = false)} aria-label="Close"> ✕ </button>
 			</div>
 		</div>
 	{/if}

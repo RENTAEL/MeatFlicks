@@ -7,7 +7,10 @@ export const PRIVATE_PAGE_PREFIXES = [
 	'/watchlist'
 ];
 
-export const PUBLIC_HTML_CACHE_CONTROL = 'public, s-maxage=300, stale-while-revalidate=300';
+// HTML pages render per-user state (account, watchlist, session) and can be reached by
+// authenticated requests. Vercel's edge cache does not reliably honor Vary: Cookie, so a
+// cached anonymous render can be served to logged-in users. Never edge-cache HTML pages.
+export const PUBLIC_HTML_CACHE_CONTROL = 'private, no-store';
 
 export function isPublicPagePath(path: string): boolean {
 	return (
@@ -16,6 +19,6 @@ export function isPublicPagePath(path: string): boolean {
 	);
 }
 
-export function htmlCacheControl(user: unknown): string {
-	return user ? 'private, no-store' : PUBLIC_HTML_CACHE_CONTROL;
+export function htmlCacheControl(_user: unknown): string {
+	return PUBLIC_HTML_CACHE_CONTROL;
 }

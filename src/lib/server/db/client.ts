@@ -71,7 +71,12 @@ const runInitSql = async (client: Client) => {
 			await client.execute('CREATE UNIQUE INDEX IF NOT EXISTS idx_media_tmdbId ON media("tmdbId")');
 		} catch {}
 		try {
-			await client.execute('CREATE INDEX IF NOT EXISTS idx_media_rating ON media("rating")');
+			await client.execute(
+				'CREATE INDEX IF NOT EXISTS idx_presence_seen ON presence("lastSeenAt")'
+			);
+		} catch {}
+		try {
+			await client.execute('ALTER TABLE presence ADD COLUMN "disconnectedAt" INTEGER');
 		} catch {}
 		try {
 			await client.execute('CREATE INDEX IF NOT EXISTS idx_media_mediaType ON media("mediaType")');
@@ -152,6 +157,20 @@ const runInitSql = async (client: Client) => {
 			"value" TEXT NOT NULL
 		)`);
 
+		await client.execute(`CREATE TABLE IF NOT EXISTS presence (
+			"userId" TEXT PRIMARY KEY NOT NULL,
+			"username" TEXT NOT NULL,
+			"path" TEXT,
+			"title" TEXT,
+			"joinedAt" INTEGER NOT NULL,
+			"lastSeenAt" INTEGER NOT NULL
+		)`);
+		try {
+			await client.execute(
+				'CREATE INDEX IF NOT EXISTS idx_presence_seen ON presence("lastSeenAt")'
+			);
+		} catch {}
+
 		await client.execute(`CREATE VIRTUAL TABLE IF NOT EXISTS movie_fts USING fts5(
 			title, overview, content='media', content_rowid='numericId',
 			tokenize='porter unicode61'
@@ -188,6 +207,17 @@ const runInitSql = async (client: Client) => {
 			"user_id" TEXT NOT NULL REFERENCES users("id"),
 			"expires_at" INTEGER NOT NULL
 		)`);
+
+		await client.execute(`CREATE TABLE IF NOT EXISTS session_revocations (
+			"userId" TEXT PRIMARY KEY NOT NULL,
+			"revokedAt" INTEGER NOT NULL,
+			"createdAt" INTEGER NOT NULL
+		)`);
+		try {
+			await client.execute(
+				'CREATE INDEX IF NOT EXISTS idx_session_revocations_revoked ON session_revocations("revokedAt")'
+			);
+		} catch {}
 
 		await client.execute(`CREATE TABLE IF NOT EXISTS watchlist (
 			"id" INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,

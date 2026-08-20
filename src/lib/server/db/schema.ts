@@ -15,6 +15,20 @@ export const schemaInfo = sqliteTable('schema_info', {
 	value: text('value').notNull()
 });
 
+export const presence = sqliteTable(
+	'presence',
+	{
+		userId: text('userId').primaryKey(),
+		username: text('username').notNull(),
+		path: text('path'),
+		title: text('title'),
+		joinedAt: integer('joinedAt').notNull(),
+		lastSeenAt: integer('lastSeenAt').notNull(),
+		disconnectedAt: integer('disconnectedAt')
+	},
+	(table) => [index('idx_presence_seen').on(table.lastSeenAt)]
+);
+
 export const collections = sqliteTable('collections', {
 	id: integer('id').primaryKey({ autoIncrement: true }),
 	name: text('name').notNull().unique(),
@@ -131,6 +145,18 @@ export const sessions = sqliteTable('sessions', {
 		.references(() => users.id),
 	expiresAt: integer('expires_at').notNull()
 });
+
+export const sessionRevocations = sqliteTable(
+	'session_revocations',
+	{
+		userId: text('userId').primaryKey(),
+		revokedAt: integer('revokedAt').notNull(),
+		createdAt: integer('createdAt')
+			.notNull()
+			.$defaultFn(() => Date.now())
+	},
+	(table) => [index('idx_session_revocations_revoked').on(table.revokedAt)]
+);
 
 export const watchlistFolders = sqliteTable(
 	'watchlist_folders',

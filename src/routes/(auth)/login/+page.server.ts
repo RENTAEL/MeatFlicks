@@ -4,6 +4,7 @@ import { db } from '$lib/server/db';
 import { users } from '$lib/server/db/schema';
 import { getCsrfToken } from '$lib/server/csrf';
 import { encryptSession, createSessionCookieName, getSessionCookieOptions } from '$lib/server/session-crypto';
+import { clearUserRevocation } from '$lib/server/session-revocation';
 import type { Actions, PageServerLoad } from './$types';
 import { eq, or } from 'drizzle-orm';
 
@@ -58,8 +59,10 @@ export const actions: Actions = {
 			username: existingUser.username,
 			role: existingUser.role,
 			expiresAt: Date.now() + 86400 * 1000 * 30,
+			issuedAt: Date.now()
 		});
 		cookies.set(createSessionCookieName(), cookie, getSessionCookieOptions());
+		await clearUserRevocation(existingUser.id);
 
 		return redirect(302, '/');
 	}

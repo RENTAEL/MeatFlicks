@@ -1,10 +1,9 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { getCsrfTokenClient } from '$lib/utils/csrf.client';
-	import ActiveSessionsPanel from './ActiveSessionsPanel.svelte';
+	import ActiveUsersPanel from './ActiveUsersPanel.svelte';
 	import {
 		Shield,
-		Radio,
 		Wand2,
 		RefreshCw,
 		Megaphone,
@@ -284,12 +283,9 @@
 		</div>
 	</div>
 
-	<!-- Active sessions (embedded) -->
+	<!-- Active users & sessions (live) -->
 	<div class="admin-group">
-		<div class="admin-group-title">
-			<Radio size={14} aria-hidden="true" /> View active sessions
-		</div>
-		<ActiveSessionsPanel inline={true} onclose={() => {}} />
+		<ActiveUsersPanel />
 	</div>
 
 	<!-- Broadcast -->

@@ -1,6 +1,8 @@
 <script lang="ts">
 	import '../../app.css';
 
+	import { page } from '$app/stores';
+	import PresencePing from '$lib/components/PresencePing.svelte';
 	import TopNav from '$lib/components/navigation/TopNav.svelte';
 	import BottomNav from '$lib/components/mobile/BottomNav.svelte';
 	import MobileHeader from '$lib/components/mobile/MobileHeader.svelte';
@@ -22,6 +24,7 @@
 	import { authStore } from '$lib/state/stores/authStore.svelte.ts';
 	import PreviewSwitcher from '$lib/components/branding/PreviewSwitcher.svelte';
 	import UblockPopup from '$lib/components/UblockPopup.svelte';
+	import AdblockerIntroPopup from '$lib/components/AdblockerIntroPopup.svelte';
 	import UserFab from '$lib/components/UserFab.svelte';
 	import DeveloperBadge from '$lib/components/DeveloperBadge.svelte';
 
@@ -66,6 +69,10 @@
 		content="Movies, TV series, and Afrikaans content — ad-free, buffer-free, hassle-free."
 	/>
 </svelte:head>
+
+{#if $page.data?.user}
+	<PresencePing />
+{/if}
 
 <!-- Ambient background -->
 <div class="bg-ambient">
@@ -125,6 +132,8 @@
 <SearchOverlay />
 
 <UblockPopup />
+
+<AdblockerIntroPopup isLoggedIn={!!$page.data?.user} />
 
 <PreviewPopout />
 

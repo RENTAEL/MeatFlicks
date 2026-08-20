@@ -739,6 +739,64 @@ export async function kickMember(roomId: string, host: RoomUser, targetUserId: s
 	publishRoom(roomId, { type: 'kick', userId: targetUserId, by: host.username, at: now });
 }
 
+/** Admin action: kick a member from a room without being the host. */
+async function adminKickMember(roomId: string, targetUserId: string) {
+	const room = await getRoomOrThrow(roomId);
+	if (targetUserId === room.hostUserId) return;
+	const now = Date.now();
+	await db
+		.delete(watchPartyMembers)
+		.where(and(eq(watchPartyMembers.roomId, roomId), eq(watchPartyMembers.userId, targetUserId)))
+		.run();
+	await db
+		.update(watchPartyRooms)
+		.set({
+			seq: room.seq + 1,
+			kickedUserId: targetUserId,
+			kickedByUsername: 'the dev',
+			kickedAt: now,
+			lastActivityAt: now
+		})
+		.where(eq(watchPartyRooms.id, roomId))
+		.run();
+	publishRoom(roomId, { type: 'kick', userId: targetUserId, by: 'the dev', at: now });
+}
+
+/**
+ * Admin action: disconnect a single user — remove them from any watch party
+ * they're in (closing a room they host) so their live session is terminated.
+ */
+export async function adminKickUser(
+	userId: string
+): Promise<{ roomsKicked: number; roomClosed: boolean }> {
+	const rooms = await db
+		.select({ id: watchPartyRooms.id, hostUserId: watchPartyRooms.hostUserId })
+		.from(watchPartyRooms)
+		.where(isNull(watchPartyRooms.closedAt))
+		.all();
+
+	let roomsKicked = 0;
+	let roomClosed = false;
+	for (const room of rooms) {
+		if (room.hostUserId === userId) {
+			await closeRoomRows(room.id, Date.now());
+			roomsKicked++;
+			roomClosed = true;
+			continue;
+		}
+		const isMember = await db
+			.select({ userId: watchPartyMembers.userId })
+			.from(watchPartyMembers)
+			.where(and(eq(watchPartyMembers.roomId, room.id), eq(watchPartyMembers.userId, userId)))
+			.get();
+		if (isMember) {
+			await adminKickMember(room.id, userId);
+			roomsKicked++;
+		}
+	}
+	return { roomsKicked, roomClosed };
+}
+
 export async function leaveRoom(roomId: string, user: RoomUser) {
 	const room = await getRoomOrThrow(roomId);
 	const now = Date.now();

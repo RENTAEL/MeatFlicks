@@ -15,6 +15,8 @@ export interface SessionData {
 	username: string;
 	role: 'ADMIN' | 'USER';
 	expiresAt: number;
+	/** When this session was issued — sessions issued before a revocation are invalid. */
+	issuedAt?: number;
 }
 
 export function createSessionCookieName(): string {

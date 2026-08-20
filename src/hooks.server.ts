@@ -13,6 +13,7 @@ import {
 	createSessionCookieName,
 	getSessionCookieOptions
 } from '$lib/server/session-crypto';
+import { isUserSessionRevoked } from '$lib/server/session-revocation';
 
 declare global {
 	var __envValidated: boolean;
@@ -104,7 +105,22 @@ export const handle: Handle = async ({ event, resolve }) => {
 	}
 
 	const raw = event.cookies.get(createSessionCookieName());
-	const sessionData = raw ? decryptSession(raw) : null;
+	let sessionData = raw ? decryptSession(raw) : null;
+	if (sessionData) {
+		try {
+			const revoked = await isUserSessionRevoked(
+				sessionData.userId,
+				sessionData.issuedAt ?? 0
+			);
+			if (revoked) {
+				// Admin ended this session — treat as logged out and drop the stale cookie.
+				sessionData = null;
+				event.cookies.delete(createSessionCookieName(), getSessionCookieOptions());
+			}
+		} catch {
+			// revocation check is best-effort; expiry still applies below
+		}
+	}
 	if (sessionData) {
 		event.locals.user = {
 			id: sessionData.userId,
