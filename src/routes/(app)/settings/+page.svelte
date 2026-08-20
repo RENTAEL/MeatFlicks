@@ -10,6 +10,7 @@
 	import { themeStore } from '$lib/stores/theme';
 	import { themes, SOFIA_THEME } from '$lib/themes';
 	import type { OverrideToken, ThemeOverrides } from '$lib/stores/theme';
+	import AdminPanel from '$lib/components/admin/AdminPanel.svelte';
 
 	$: user = $page.data?.user;
 	$: firebaseUser = authStore.state.user;
@@ -244,6 +245,23 @@
 		<p class="st-sub">Manage your profile and watch history.</p>
 		<a href="/profile" class="btn btn-secondary">Go to Profile →</a>
 	</div>
+
+	{#if user?.role === 'ADMIN'}
+		<!-- Admin Panel -->
+		<div class="settings-section settings-section-admin">
+			<div class="section-header">
+				<span class="section-icon">🛠️</span>
+				<div>
+					<h2 class="section-title">Admin Panel</h2>
+					<p class="section-desc">
+						Operations console: end watch-party sessions, clear orphaned rooms, refresh the catalog,
+						broadcast messages, view system stats and flip feature flags.
+					</p>
+				</div>
+			</div>
+			<AdminPanel />
+		</div>
+	{/if}
 </div>
 
 <style>

@@ -4,12 +4,15 @@ dotenv.config();
 import type { Handle, RequestEvent } from '@sveltejs/kit';
 import { validateApiKeys, runMaintenance } from '$lib/server';
 import { logger } from '$lib/server/logger';
+import { recordServerError } from '$lib/server/admin/service';
 import { apiRateLimiter, authRateLimiter } from '$lib/server/rate-limiter';
 import { applySecurityHeaders } from '$lib/server/security-headers';
 import { csrfMiddleware } from '$lib/server/csrf';
-import { decryptSession, createSessionCookieName, getSessionCookieOptions } from '$lib/server/session-crypto';
-
-
+import {
+	decryptSession,
+	createSessionCookieName,
+	getSessionCookieOptions
+} from '$lib/server/session-crypto';
 
 declare global {
 	var __envValidated: boolean;
@@ -106,12 +109,12 @@ export const handle: Handle = async ({ event, resolve }) => {
 		event.locals.user = {
 			id: sessionData.userId,
 			username: sessionData.username,
-			role: sessionData.role,
+			role: sessionData.role
 		};
 		event.locals.session = {
 			id: createSessionCookieName(),
 			userId: sessionData.userId,
-			expiresAt: new Date(sessionData.expiresAt),
+			expiresAt: new Date(sessionData.expiresAt)
 		};
 	} else {
 		event.locals.user = null;
@@ -137,4 +140,9 @@ export const handle: Handle = async ({ event, resolve }) => {
 	response.headers.set('Permissions-Policy', 'fullscreen=*');
 
 	return applySecurityHeaders(event, response);
+};
+
+export const handleError = ({ error }: { error: unknown }) => {
+	recordServerError(error);
+	logger.error({ error }, 'Unhandled server error');
 };

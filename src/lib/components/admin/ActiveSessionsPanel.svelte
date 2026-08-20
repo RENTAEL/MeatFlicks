@@ -3,7 +3,7 @@
 	import { getCsrfTokenClient } from '$lib/utils/csrf.client';
 	import { Users, Play, Pause, X, Radio, Clock, XCircle } from '@lucide/svelte';
 
-	let { onclose }: { onclose: () => void } = $props();
+	let { onclose, inline = false }: { onclose: () => void; inline?: boolean } = $props();
 
 	type ActiveSession = {
 		roomId: string;
@@ -128,16 +128,18 @@
 	});
 </script>
 
-<div class="panel-wrap" role="dialog" aria-label="Active watch-party sessions">
+<div class="panel-wrap" class:inline role="dialog" aria-label="Active watch-party sessions">
 	<div class="panel-head">
 		<div class="panel-title">
 			<Radio size={15} aria-hidden="true" />
 			<h2>Active Sessions</h2>
 			<span class="live-dot" class:on={connected} aria-hidden="true"></span>
 		</div>
-		<button class="close-btn" type="button" onclick={onclose} aria-label="Close active sessions">
-			<X size={16} aria-hidden="true" />
-		</button>
+		{#if !inline}
+			<button class="close-btn" type="button" onclick={onclose} aria-label="Close active sessions">
+				<X size={16} aria-hidden="true" />
+			</button>
+		{/if}
 	</div>
 
 	{#if loading}
@@ -235,6 +237,16 @@
 		border: 1px solid var(--border-stream);
 		box-shadow: 0 20px 50px rgba(0, 0, 0, 0.45);
 		overflow: hidden;
+	}
+
+	.panel-wrap.inline {
+		position: static;
+		width: 100%;
+		max-height: 420px;
+		border-radius: var(--radius-lg);
+		box-shadow: none;
+		background: var(--bg-root);
+		border: 1px solid var(--border-stream);
 	}
 
 	.panel-head {

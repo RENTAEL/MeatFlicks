@@ -147,6 +147,11 @@ const runInitSql = async (client: Client) => {
 			"expiresAt" INTEGER NOT NULL
 		)`);
 
+		await client.execute(`CREATE TABLE IF NOT EXISTS schema_info (
+			"key" TEXT PRIMARY KEY NOT NULL,
+			"value" TEXT NOT NULL
+		)`);
+
 		await client.execute(`CREATE VIRTUAL TABLE IF NOT EXISTS movie_fts USING fts5(
 			title, overview, content='media', content_rowid='numericId',
 			tokenize='porter unicode61'

@@ -173,6 +173,39 @@ export async function adminCloseRoom(roomId: string): Promise<boolean> {
 	return true;
 }
 
+/** Admin action: force-close every active session and disconnect all members. */
+export async function adminEndAllSessions(): Promise<{ closed: number }> {
+	const rooms = await db
+		.select({ id: watchPartyRooms.id })
+		.from(watchPartyRooms)
+		.where(isNull(watchPartyRooms.closedAt))
+		.all();
+	const at = Date.now();
+	for (const room of rooms) {
+		await closeRoomRows(room.id, at);
+	}
+	return { closed: rooms.length };
+}
+
+/** Admin action: close stale/abandoned sessions that never ended (orphan cleanup). */
+export async function adminClearOrphanedSessions(): Promise<{ cleaned: number }> {
+	const now = Date.now();
+	const stale = await db
+		.select({ id: watchPartyRooms.id })
+		.from(watchPartyRooms)
+		.where(
+			and(
+				isNull(watchPartyRooms.closedAt),
+				sql`${watchPartyRooms.lastActivityAt} < ${now - ROOM_INACTIVITY_MS}`
+			)
+		)
+		.all();
+	for (const room of stale) {
+		await closeRoomRows(room.id, now);
+	}
+	return { cleaned: stale.length };
+}
+
 async function getRoomOrThrow(roomId: string) {
 	await cleanupExpired();
 	const room = await db.select().from(watchPartyRooms).where(eq(watchPartyRooms.id, roomId)).get();

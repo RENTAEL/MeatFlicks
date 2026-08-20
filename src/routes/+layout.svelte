@@ -5,6 +5,7 @@
 	import { page } from '$app/state';
 	import { watchlist } from '$lib/state/stores/watchlistStore.svelte';
 	import { watchHistory } from '$lib/state/stores/historyStore.svelte';
+	import AnnouncementBanner from '$lib/components/AnnouncementBanner.svelte';
 
 	let { children } = $props();
 
@@ -33,4 +34,5 @@
 	});
 </script>
 
+<AnnouncementBanner />
 {@render children()}

@@ -33,6 +33,16 @@
 	let dqOpen = $state(false);
 	let DQSection = $state<DQModule['default'] | null>(null);
 	let dqLoading = $state(false);
+	let flags = $state<Record<string, boolean>>({});
+
+	onMount(() => {
+		void fetch('/api/feature-flags')
+			.then((r) => (r.ok ? r.json() : null))
+			.then((data) => {
+				if (data?.flags) flags = data.flags;
+			})
+			.catch(() => {});
+	});
 
 	async function openDailyQuotes() {
 		if (dqOpen) return;
@@ -209,49 +219,53 @@
 	</div>
 </section>
 
-<section class="wp-strip">
-	<div class="wp-strip-inner">
-		<div class="wp-strip-text">
-			<span class="wp-strip-title">Watch Party</span>
-			<span class="wp-strip-sub">Got a room code? Jump straight in.</span>
-		</div>
-		<form
-			class="wp-strip-form"
-			onsubmit={(e) => {
-				e.preventDefault();
-				joinWatchParty();
-			}}
-		>
-			<input
-				class="wp-strip-input"
-				value={wpCode}
-				oninput={(e) => (wpCode = (e.currentTarget as HTMLInputElement).value.toUpperCase())}
-				placeholder="Room code"
-				maxlength="6"
-				aria-label="Watch party room code"
-			/>
-			<button
-				class="wp-strip-btn"
-				type="submit"
-				disabled={!WP_CODE_RE.test(wpCode.trim().toUpperCase())}
+{#if flags.watchPartyEnabled ?? true}
+	<section class="wp-strip">
+		<div class="wp-strip-inner">
+			<div class="wp-strip-text">
+				<span class="wp-strip-title">Watch Party</span>
+				<span class="wp-strip-sub">Got a room code? Jump straight in.</span>
+			</div>
+			<form
+				class="wp-strip-form"
+				onsubmit={(e) => {
+					e.preventDefault();
+					joinWatchParty();
+				}}
 			>
-				Join
-			</button>
-		</form>
-		<a class="wp-strip-link" href="/watch-party">Start one →</a>
-		<button
-			class="dq-chip"
-			type="button"
-			onclick={openDailyQuotes}
-			disabled={dqLoading}
-			aria-label="Daily Quotes"
-			title="Daily Quotes"
-		>
-			<Quote size={14} aria-hidden="true" />
-			<span>DQ</span>
-		</button>
-	</div>
-</section>
+				<input
+					class="wp-strip-input"
+					value={wpCode}
+					oninput={(e) => (wpCode = (e.currentTarget as HTMLInputElement).value.toUpperCase())}
+					placeholder="Room code"
+					maxlength="6"
+					aria-label="Watch party room code"
+				/>
+				<button
+					class="wp-strip-btn"
+					type="submit"
+					disabled={!WP_CODE_RE.test(wpCode.trim().toUpperCase())}
+				>
+					Join
+				</button>
+			</form>
+			<a class="wp-strip-link" href="/watch-party">Start one →</a>
+			{#if flags.dqEnabled ?? true}
+				<button
+					class="dq-chip"
+					type="button"
+					onclick={openDailyQuotes}
+					disabled={dqLoading}
+					aria-label="Daily Quotes"
+					title="Daily Quotes"
+				>
+					<Quote size={14} aria-hidden="true" />
+					<span>DQ</span>
+				</button>
+			{/if}
+		</div>
+	</section>
+{/if}
 
 {#if dqOpen && DQSection}
 	<DQSection onclose={() => (dqOpen = false)} />
