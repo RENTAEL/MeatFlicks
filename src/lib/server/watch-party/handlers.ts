@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { UnauthorizedError, NotFoundError } from '$lib/server';
+import { UnauthorizedError, ForbiddenError, NotFoundError } from '$lib/server';
 import type { RoomUser } from './types';
 
 export const roomIdSchema = z
@@ -9,6 +9,13 @@ export const roomIdSchema = z
 export function requireUser(locals: App.Locals): RoomUser {
 	const user = locals.user;
 	if (!user) throw new UnauthorizedError('You must be signed in');
+	return { id: user.id, username: user.username };
+}
+
+export function requireAdmin(locals: App.Locals): RoomUser {
+	const user = locals.user;
+	if (!user) throw new UnauthorizedError('You must be signed in');
+	if (user.role !== 'ADMIN') throw new ForbiddenError('Admin only');
 	return { id: user.id, username: user.username };
 }
 

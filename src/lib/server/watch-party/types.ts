@@ -70,6 +70,26 @@ export interface RoomQueueItem {
 	addedAt: number;
 }
 
+export interface ActiveSession {
+	roomId: string;
+	host: { userId: string; username: string };
+	media: {
+		title: string;
+		mediaType: 'movie' | 'tv';
+		tmdbId: number;
+		season: number | null;
+		episode: number | null;
+	};
+	provider: { id: string; name: string } | null;
+	playing: boolean;
+	position: number;
+	positionAt: number;
+	seq: number;
+	members: number;
+	createdAt: number;
+	lastActivityAt: number;
+}
+
 export interface RoomState {
 	closed: boolean;
 	roomId: string;

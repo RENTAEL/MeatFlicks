@@ -11,6 +11,18 @@
 	import { getScrollY, addScrollListener } from '$lib/utils/scrollPosition';
 
 	let scrolled = $state(false);
+	let adminOpen = $state(false);
+	let AdminSessionsPanel = $state<
+		typeof import('$lib/components/admin/ActiveSessionsPanel.svelte').default | null
+	>(null);
+
+	async function toggleAdminSessions() {
+		adminOpen = !adminOpen;
+		if (adminOpen && !AdminSessionsPanel) {
+			AdminSessionsPanel = (await import('$lib/components/admin/ActiveSessionsPanel.svelte'))
+				.default;
+		}
+	}
 
 	onMount(() => {
 		return addScrollListener(() => {
@@ -87,6 +99,26 @@
 						>
 						Watch Party
 					</a>
+					{#if page.data.user?.role === 'ADMIN'}
+						<button
+							class="wp-btn admin-sessions-btn"
+							aria-expanded={adminOpen}
+							aria-label="Active watch-party sessions"
+							onclick={toggleAdminSessions}
+						>
+							<svg
+								width="15"
+								height="15"
+								viewBox="0 0 24 24"
+								fill="none"
+								stroke="currentColor"
+								stroke-width="2"
+								stroke-linecap="round"
+								stroke-linejoin="round"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z" /></svg
+							>
+							Active Sessions
+						</button>
+					{/if}
 					<button class="signout-btn" onclick={signOut}>Sign Out</button>
 				</div>
 			{:else}
@@ -95,6 +127,10 @@
 		</div>
 	</div>
 </header>
+
+{#if adminOpen && AdminSessionsPanel}
+	<AdminSessionsPanel onclose={() => (adminOpen = false)} />
+{/if}
 
 <style>
 	.header {

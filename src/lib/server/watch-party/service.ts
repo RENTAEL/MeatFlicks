@@ -13,9 +13,12 @@ import type {
 	RoomState,
 	SoundEffect,
 	PlaybackCommand,
-	RoomQueueItem
+	RoomQueueItem,
+	ActiveSession
 } from './types';
 import { publishRoom } from './events';
+
+export type { ActiveSession } from './types';
 
 export const ROOM_INACTIVITY_MS = 30 * 60 * 1000;
 export const MEMBER_TIMEOUT_MS = 120 * 1000;
@@ -109,6 +112,65 @@ async function closeRoomRows(roomId: string, at: number) {
 	await db.delete(watchPartyMessages).where(eq(watchPartyMessages.roomId, roomId)).run();
 	await db.delete(watchPartyQueue).where(eq(watchPartyQueue.roomId, roomId)).run();
 	publishRoom(roomId);
+}
+
+/**
+ * Admin view over all live sessions — PURE reads, no side effects (unlike
+ * getRoomState, which bumps activity and sweeps stale members).
+ */
+export async function listActiveSessions(): Promise<ActiveSession[]> {
+	const now = Date.now();
+	const rooms = await db
+		.select()
+		.from(watchPartyRooms)
+		.where(isNull(watchPartyRooms.closedAt))
+		.all();
+	if (rooms.length === 0) return [];
+
+	const memberCounts = await db
+		.select({
+			roomId: watchPartyMembers.roomId,
+			count: sql<number>`count(*)`
+		})
+		.from(watchPartyMembers)
+		.where(sql`${watchPartyMembers.lastSeenAt} >= ${now - MEMBER_TIMEOUT_MS}`)
+		.groupBy(watchPartyMembers.roomId)
+		.all();
+	const countByRoom = new Map(memberCounts.map((m) => [m.roomId, Number(m.count)]));
+
+	return rooms.map((room) => ({
+		roomId: room.id,
+		host: { userId: room.hostUserId, username: room.hostUsername },
+		media: {
+			title: room.title,
+			mediaType: room.mediaType,
+			tmdbId: room.tmdbId,
+			season: room.season,
+			episode: room.episode
+		},
+		provider: room.provider
+			? { id: room.provider, name: room.providerName ?? room.provider }
+			: null,
+		playing: room.playing,
+		position: room.position,
+		positionAt: room.positionAt,
+		seq: room.seq,
+		members: countByRoom.get(room.id) ?? 0,
+		createdAt: room.createdAt,
+		lastActivityAt: room.lastActivityAt
+	}));
+}
+
+/** Admin action: close/end a session immediately (same cleanup as host leave). */
+export async function adminCloseRoom(roomId: string): Promise<boolean> {
+	const room = await db
+		.select({ id: watchPartyRooms.id })
+		.from(watchPartyRooms)
+		.where(eq(watchPartyRooms.id, roomId))
+		.get();
+	if (!room) return false;
+	await closeRoomRows(roomId, Date.now());
+	return true;
 }
 
 async function getRoomOrThrow(roomId: string) {
