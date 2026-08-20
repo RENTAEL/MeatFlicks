@@ -82,13 +82,14 @@ const sanitizeMedia = (candidate: unknown): Media | null => {
 
 	const ratingValue = Number(payload.rating ?? 0);
 	const addedAt = normalizeDateString(payload.addedAt) ?? new Date().toISOString();
-	const tmdbId = typeof payload.tmdbId === 'number'
-		? payload.tmdbId
-		: typeof payload.tmdb_id === 'number'
-			? payload.tmdb_id
-			: typeof rawId === 'number'
-				? rawId
-				: undefined;
+	const tmdbId =
+		typeof payload.tmdbId === 'number'
+			? payload.tmdbId
+			: typeof payload.tmdb_id === 'number'
+				? payload.tmdb_id
+				: typeof rawId === 'number'
+					? rawId
+					: undefined;
 
 	return {
 		id,
@@ -115,50 +116,66 @@ const sanitizeMedia = (candidate: unknown): Media | null => {
 	};
 };
 
-const readStorage = (): Media[] => {
-	if (!hasStorage) return [];
+const dedupe = (items: Media[]): Media[] =>
+	items.reduce<Media[]>((acc, m) => {
+		return acc.some((existing) => existing.id === m.id) ? acc : [...acc, m];
+	}, []);
+
+const readStorageState = (): { items: Media[]; dirty: boolean } => {
+	if (!hasStorage) return { items: [], dirty: false };
 	try {
 		const raw = localStorage.getItem(STORAGE_KEY);
-		if (!raw) return [];
+		if (!raw) return { items: [], dirty: false };
 		const parsed = JSON.parse(raw);
-		if (!Array.isArray(parsed)) return [];
-
-		return parsed
-			.map(sanitizeMedia)
-			.filter((m): m is Media => Boolean(m))
-			.reduce<Media[]>((accumulator, m) => {
-				return accumulator.some((existing) => existing.id === m.id)
-					? accumulator
-					: [...accumulator, m];
-			}, []);
+		if (Array.isArray(parsed)) {
+			// Legacy plain-array format -> treat as guest-only data to upload on login.
+			return {
+				items: dedupe(parsed.map(sanitizeMedia).filter((m: unknown): m is Media => Boolean(m))),
+				dirty: true
+			};
+		}
+		if (parsed && Array.isArray(parsed.items)) {
+			return {
+				items: dedupe(
+					parsed.items.map(sanitizeMedia).filter((m: unknown): m is Media => Boolean(m))
+				),
+				dirty: parsed.dirty === true
+			};
+		}
+		return { items: [], dirty: false };
 	} catch (error) {
-		console.error('[watchlist][readStorage] Failed', error);
-		return [];
+		console.error('[watchlist][readStorageState] Failed', error);
+		return { items: [], dirty: false };
 	}
 };
 
-const persist = (items: Media[]) => {
+const persistState = (state: { items: Media[]; dirty: boolean }) => {
 	if (!hasStorage) return;
 	try {
-		localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
+		localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
 	} catch (error) {
-		console.error('[watchlist][persist] Failed', error);
+		console.error('[watchlist][persistState] Failed', error);
 	}
 };
 
 class WatchlistStore {
-	#watchlist = $state<Media[]>([]);
+	#items = $state<Media[]>([]);
+	#dirty = $state(false);
 	#loading = $state(false);
 	#error = $state<string | null>(null);
 
 	constructor() {
 		if (typeof window !== 'undefined') {
-			this.#watchlist = readStorage();
+			const stored = readStorageState();
+			this.#items = stored.items;
+			this.#dirty = stored.dirty;
 			this.syncFromServer();
 
 			window.addEventListener('storage', (event) => {
 				if (event.key === STORAGE_KEY) {
-					this.#watchlist = readStorage();
+					const next = readStorageState();
+					this.#items = next.items;
+					this.#dirty = next.dirty;
 				}
 			});
 
@@ -169,7 +186,7 @@ class WatchlistStore {
 	}
 
 	get items() {
-		return this.#watchlist;
+		return this.#items;
 	}
 	get loading() {
 		return this.#loading;
@@ -184,17 +201,39 @@ class WatchlistStore {
 
 		this.#loading = true;
 		try {
+			const headers = await buildJsonHeadersWithCsrf();
+
+			// Upload guest/local-only items that were never persisted server-side.
+			if (this.#dirty && this.#items.length > 0) {
+				for (const item of this.#items) {
+					const body: Record<string, unknown> = {};
+					if (item.tmdbId) {
+						body.tmdbId = item.tmdbId;
+						body.mediaType = item.mediaType || item.media_type;
+					} else {
+						body.mediaId = item.id;
+					}
+					await fetch('/api/watchlist', {
+						method: 'POST',
+						headers,
+						body: JSON.stringify(body),
+						credentials: 'include'
+					});
+				}
+				this.#dirty = false;
+			}
+
+			// Server is the source of truth once logged in — always adopt its
+			// state, even when empty, so deletions propagate across devices.
 			const response = await fetch('/api/watchlist', { credentials: 'include' });
 			if (response.ok) {
 				const serverMedia = await response.json();
-				const sanitized = serverMedia
-					.map(sanitizeMedia)
-					.filter((m: Media | null): m is Media => Boolean(m));
-
-				if (sanitized.length > 0) {
-					this.#watchlist = sanitized;
-					persist(sanitized);
-				}
+				const sanitized = dedupe(
+					serverMedia.map(sanitizeMedia).filter((m: Media | null): m is Media => Boolean(m))
+				);
+				this.#items = sanitized;
+				this.#dirty = false;
+				persistState({ items: sanitized, dirty: false });
 			}
 		} catch (error) {
 			console.error('[watchlist][syncFromServer] Failed', error);
@@ -204,7 +243,7 @@ class WatchlistStore {
 	}
 
 	isInWatchlist(mediaId: string): boolean {
-		return this.#watchlist.some((m) => m.id === mediaId || String(m.tmdbId ?? '') === mediaId);
+		return this.#items.some((m) => m.id === mediaId || String(m.tmdbId ?? '') === mediaId);
 	}
 
 	async addToWatchlist(mediaItem: WatchlistCandidate) {
@@ -214,21 +253,22 @@ class WatchlistStore {
 			return;
 		}
 
-		const previousWatchlist = [...this.#watchlist];
-		const existingIndex = this.#watchlist.findIndex((item) => item.id === sanitized.id);
+		const previousWatchlist = [...this.#items];
+		const existingIndex = this.#items.findIndex((item) => item.id === sanitized.id);
 
 		if (existingIndex >= 0) {
-			this.#watchlist[existingIndex] = {
+			this.#items[existingIndex] = {
 				...sanitized,
-				addedAt: this.#watchlist[existingIndex].addedAt
+				addedAt: this.#items[existingIndex].addedAt
 			};
 		} else {
-			this.#watchlist.push(sanitized);
+			this.#items.push(sanitized);
 		}
 
-		persist(this.#watchlist);
-
 		if (!page.data.user) {
+			// Guest: keep locally and mark dirty so it uploads on the next login.
+			this.#dirty = true;
+			persistState({ items: this.#items, dirty: true });
 			if (existingIndex < 0) {
 				notifications.mediaAdded({
 					title: sanitized.title,
@@ -238,6 +278,8 @@ class WatchlistStore {
 			}
 			return;
 		}
+
+		persistState({ items: this.#items, dirty: this.#dirty });
 
 		try {
 			const body: Record<string, unknown> = {};
@@ -265,19 +307,19 @@ class WatchlistStore {
 				});
 			}
 		} catch (error) {
-			this.#watchlist = previousWatchlist;
-			persist(this.#watchlist);
+			this.#items = previousWatchlist;
+			persistState({ items: this.#items, dirty: this.#dirty });
 			notifications.error('Sync Error', 'Failed to save to server.');
 		}
 	}
 
 	async removeFromWatchlist(mediaId: string) {
-		const previousWatchlist = [...this.#watchlist];
-		const item = this.#watchlist.find((m) => m.id === mediaId);
+		const previousWatchlist = [...this.#items];
+		const item = this.#items.find((m) => m.id === mediaId);
 		const title = item?.title ?? 'Item';
 
-		this.#watchlist = this.#watchlist.filter((m) => m.id !== mediaId);
-		persist(this.#watchlist);
+		this.#items = this.#items.filter((m) => m.id !== mediaId);
+		persistState({ items: this.#items, dirty: this.#dirty });
 
 		if (!page.data.user) {
 			notifications.info('Removed', `Removed "${title}" from watchlist.`);
@@ -303,15 +345,15 @@ class WatchlistStore {
 			if (!response.ok) throw new Error('Failed to sync');
 			notifications.info('Removed', `Removed "${title}" from watchlist.`);
 		} catch (error) {
-			this.#watchlist = previousWatchlist;
-			persist(this.#watchlist);
+			this.#items = previousWatchlist;
+			persistState({ items: this.#items, dirty: this.#dirty });
 			notifications.error('Sync Error', 'Failed to remove from server.');
 		}
 	}
 
 	async clear() {
-		this.#watchlist = [];
-		persist([]);
+		this.#items = [];
+		persistState({ items: [], dirty: this.#dirty });
 
 		if (!page.data.user) return;
 
@@ -328,21 +370,17 @@ class WatchlistStore {
 	}
 
 	exportData() {
-		return $state.snapshot(this.#watchlist);
+		return $state.snapshot(this.#items);
 	}
 
 	replaceAll(items: Media[]) {
-		const sanitized = items
-			.map(sanitizeMedia)
-			.filter((m): m is Media => Boolean(m))
-			.reduce<Media[]>((accumulator, m) => {
-				return accumulator.some((existing) => existing.id === m.id)
-					? accumulator
-					: [...accumulator, m];
-			}, []);
+		const sanitized = dedupe(
+			items.map(sanitizeMedia).filter((m: Media | null): m is Media => Boolean(m))
+		);
 
-		this.#watchlist = sanitized;
-		persist(sanitized);
+		this.#items = sanitized;
+		this.#dirty = false;
+		persistState({ items: sanitized, dirty: false });
 	}
 }
 

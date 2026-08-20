@@ -33,13 +33,13 @@
 	let clearingHistory = $state(false);
 
 	type SavedQuotesModule = typeof import('$lib/components/profile/SavedQuotesSection.svelte');
-	let savedQuotesComp = $state<SavedQuotesModule['default'] | null>(null);
+	let SavedQuotesComp = $state<SavedQuotesModule['default'] | null>(null);
 
 	function onTabChange(id: TabId) {
 		activeTab = id;
-		if (id === 'quotes' && !savedQuotesComp) {
+		if (id === 'quotes' && !SavedQuotesComp) {
 			import('$lib/components/profile/SavedQuotesSection.svelte').then((m) => {
-				savedQuotesComp = m.default;
+				SavedQuotesComp = m.default;
 			});
 		}
 	}
@@ -359,8 +359,8 @@
 	{/if}
 
 	{#if activeTab === 'quotes'}
-		{#if savedQuotesComp}
-			<savedQuotesComp></savedQuotesComp>
+		{#if SavedQuotesComp}
+			<SavedQuotesComp />
 		{:else}
 			<section class="section">
 				<div class="section-head">

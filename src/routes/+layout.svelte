@@ -2,11 +2,25 @@
 	import '../app.css';
 	import { themeStore } from '$lib/stores/theme';
 	import { afterNavigate } from '$app/navigation';
+	import { page } from '$app/state';
+	import { watchlist } from '$lib/state/stores/watchlistStore.svelte';
+	import { watchHistory } from '$lib/state/stores/historyStore.svelte';
 
 	let { children } = $props();
 
 	$effect(() => {
 		$themeStore;
+	});
+
+	// Re-sync watchlist/history whenever the signed-in user changes (login,
+	// logout, account switch) so a new device/log-in picks up server data and
+	// guest changes made before login are uploaded.
+	$effect(() => {
+		const user = page.data.user;
+		if (user) {
+			void watchlist.syncFromServer();
+			void watchHistory.syncFromServer();
+		}
 	});
 
 	afterNavigate(() => {

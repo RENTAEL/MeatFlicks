@@ -91,58 +91,83 @@ const sanitizeEntry = (candidate: unknown): HistoryEntry | null => {
 	} satisfies HistoryEntry;
 };
 
-const readStorage = (): HistoryEntry[] => {
+const dedupe = (entries: HistoryEntry[]): HistoryEntry[] =>
+	entries.reduce<HistoryEntry[]>((acc, e) => {
+		return acc.some((existing) => existing.id === e.id) ? acc : [...acc, e];
+	}, []);
+
+const readStorageState = (): { entries: HistoryEntry[]; dirty: boolean } => {
 	if (!hasStorage) {
-		return [];
+		return { entries: [], dirty: false };
 	}
 
 	try {
 		const raw = localStorage.getItem(STORAGE_KEY);
 		if (!raw) {
-			return [];
+			return { entries: [], dirty: false };
 		}
 
 		const parsed = JSON.parse(raw);
-		if (!Array.isArray(parsed)) {
-			return [];
+		if (Array.isArray(parsed)) {
+			// Legacy plain-array format -> treat as guest-only data to upload on login.
+			return {
+				entries: dedupe(
+					parsed
+						.map(sanitizeEntry)
+						.filter((entry: unknown): entry is HistoryEntry => Boolean(entry))
+				).sort((a, b) => (a.watchedAt > b.watchedAt ? -1 : 1)),
+				dirty: true
+			};
 		}
 
-		return parsed
-			.map(sanitizeEntry)
-			.filter((entry): entry is HistoryEntry => Boolean(entry))
-			.sort((a, b) => (a.watchedAt > b.watchedAt ? -1 : 1));
+		if (parsed && Array.isArray(parsed.entries)) {
+			return {
+				entries: dedupe(
+					parsed.entries
+						.map(sanitizeEntry)
+						.filter((entry: unknown): entry is HistoryEntry => Boolean(entry))
+				).sort((a, b) => (a.watchedAt > b.watchedAt ? -1 : 1)),
+				dirty: parsed.dirty === true
+			};
+		}
+
+		return { entries: [], dirty: false };
 	} catch (error) {
-		console.error('[history][readStorage] Failed to parse persisted data', error);
-		return [];
+		console.error('[history][readStorageState] Failed to parse persisted data', error);
+		return { entries: [], dirty: false };
 	}
 };
 
-const persist = (entries: HistoryEntry[]) => {
+const persistState = (state: { entries: HistoryEntry[]; dirty: boolean }) => {
 	if (!hasStorage) {
 		return;
 	}
 
 	try {
-		localStorage.setItem(STORAGE_KEY, JSON.stringify(entries));
+		localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
 	} catch (error) {
-		console.error('[history][persist] Failed to write data', error);
+		console.error('[history][persistState] Failed to write data', error);
 	}
 };
 
 class HistoryStore {
 	#entries = $state<HistoryEntry[]>([]);
+	#dirty = $state(false);
 	#loading = $state(false);
 	#error = $state<string | null>(null);
-	#historyFailed = false;
 
 	constructor() {
 		if (typeof window !== 'undefined') {
-			this.#entries = readStorage();
+			const stored = readStorageState();
+			this.#entries = stored.entries;
+			this.#dirty = stored.dirty;
 			this.syncFromServer();
 
 			window.addEventListener('storage', (event) => {
 				if (event.key === STORAGE_KEY) {
-					this.#entries = readStorage();
+					const next = readStorageState();
+					this.#entries = next.entries;
+					this.#dirty = next.dirty;
 				}
 			});
 
@@ -168,17 +193,43 @@ class HistoryStore {
 
 		this.#loading = true;
 		try {
+			const headers = await buildJsonHeadersWithCsrf();
+
+			// Upload guest/local-only history that was never persisted server-side.
+			if (this.#dirty && this.#entries.length > 0) {
+				for (const entry of this.#entries) {
+					const body: Record<string, unknown> = {};
+					const tmdbIdVal = entry.tmdbId;
+					if (tmdbIdVal) {
+						body.tmdb_id = Number(tmdbIdVal);
+						body.media_type = entry.mediaType || entry.media_type || 'movie';
+					} else {
+						body.mediaId = entry.id;
+					}
+					await fetch('/api/history', {
+						method: 'POST',
+						headers,
+						body: JSON.stringify(body),
+						credentials: 'include'
+					});
+				}
+				this.#dirty = false;
+			}
+
+			// Server is the source of truth once logged in — always adopt its
+			// state, even when empty, so deletions propagate across devices.
 			const response = await fetch('/api/history', { credentials: 'include' });
 			if (response.ok) {
 				const serverHistory = await response.json();
-				const sanitized = serverHistory
-					.map(sanitizeEntry)
-					.filter((entry: HistoryEntry | null): entry is HistoryEntry => Boolean(entry));
+				const sanitized = dedupe(
+					serverHistory
+						.map(sanitizeEntry)
+						.filter((entry: HistoryEntry | null): entry is HistoryEntry => Boolean(entry))
+				).sort((a, b) => (a.watchedAt > b.watchedAt ? -1 : 1));
 
-				if (sanitized.length > 0) {
-					this.#entries = sanitized;
-					persist(sanitized);
-				}
+				this.#entries = sanitized;
+				this.#dirty = false;
+				persistState({ entries: sanitized, dirty: false });
 			}
 		} catch (error) {
 			console.error('[history][syncFromServer] Failed', error);
@@ -188,8 +239,6 @@ class HistoryStore {
 	}
 
 	async recordWatch(media: Partial<Media> & Record<string, unknown>) {
-		if (this.#historyFailed) return;
-
 		const id = typeof media.id === 'string' ? media.id : String(media.id ?? '');
 		if (!id) return;
 
@@ -202,9 +251,13 @@ class HistoryStore {
 		this.#entries = [entry, ...this.#entries.filter((e) => e.id !== entry.id)].sort((a, b) =>
 			a.watchedAt > b.watchedAt ? -1 : 1
 		);
-		persist(this.#entries);
+		persistState({ entries: this.#entries, dirty: this.#dirty });
 
-		if (!page.data.user) return;
+		if (!page.data.user) {
+			this.#dirty = true;
+			persistState({ entries: this.#entries, dirty: true });
+			return;
+		}
 
 		try {
 			const body: Record<string, unknown> = {};
@@ -224,23 +277,21 @@ class HistoryStore {
 			});
 
 			if (!response.ok) {
-				this.#historyFailed = true;
-				console.warn('[history] Endpoint returned', response.status, '— disabling watch history for this session');
+				console.warn('[history] Endpoint returned', response.status, '— will retry on next watch');
 			}
 		} catch (error) {
-			this.#historyFailed = true;
-			console.warn('[history] Network error — disabling watch history for this session');
+			console.warn('[history] Network error — will retry on next watch', error);
 		}
 	}
 
 	async remove(mediaId: string) {
 		this.#entries = this.#entries.filter((entry) => entry.id !== mediaId);
-		persist(this.#entries);
+		persistState({ entries: this.#entries, dirty: this.#dirty });
 	}
 
 	async clear() {
 		this.#entries = [];
-		persist([]);
+		persistState({ entries: [], dirty: this.#dirty });
 
 		if (!page.data.user) return;
 
@@ -260,13 +311,13 @@ class HistoryStore {
 	}
 
 	replaceAll(entries: HistoryEntry[]) {
-		const sanitized = entries
-			.map(sanitizeEntry)
-			.filter((entry): entry is HistoryEntry => Boolean(entry))
-			.sort((a, b) => (a.watchedAt > b.watchedAt ? -1 : 1));
+		const sanitized = dedupe(
+			entries.map(sanitizeEntry).filter((entry): entry is HistoryEntry => Boolean(entry))
+		).sort((a, b) => (a.watchedAt > b.watchedAt ? -1 : 1));
 
 		this.#entries = sanitized;
-		persist(sanitized);
+		this.#dirty = false;
+		persistState({ entries: sanitized, dirty: false });
 	}
 }
 
