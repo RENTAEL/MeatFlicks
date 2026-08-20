@@ -3,12 +3,7 @@
 	import { Share2, Download, Loader2, Check, Instagram, Link2 } from '@lucide/svelte';
 	import type { DailyQuoteClient } from '$lib/state/stores/dailyQuotes.svelte';
 	import { QUOTE_CATEGORY_LABELS } from '$lib/state/stores/dailyQuotes.svelte';
-	import {
-		renderQuoteBanner,
-		downloadQuoteBanner,
-		shareQuoteBanner,
-		QUOTE_BANNER_CTA
-	} from '$lib/utils/quoteBanner';
+	import { renderQuoteBanner, downloadQuoteBanner, shareQuoteBanner } from '$lib/utils/quoteBanner';
 
 	let { quote, shareUrl }: { quote: DailyQuoteClient; shareUrl: string } = $props();
 
@@ -22,7 +17,7 @@
 
 	onMount(() => {
 		let disposed = false;
-		renderQuoteBanner(quote, shareUrl)
+		renderQuoteBanner(quote)
 			.then((blob) => {
 				if (disposed) {
 					URL.revokeObjectURL(URL.createObjectURL(blob));
@@ -55,7 +50,7 @@
 		if (busy) return;
 		busy = true;
 		try {
-			await downloadQuoteBanner(quote, shareUrl);
+			await downloadQuoteBanner(quote);
 			status = 'downloaded';
 		} catch {
 			status = 'failed';
@@ -90,7 +85,7 @@
 
 	<p class="banner-cta">
 		<Instagram class="size-4" aria-hidden="true" />
-		{QUOTE_BANNER_CTA} — open {shareUrl}
+		Post the image, then add the link yourself — copy it with the button below.
 	</p>
 
 	<div class="banner-actions">
@@ -125,8 +120,8 @@
 
 	{#if status === 'downloaded'}
 		<p class="banner-status">
-			Image saved — the QR on it opens the site. When posting to Instagram Stories, add the link
-			sticker with the copied link for a direct tap-through.
+			Image saved — paste the copied link into your post (or add the link sticker on Instagram
+			Stories).
 		</p>
 	{:else if status === 'failed'}
 		<p class="banner-status banner-status-error">

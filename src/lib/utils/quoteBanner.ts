@@ -1,20 +1,10 @@
 import type { DailyQuoteClient } from '$lib/state/stores/dailyQuotes.svelte';
 import { QUOTE_CATEGORY_LABELS } from '$lib/state/stores/dailyQuotes.svelte';
-import QRCode from 'qrcode';
-import { buildQuoteShareUrl } from '$lib/utils/quoteShare';
 
 export const QUOTE_BANNER_WIDTH = 1080;
 export const QUOTE_BANNER_HEIGHT = 1080;
 
-export const QUOTE_BANNER_CTA = 'Click here to see my site and more daily quotes';
-export const QUOTE_BANNER_SITE_URL = 'https://streamium-cosmic.vercel.app';
-export const QUOTE_BANNER_SCAN_LABEL = 'Scan to open';
-
 type QuoteBannerQuote = Pick<DailyQuoteClient, 'quote' | 'author' | 'category' | 'day'>;
-
-export function buildQuoteBannerUrl(quote: QuoteBannerQuote): string {
-	return new URL(buildQuoteShareUrl(quote), QUOTE_BANNER_SITE_URL).toString();
-}
 
 function wrapText(ctx: CanvasRenderingContext2D, text: string, maxWidth: number): string[] {
 	const words = text.split(/\s+/);
@@ -57,7 +47,6 @@ function roundRect(
 export function drawQuoteBanner(
 	ctx: CanvasRenderingContext2D,
 	quote: QuoteBannerQuote,
-	opts: { url: string; qr: HTMLImageElement | null },
 	width: number = QUOTE_BANNER_WIDTH,
 	height: number = QUOTE_BANNER_HEIGHT
 ): void {
@@ -145,92 +134,26 @@ export function drawQuoteBanner(
 	ctx.fillText(pillText, width / 2, pillY + 2);
 	ctx.textBaseline = 'alphabetic';
 
-	// CTA — the ask: visit the site for more daily quotes (left of the QR card)
-	const ctaY = height * 0.86;
-	ctx.fillStyle = '#4338ca';
-	roundRect(
-		ctx,
-		width * 0.08,
-		ctaY - Math.round(height * 0.042),
-		width * 0.64,
-		Math.round(height * 0.084),
-		Math.round(height * 0.042)
-	);
-	ctx.fill();
-	ctx.fillStyle = '#ffffff';
-	ctx.font = `700 ${Math.round(width * 0.032)}px Inter, system-ui, sans-serif`;
-	ctx.textBaseline = 'middle';
-	ctx.fillText(QUOTE_BANNER_CTA, width * 0.4, ctaY + 2);
-	ctx.textBaseline = 'alphabetic';
-
-	// site url under the CTA
-	ctx.fillStyle = '#818cf8';
-	ctx.font = `500 ${Math.round(width * 0.024)}px ui-monospace, monospace`;
-	ctx.fillText(opts.url, width * 0.4, height * 0.93);
-
-	// QR card — the scannable "click here": encodes the same quote URL as the link share
-	if (opts.qr) {
-		const qrSize = Math.round(width * 0.15);
-		const cardPad = 12;
-		const cardW = qrSize + cardPad * 2;
-		const cardH = cardW + Math.round(width * 0.028);
-		const cardX = width - cardW - Math.round(width * 0.05);
-		const cardY = Math.round(height * 0.79);
-
-		ctx.fillStyle = '#ffffff';
-		roundRect(ctx, cardX, cardY, cardW, cardH, 14);
-		ctx.fill();
-		ctx.strokeStyle = 'rgba(129, 140, 248, 0.6)';
-		ctx.lineWidth = 2;
-		roundRect(ctx, cardX, cardY, cardW, cardH, 14);
-		ctx.stroke();
-
-		ctx.drawImage(opts.qr, cardX + cardPad, cardY + cardPad, qrSize, qrSize);
-
-		ctx.fillStyle = '#4338ca';
-		ctx.font = `600 ${Math.round(width * 0.021)}px Inter, system-ui, sans-serif`;
-		ctx.textBaseline = 'middle';
-		ctx.fillText(
-			QUOTE_BANNER_SCAN_LABEL,
-			cardX + cardW / 2,
-			cardY + cardPad + qrSize + cardPad + 4
-		);
-		ctx.textBaseline = 'alphabetic';
-	}
+	// small brand footer — keeps the image signed without cluttering the quote
+	ctx.fillStyle = 'rgba(129, 140, 248, 0.75)';
+	ctx.font = `600 ${Math.round(width * 0.026)}px Inter, system-ui, sans-serif`;
+	ctx.fillText('◈  STREAMIUM  ◈', width / 2, height * 0.945);
 }
 
-async function loadQr(url: string): Promise<HTMLImageElement | null> {
-	try {
-		const dataUrl = await QRCode.toDataURL(url, {
-			margin: 1,
-			width: 420,
-			color: { dark: '#0a0a1a', light: '#ffffff' }
-		});
-		const img = new Image();
-		img.src = dataUrl;
-		await img.decode();
-		return img;
-	} catch {
-		return null;
-	}
-}
-
-export async function renderQuoteBanner(quote: QuoteBannerQuote, url?: string): Promise<Blob> {
+export async function renderQuoteBanner(quote: QuoteBannerQuote): Promise<Blob> {
 	const canvas = document.createElement('canvas');
 	canvas.width = QUOTE_BANNER_WIDTH;
 	canvas.height = QUOTE_BANNER_HEIGHT;
 	const ctx = canvas.getContext('2d');
 	if (!ctx) throw new Error('Canvas 2D not available');
-	const targetUrl = url ?? buildQuoteBannerUrl(quote);
-	const qr = await loadQr(targetUrl);
-	drawQuoteBanner(ctx, quote, { url: targetUrl, qr });
+	drawQuoteBanner(ctx, quote);
 	const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/png'));
 	if (!blob) throw new Error('Banner render failed');
 	return blob;
 }
 
-export async function quoteBannerFile(quote: QuoteBannerQuote, url?: string): Promise<File> {
-	const blob = await renderQuoteBanner(quote, url);
+export async function quoteBannerFile(quote: QuoteBannerQuote): Promise<File> {
+	const blob = await renderQuoteBanner(quote);
 	return new File([blob], 'streamium-daily-quote.png', { type: 'image/png' });
 }
 
@@ -238,16 +161,16 @@ export function canShareFiles(): boolean {
 	return typeof navigator !== 'undefined' && !!navigator.canShare;
 }
 
-export async function downloadQuoteBanner(quote: QuoteBannerQuote, url?: string): Promise<void> {
-	const blob = await renderQuoteBanner(quote, url);
-	const url2 = URL.createObjectURL(blob);
+export async function downloadQuoteBanner(quote: QuoteBannerQuote): Promise<void> {
+	const blob = await renderQuoteBanner(quote);
+	const url = URL.createObjectURL(blob);
 	const a = document.createElement('a');
-	a.href = url2;
+	a.href = url;
 	a.download = 'streamium-daily-quote.png';
 	document.body.appendChild(a);
 	a.click();
 	a.remove();
-	setTimeout(() => URL.revokeObjectURL(url2), 4000);
+	setTimeout(() => URL.revokeObjectURL(url), 4000);
 }
 
 export type QuoteBannerShareResult = 'shared' | 'downloaded' | 'failed' | 'cancelled';
@@ -256,7 +179,7 @@ export async function shareQuoteBanner(
 	quote: QuoteBannerQuote,
 	opts: { title: string; text: string; url: string }
 ): Promise<QuoteBannerShareResult> {
-	const file = await quoteBannerFile(quote, opts.url);
+	const file = await quoteBannerFile(quote);
 	if (canShareFiles() && navigator.canShare?.({ files: [file] })) {
 		try {
 			await navigator.share({
@@ -270,6 +193,6 @@ export async function shareQuoteBanner(
 			// fall through to download — the image is still the deliverable
 		}
 	}
-	await downloadQuoteBanner(quote, opts.url);
+	await downloadQuoteBanner(quote);
 	return 'downloaded';
 }
