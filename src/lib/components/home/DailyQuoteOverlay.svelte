@@ -10,8 +10,9 @@
 		type DailyQuoteClient
 	} from '$lib/state/stores/dailyQuotes.svelte';
 	import { savedQuotesStore, type SavedQuote } from '$lib/state/stores/savedQuotesStore.svelte';
-	import { Quote, Bookmark, Check, X, Loader2, LogIn } from '@lucide/svelte';
+	import { Quote, Bookmark, Check, X, Loader2, LogIn, ImageIcon, ChevronUp } from '@lucide/svelte';
 	import ShareButton from '$lib/components/utils/ShareButton.svelte';
+	import QuoteBannerShare from './QuoteBannerShare.svelte';
 	import { buildQuoteShareUrl } from '$lib/utils/quoteShare';
 
 	let { onclose }: { onclose: () => void } = $props();
@@ -22,6 +23,7 @@
 	let loadError = $state(false);
 	let saveState = $state<'idle' | 'saving' | 'saved' | 'error'>('idle');
 	let savedCount = $state(0);
+	let imageShareOpen = $state(false);
 
 	const shareUrl = $derived(
 		quote ? new URL(buildQuoteShareUrl(quote), page.url.origin).toString() : ''
@@ -179,6 +181,21 @@
 						title={`Daily ${QUOTE_CATEGORY_LABELS[quote.category]} Quote — Streamium`}
 						description={`“${quote.quote}” — ${quote.author}`}
 					/>
+					<button
+						type="button"
+						class="dq-image-share"
+						aria-expanded={imageShareOpen}
+						aria-label={imageShareOpen ? 'Hide share image' : 'Share as image'}
+						title="Share as image"
+						onclick={() => (imageShareOpen = !imageShareOpen)}
+					>
+						{#if imageShareOpen}
+							<ChevronUp size={15} aria-hidden="true" />
+						{:else}
+							<ImageIcon size={15} aria-hidden="true" />
+						{/if}
+						{imageShareOpen ? 'Hide image' : 'Share as image'}
+					</button>
 				{/if}
 			</div>
 			{#if savedCount > 0}
@@ -187,6 +204,10 @@
 				</a>
 			{/if}
 		</div>
+
+		{#if imageShareOpen && quote}
+			<QuoteBannerShare {quote} {shareUrl} />
+		{/if}
 	</div>
 </div>
 
@@ -381,6 +402,26 @@
 	.dq-save:disabled {
 		opacity: 0.75;
 		cursor: default;
+	}
+
+	.dq-image-share {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.45rem;
+		padding: 0.5rem 1rem;
+		border-radius: var(--radius-md);
+		border: 1px solid var(--border-stream);
+		background: transparent;
+		color: var(--text-secondary);
+		font-size: 0.85rem;
+		font-weight: var(--font-weight-semibold);
+		cursor: pointer;
+		transition: all 0.15s ease;
+	}
+
+	.dq-image-share:hover {
+		color: var(--text-primary);
+		border-color: var(--accent-color, #818cf8);
 	}
 
 	.dq-login {

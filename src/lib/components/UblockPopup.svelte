@@ -1,13 +1,17 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { fly, fade } from 'svelte/transition';
+	import { isDesktopDevice } from '$lib/utils/device';
 
 	let visible = $state(false);
 
 	const STORAGE_KEY = 'ublock_popup_dismissed';
 	const uaBrands =
 		typeof navigator !== 'undefined'
-			? ((navigator as { userAgentData?: { brands?: { brand: string }[] } }).userAgentData?.brands ?? [])
+			? (
+					(navigator as { userAgentData?: { brands?: { brand: string }[] } }).userAgentData
+						?.brands ?? []
+				)
 					.map((b) => b.brand)
 					.join(' ')
 			: '';
@@ -35,7 +39,8 @@
 	}
 
 	onMount(() => {
-		if (!isSupported) return;
+		// The adblocker popup is a PC-only feature — never show it on mobile.
+		if (!isSupported || !isDesktopDevice()) return;
 		try {
 			// The adblocker intro owns the very first visit — don't stack on top of it.
 			if (!localStorage.getItem('adblocker_intro_seen')) return;

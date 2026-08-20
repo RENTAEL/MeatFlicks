@@ -2,6 +2,7 @@
 	import { page } from '$app/state';
 	import { SEOHead } from '$lib/components/seo';
 	import ShareButton from '$lib/components/utils/ShareButton.svelte';
+	import QuoteBannerShare from '$lib/components/home/QuoteBannerShare.svelte';
 	import { Quote, CalendarDays, Home } from '@lucide/svelte';
 	import { QUOTE_CATEGORY_LABELS } from '$lib/state/stores/dailyQuotes.svelte';
 	import { QUOTE_OG_IMAGE, buildQuoteShareUrl } from '$lib/utils/quoteShare';
@@ -63,4 +64,6 @@
 			Back to Streamium
 		</a>
 	</div>
+
+	<QuoteBannerShare {quote} {shareUrl} />
 </main>
