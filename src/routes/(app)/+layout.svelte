@@ -309,15 +309,15 @@
 		pointer-events: none;
 		background-image: url('/demon-slayer-aftermidnight.jpg');
 		background-size: cover;
-		background-position: center 28%;
+		background-position: center 32%;
 		background-repeat: no-repeat;
+		image-rendering: -webkit-optimize-contrast;
+		image-rendering: high-quality;
 		opacity: 0;
 		transition: opacity 0.6s ease;
 		will-change: opacity;
-		/* Hide low-res pixelation (335×597) and keep atmosphere */
-		filter: blur(1.2px) brightness(0.85) saturate(1.08);
-		transform: scale(1.04);
-		transform-origin: center;
+		/* Keep image clear and sharp — light touch, not heavy wash. Pixelation hidden by overlay, not blur. */
+		filter: brightness(0.94) saturate(1.04) contrast(1.04);
 	}
 
 	:global([data-theme='demon_slayer']) .demon-slayer-bg {
@@ -327,38 +327,36 @@
 	.demon-slayer-bg-overlay {
 		position: absolute;
 		inset: 0;
-		/* Designed vignette: dark edges, lighter center so text stays legible, flame tint from theme */
+		/* Designed, readable, cohesive — vignette + theme-tinted gradients, center stays clear */
 		background:
-			radial-gradient(ellipse 88% 72% at 50% 38%, rgba(255, 255, 255, 0.0) 0%, rgba(255, 255, 255, 0) 42%, rgba(5, 5, 8, 0.38) 72%, rgba(5, 5, 8, 0.72) 100%),
-			linear-gradient(180deg, rgba(5, 5, 8, 0.52) 0%, rgba(5, 5, 8, 0.42) 28%, rgba(5, 5, 8, 0.68) 68%, rgba(5, 5, 8, 0.88) 100%),
-			radial-gradient(ellipse 90% 55% at 50% 12%, rgba(255, 42, 18, 0.10) 0%, transparent 58%),
-			radial-gradient(ellipse 70% 50% at 84% 88%, rgba(255, 107, 0, 0.08) 0%, transparent 54%);
-		backdrop-filter: blur(0.5px);
-		-webkit-backdrop-filter: blur(0.5px);
+			radial-gradient(ellipse 92% 78% at 50% 36%, rgba(255, 255, 255, 0) 0%, rgba(255, 255, 255, 0) 46%, rgba(5, 5, 8, 0.32) 74%, rgba(5, 5, 8, 0.78) 100%),
+			linear-gradient(180deg, rgba(5, 5, 8, 0.38) 0%, rgba(5, 5, 8, 0.22) 30%, rgba(5, 5, 8, 0.52) 68%, rgba(5, 5, 8, 0.86) 100%),
+			radial-gradient(ellipse 88% 52% at 50% 10%, rgba(255, 42, 18, 0.08) 0%, transparent 60%),
+			radial-gradient(ellipse 62% 42% at 88% 90%, rgba(255, 107, 0, 0.06) 0%, transparent 56%);
 	}
 
 	/* Content elevation on demon theme — cards read as "on top of" background */
 	:global([data-theme='demon_slayer'] .glass),
 	:global([data-theme='demon_slayer'] .bg-card) {
-		background: rgba(15, 10, 18, 0.86) !important;
-		backdrop-filter: blur(14px) saturate(1.1);
-		-webkit-backdrop-filter: blur(14px) saturate(1.1);
-		border-color: rgba(255, 26, 26, 0.14) !important;
+		background: rgba(15, 10, 18, 0.82) !important;
+		backdrop-filter: blur(12px) saturate(1.08);
+		-webkit-backdrop-filter: blur(12px) saturate(1.08);
+		border-color: rgba(255, 26, 26, 0.16) !important;
 		box-shadow:
-			0 8px 24px rgba(0, 0, 0, 0.42),
-			0 0 0 1px rgba(255, 26, 26, 0.06);
+			0 8px 24px rgba(0, 0, 0, 0.38),
+			0 0 0 1px rgba(255, 26, 26, 0.07);
 	}
 
 	@media (max-width: 768px) {
 		.demon-slayer-bg {
-			background-position: center 18%;
-			filter: blur(1px) brightness(0.82) saturate(1.06);
+			background-position: center 22%;
+			filter: brightness(0.92) saturate(1.03) contrast(1.03);
 		}
 		.demon-slayer-bg-overlay {
 			background:
-				radial-gradient(ellipse 96% 68% at 50% 32%, rgba(255, 255, 255, 0) 0%, rgba(255, 255, 255, 0) 38%, rgba(5, 5, 8, 0.44) 70%, rgba(5, 5, 8, 0.78) 100%),
-				linear-gradient(180deg, rgba(5, 5, 8, 0.48) 0%, rgba(5, 5, 8, 0.72) 100%),
-				radial-gradient(ellipse 92% 48% at 50% 10%, rgba(255, 42, 18, 0.09) 0%, transparent 56%);
+				radial-gradient(ellipse 98% 72% at 50% 30%, rgba(255, 255, 255, 0) 0%, rgba(255, 255, 255, 0) 42%, rgba(5, 5, 8, 0.38) 72%, rgba(5, 5, 8, 0.82) 100%),
+				linear-gradient(180deg, rgba(5, 5, 8, 0.32) 0%, rgba(5, 5, 8, 0.68) 100%),
+				radial-gradient(ellipse 90% 44% at 50% 8%, rgba(255, 42, 18, 0.07) 0%, transparent 58%);
 		}
 	}
 
