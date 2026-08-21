@@ -88,6 +88,9 @@
 	<div class="bg-noise"></div>
 </div>
 
+	<!-- Demon Slayer custom background for aftermidnight — gated to demon_slayer theme -->
+	<div class="demon-slayer-bg" aria-hidden="true"><div class="demon-slayer-bg-overlay"></div></div>
+
 <ModeWatcher defaultMode="dark" themeColors={{ dark: '#0a0a1a', light: '#0a0a1a' }} />
 <ThemeContext>
 	<WatchlistContext>
@@ -296,6 +299,45 @@
 		inset: 0;
 		opacity: 0.015;
 		background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+	}
+
+	/* Demon Slayer custom background — aftermidnight only, reversible via data-theme */
+	.demon-slayer-bg {
+		position: fixed;
+		inset: 0;
+		z-index: -1;
+		pointer-events: none;
+		background-image: url('/demon-slayer-aftermidnight.jpg');
+		background-size: cover;
+		background-position: center center;
+		background-repeat: no-repeat;
+		opacity: 0;
+		transition: opacity 0.6s ease;
+		will-change: opacity;
+	}
+
+	:global([data-theme='demon_slayer']) .demon-slayer-bg {
+		opacity: 1;
+	}
+
+	.demon-slayer-bg-overlay {
+		position: absolute;
+		inset: 0;
+		background:
+			linear-gradient(180deg, rgba(5, 5, 8, 0.68) 0%, rgba(5, 5, 8, 0.78) 45%, rgba(5, 5, 8, 0.88) 100%),
+			radial-gradient(ellipse 85% 65% at 50% 18%, rgba(255, 26, 26, 0.09) 0%, transparent 62%),
+			radial-gradient(ellipse 65% 45% at 82% 85%, rgba(255, 107, 0, 0.07) 0%, transparent 52%);
+	}
+
+	@media (max-width: 768px) {
+		.demon-slayer-bg {
+			background-position: center top;
+		}
+		.demon-slayer-bg-overlay {
+			background:
+				linear-gradient(180deg, rgba(5, 5, 8, 0.62) 0%, rgba(5, 5, 8, 0.84) 100%),
+				radial-gradient(ellipse 90% 55% at 50% 12%, rgba(255, 26, 26, 0.08) 0%, transparent 58%);
+		}
 	}
 
 	.menu-backdrop {
