@@ -6,6 +6,7 @@ import {
 	applyTheme,
 	DEFAULT_THEME,
 	SOFIA_THEME,
+	DEMON_SLAYER_THEME,
 	shade,
 	alpha,
 	type ThemeColors,
@@ -55,8 +56,11 @@ function createThemeStore() {
 	let overrides: ThemeOverrides = readOverrides();
 	let brandPreview: BrandingType | null = null;
 
-	const effectiveId = (): ThemeId =>
-		brandPreview === 'sofia' ? SOFIA_THEME : (choice ?? brandDefault);
+	const effectiveId = (): ThemeId => {
+		if (brandPreview === 'sofia') return SOFIA_THEME;
+		if (brandPreview === 'demon_slayer') return DEMON_SLAYER_THEME;
+		return choice ?? brandDefault;
+	};
 
 	function applyCurrent() {
 		if (!browser) return;
@@ -101,7 +105,9 @@ function createThemeStore() {
 		},
 		setBrandTheme: (brand: BrandingType | null, preview = false) => {
 			const nextPreview = preview ? brand : null;
-			const nextDefault = brand === 'sofia' ? SOFIA_THEME : DEFAULT_THEME;
+			let nextDefault: ThemeId = DEFAULT_THEME;
+			if (brand === 'sofia') nextDefault = SOFIA_THEME;
+			else if (brand === 'demon_slayer') nextDefault = DEMON_SLAYER_THEME;
 			if (nextPreview === brandPreview && nextDefault === brandDefault) return;
 			brandPreview = nextPreview;
 			brandDefault = nextDefault;

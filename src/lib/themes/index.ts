@@ -34,10 +34,14 @@ export type ThemeId =
 	| 'sunset'
 	| 'ocean'
 	| 'lavender'
-	| 'sofia';
+	| 'sofia'
+	| 'demon_slayer';
 
 /** The theme that carries the Sofia the First series look (cocolemon's brand default). */
 export const SOFIA_THEME: ThemeId = 'sofia';
+
+/** Demon Slayer theme — dark, moody, after-midnight with flame accents for aftermidnight. */
+export const DEMON_SLAYER_THEME: ThemeId = 'demon_slayer';
 
 export const themes: Record<ThemeId, ThemeColors> = {
 	dark: {
@@ -275,6 +279,33 @@ export const themes: Record<ThemeId, ThemeColors> = {
 		success: '#4ade80',
 		danger: '#f87171',
 		warning: '#fbbf24'
+	},
+	demon_slayer: {
+		// Demon Slayer — after-midnight dark, moody, flame-kissed. For aftermidnight only.
+		name: 'demon_slayer',
+		label: 'Demon Slayer',
+		emoji: '🔥',
+		isDark: true,
+		bg: '#0a0a0f',
+		bgCard: '#14101a',
+		bgElevated: '#1c1628',
+		bgInput: '#0f0a14',
+		textPrimary: '#fff1f0',
+		textSecondary: '#c9a9a8',
+		textTertiary: '#8a6a69',
+		accent: '#ff3b30',
+		accentHover: '#ff5a4f',
+		accentGlow: 'rgba(255, 59, 48, 0.28)',
+		gradientBrand: 'linear-gradient(135deg, #ff3b30, #ff8c00)',
+		gradientBrandHorizontal: 'linear-gradient(90deg, #ff3b30, #ff8c00)',
+		border: 'rgba(255, 59, 48, 0.12)',
+		borderStrong: 'rgba(255, 59, 48, 0.22)',
+		shadowSm: '0 2px 8px rgba(0, 0, 0, 0.45)',
+		shadowMd: '0 4px 16px rgba(255, 59, 48, 0.12)',
+		shadowLg: '0 8px 32px rgba(0, 0, 0, 0.6)',
+		success: '#ff8c00',
+		danger: '#ff3b30',
+		warning: '#ffcc00'
 	}
 };
 

@@ -5,7 +5,10 @@
 	import { SEOHead } from '$lib/components/seo';
 	import { watchlist } from '$lib/state/stores/watchlistStore.svelte';
 	import { watchHistory } from '$lib/state/stores/historyStore.svelte';
-	import { Trash2, Film, Tv, Lock, Check, Clock } from '@lucide/svelte';
+	import { Trash2, Film, Tv, Lock, Check, Clock, Flame } from '@lucide/svelte';
+	import { getBranding } from '$lib/utils/branding';
+	import { impersonationStore } from '$lib/state/stores/impersonationStore.svelte.ts';
+	import DemonSlayerEye from '$lib/components/branding/DemonSlayerEye.svelte';
 
 	type FormResult = {
 		success?: boolean;
@@ -16,6 +19,16 @@
 	let { data, form }: { data: PageData; form: FormResult | undefined } = $props();
 
 	let { profile, stats, history, watchlist: watchlistItems } = $derived(data);
+
+	// Demon Slayer personalization for aftermidnight (per-user theme)
+	const impersonated = $derived(impersonationStore.current);
+	const effectiveProfile = $derived(impersonated ?? profile);
+	const isDemonSlayer = $derived(
+		getBranding({
+			displayName: effectiveProfile.username,
+			email: effectiveProfile.email ?? null
+		}) === 'demon_slayer'
+	);
 
 	const tabs: { id: TabId; label: string }[] = [
 		{ id: 'overview', label: 'Overview' },
@@ -93,8 +106,26 @@
 </svelte:head>
 
 <div class="profile-page">
-	<div class="profile-header glass">
-		<div class="avatar-circle">{profile.username.charAt(0).toUpperCase()}</div>
+	{#if isDemonSlayer}
+		<div class="demon-slayer-banner">
+			<div class="demon-slayer-greeting">
+				<Flame size="18" />
+				<span class="demon-greeting-text">
+					Set your heart ablaze, {effectiveProfile.username} — the night is yours. Breathe, and cut through
+					the darkness.
+				</span>
+				<span class="demon-greeting-sub">— Hashira's log · Demon Slayer Corps</span>
+			</div>
+		</div>
+	{/if}
+	<div class="profile-header glass" class:demon-slayer-header={isDemonSlayer}>
+		{#if isDemonSlayer}
+			<div class="avatar-demon">
+				<DemonSlayerEye size="lg" />
+			</div>
+		{:else}
+			<div class="avatar-circle">{profile.username.charAt(0).toUpperCase()}</div>
+		{/if}
 		<div class="profile-info">
 			{#if editingName}
 				<form
@@ -380,6 +411,57 @@
 		border-radius: var(--radius-md);
 		padding: 0.75rem 1rem;
 		margin-bottom: 1rem;
+	}
+
+	.demon-slayer-banner {
+		margin-bottom: 1.5rem;
+		padding: 1rem 1.25rem;
+		border-radius: var(--radius-lg);
+		background: linear-gradient(135deg, rgba(255, 59, 48, 0.12), rgba(255, 140, 0, 0.12));
+		border: 1px solid rgba(255, 59, 48, 0.22);
+		box-shadow: 0 4px 16px rgba(255, 59, 48, 0.12);
+	}
+
+	.demon-slayer-greeting {
+		display: flex;
+		align-items: center;
+		gap: 0.6rem;
+		flex-wrap: wrap;
+		color: var(--text-primary);
+	}
+
+	.demon-greeting-text {
+		font-size: 0.95rem;
+		font-weight: 600;
+		color: var(--text-primary);
+	}
+
+	.demon-greeting-sub {
+		font-size: 0.78rem;
+		color: var(--text-secondary);
+		font-style: italic;
+		margin-left: 0.25rem;
+	}
+
+	.demon-slayer-header {
+		border: 1px solid rgba(255, 59, 48, 0.18) !important;
+		box-shadow: 0 0 20px rgba(255, 59, 48, 0.08);
+	}
+
+	.avatar-demon {
+		width: 80px;
+		height: 80px;
+		border-radius: 50%;
+		background: radial-gradient(circle at 35% 30%, #2a0a0a 0%, #1a0505 100%);
+		border: 2px solid rgba(255, 59, 48, 0.35);
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		flex-shrink: 0;
+		box-shadow:
+			0 0 12px rgba(255, 59, 48, 0.3),
+			0 0 24px rgba(255, 140, 0, 0.15);
+		padding: 6px;
 	}
 
 	.profile-page {

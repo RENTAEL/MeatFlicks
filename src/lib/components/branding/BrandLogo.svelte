@@ -8,6 +8,7 @@
 	import CustomLogo from './CustomLogo.svelte';
 	import MidnightLogo from './MidnightLogo.svelte';
 	import SofiaLogo from './SofiaLogo.svelte';
+	import DemonSlayerEye from './DemonSlayerEye.svelte';
 
 	let { size = 'md', class: className = '' }: { size?: 'sm' | 'md' | 'lg'; class?: string } =
 		$props();
@@ -30,11 +31,17 @@
 				: (previewBranding ?? actualBranding)
 	);
 
+	// For demon_slayer, show the user's username as the site name (per-user personalization)
+	const demonSlayerName = $derived(
+		impersonated?.username ?? sessionUser?.username ?? firebaseUser?.displayName ?? 'aftermidnight'
+	);
+
 	$effect(() => {
-		// Brand themes: Sofia carries its series palette; everything else uses
-		// the user's explicit choice or the standard default.
+		// Brand themes: Sofia and Demon Slayer carry their series palettes
 		if (previewBranding === 'sofia') {
 			themeStore.setBrandTheme('sofia', true);
+		} else if (branding === 'demon_slayer' || previewBranding === 'demon_slayer') {
+			themeStore.setBrandTheme('demon_slayer', true);
 		} else {
 			themeStore.setBrandTheme(branding);
 		}
@@ -55,6 +62,11 @@
 	<a href="/" class="logo {className}" title="user" aria-label="Custom Home">
 		<CustomLogo {size} />
 		<span class="logo-text logo-text-custom">user</span>
+	</a>
+{:else if branding === 'demon_slayer'}
+	<a href="/" class="logo {className}" title={demonSlayerName} aria-label="{demonSlayerName} Home">
+		<DemonSlayerEye {size} />
+		<span class="logo-text logo-text-demon">{demonSlayerName}</span>
 	</a>
 {:else}
 	<a href="/" class="logo {className}" title="Streamium" aria-label="Streamium Home">
@@ -117,5 +129,14 @@
 		-webkit-background-clip: text;
 		-webkit-text-fill-color: transparent;
 		background-clip: text;
+	}
+
+	.logo-text-demon {
+		background: linear-gradient(90deg, #ff3b30, #ff8c00, #ff3b30);
+		-webkit-background-clip: text;
+		-webkit-text-fill-color: transparent;
+		background-clip: text;
+		letter-spacing: -0.03em;
+		text-shadow: 0 0 12px rgba(255, 59, 48, 0.35);
 	}
 </style>
