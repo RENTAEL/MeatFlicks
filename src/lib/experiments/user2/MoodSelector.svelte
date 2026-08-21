@@ -44,6 +44,9 @@
 		border-radius: 12px;
 		background: var(--bg-card);
 		border: 1px solid var(--border-stream);
+		min-height: 74px; /* match time card — no layout shift between the two */
+		display: flex;
+		flex-direction: column;
 	}
 	.mood-label {
 		font-size: 0.72rem;
@@ -59,11 +62,14 @@
 	.mood-btn {
 		width: 38px;
 		height: 38px;
+		flex-shrink: 0; /* no squeeze on narrow screens */
 		border-radius: 10px;
 		border: 1px solid var(--border-stream);
 		background: var(--bg-elevated);
 		font-size: 1.15rem;
+		line-height: 1;
 		cursor: pointer;
+		will-change: transform;
 		transition:
 			transform 0.12s,
 			border-color 0.12s,

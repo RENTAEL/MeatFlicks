@@ -563,19 +563,15 @@
 		display: inline-flex;
 		align-items: center;
 		gap: 0.5rem;
+		flex-wrap: wrap; /* badge wraps under long names instead of overflowing */
+		min-width: 0;
 	}
 
 	.user2-widgets {
 		display: grid;
-		grid-template-columns: 1fr 1fr;
+		grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
 		gap: 1rem;
 		margin-bottom: 2rem;
-	}
-
-	@media (max-width: 640px) {
-		.user2-widgets {
-			grid-template-columns: 1fr;
-		}
 	}
 
 	.avatar-circle {

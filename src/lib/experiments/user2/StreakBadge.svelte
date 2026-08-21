@@ -5,7 +5,7 @@
 
 	const user = $derived(page.data.user ?? null);
 	const enabled = $derived(isGlobalExperimentEnabled('streak', user as any));
-	let count = $state(0);
+	let count = $state<number | null>(null); // null = not yet read, avoids 0→N flicker
 
 	onMount(() => {
 		if (!enabled) return;
@@ -13,14 +13,14 @@
 	});
 
 	$effect(() => {
-		if (enabled) count = getStreak(user as any).count;
+		if (enabled && count === null) count = getStreak(user as any).count;
 	});
 </script>
 
-{#if enabled}
+{#if enabled && count !== null}
 	<span class="streak-badge" title="{count} day streak" aria-label="{count} day streak">
-		<span aria-hidden="true">🔥</span>
-		{count}
+		<span class="flame" aria-hidden="true">🔥</span>
+		<span class="num">{count}</span>
 	</span>
 {/if}
 
@@ -35,6 +35,14 @@
 		color: white;
 		font-size: 0.78rem;
 		font-weight: 700;
+		line-height: 1;
 		box-shadow: 0 2px 8px rgba(255, 59, 48, 0.35);
+	}
+	.flame {
+		font-size: 0.85em;
+		line-height: 1;
+	}
+	.num {
+		font-variant-numeric: tabular-nums; /* stable width, no badge jiggle */
 	}
 </style>

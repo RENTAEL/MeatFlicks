@@ -1,21 +1,37 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 
-	let progress = $state(0);
+	let fill: HTMLDivElement | null = $state(null);
 
 	onMount(() => {
+		let raf = 0;
+		let last = -1;
 		const onScroll = () => {
-			const max = document.documentElement.scrollHeight - window.innerHeight;
-			progress = max > 0 ? Math.min(100, Math.max(0, (window.scrollY / max) * 100)) : 0;
+			if (raf) return;
+			raf = requestAnimationFrame(() => {
+				raf = 0;
+				const max = document.documentElement.scrollHeight - window.innerHeight;
+				const pct = max > 0 ? Math.min(100, Math.max(0, (window.scrollY / max) * 100)) : 0;
+				// Skip redundant writes — no style churn while idle
+				if (Math.abs(pct - last) < 0.1) return;
+				last = pct;
+				// Direct transform write: GPU-composited, zero layout work (smoother than width)
+				if (fill) fill.style.transform = `scaleX(${pct / 100})`;
+			});
 		};
 		window.addEventListener('scroll', onScroll, { passive: true });
+		window.addEventListener('resize', onScroll, { passive: true });
 		onScroll();
-		return () => window.removeEventListener('scroll', onScroll);
+		return () => {
+			window.removeEventListener('scroll', onScroll);
+			window.removeEventListener('resize', onScroll);
+			if (raf) cancelAnimationFrame(raf);
+		};
 	});
 </script>
 
 <div class="progress-track" aria-hidden="true">
-	<div class="progress-fill" style:width="{progress}%"></div>
+	<div class="progress-fill" bind:this={fill}></div>
 </div>
 
 <style>
@@ -31,8 +47,11 @@
 	}
 	.progress-fill {
 		height: 100%;
+		width: 100%;
+		transform-origin: 0 50%;
+		transform: scaleX(0);
 		background: linear-gradient(90deg, #a855f7, #06b6d4);
 		box-shadow: 0 0 8px rgba(168, 85, 247, 0.55);
-		transition: width 0.08s linear;
+		will-change: transform; /* compositor-only updates — no jank */
 	}
 </style>

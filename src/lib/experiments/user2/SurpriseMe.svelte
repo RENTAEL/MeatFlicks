@@ -38,7 +38,9 @@
 		// Fast path: pick from already-rendered movie cards (no fetch)
 		const links = Array.from(document.querySelectorAll<HTMLAnchorElement>('a[href^="/movie/"]'));
 		// Filter to only movie links with valid IDs and exclude duplicates
-		const hrefs = [...new Set(links.map((a) => a.getAttribute('href')).filter(Boolean) as string[])];
+		const hrefs = [
+			...new Set(links.map((a) => a.getAttribute('href')).filter(Boolean) as string[])
+		];
 		if (hrefs.length === 0) return null;
 		return hrefs[Math.floor(Math.random() * hrefs.length)];
 	}
@@ -47,10 +49,12 @@
 		if (cachedMovies) return cachedMovies;
 		try {
 			// Lightweight: fetch a small set of popular movies, cache it
-			const res = await fetch('/api/media/top-rated?limit=20', { headers: { accept: 'application/json' } });
+			const res = await fetch('/api/media/top-rated?limit=20', {
+				headers: { accept: 'application/json' }
+			});
 			if (res.ok) {
 				const data = await res.json();
-				const list = Array.isArray(data) ? data : data?.results ?? data?.items ?? [];
+				const list = Array.isArray(data) ? data : (data?.results ?? data?.items ?? []);
 				const movieHrefs = list
 					.filter((m: any) => (m.mediaType ?? m.media_type ?? 'movie') === 'movie')
 					.map((m: any) => `/movie/${m.tmdbId ?? m.id}`)
@@ -91,6 +95,7 @@
 			message = 'No movies available right now — try again!';
 			setTimeout(() => (message = ''), 2500);
 		} finally {
+			// Animation is 0.7s; reset right after so repeat clicks feel instant
 			setTimeout(() => (spinning = false), 700);
 		}
 	}
@@ -123,6 +128,7 @@
 		border: none;
 		box-shadow: 0 6px 20px rgba(168, 85, 247, 0.35);
 		cursor: pointer;
+		will-change: transform; /* compositor-only hover/press — no jank */
 		transition:
 			transform 0.15s,
 			box-shadow 0.15s;
@@ -136,7 +142,7 @@
 	}
 	.dice {
 		display: inline-block;
-		transition: transform 0.5s;
+		line-height: 1;
 	}
 	.spin .dice {
 		animation: roll 0.7s ease;
