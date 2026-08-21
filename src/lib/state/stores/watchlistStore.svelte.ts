@@ -2,6 +2,7 @@ import type { LibraryMedia } from '$lib/types/library';
 import { notifications } from './notificationStore';
 import { page } from '$app/state';
 import { getCsrfTokenClient } from '$lib/utils/csrf.client';
+import { impersonationStore } from './impersonationStore.svelte';
 
 export type Media = {
 	id: string;
@@ -204,7 +205,8 @@ class WatchlistStore {
 			const headers = await buildJsonHeadersWithCsrf();
 
 			// Upload guest/local-only items that were never persisted server-side.
-			if (this.#dirty && this.#items.length > 0) {
+			// Skip upload when impersonating - don't pollute impersonated user's data
+			if (!impersonationStore.isImpersonating && this.#dirty && this.#items.length > 0) {
 				for (const item of this.#items) {
 					const body: Record<string, unknown> = {};
 					if (item.tmdbId) {
@@ -225,7 +227,20 @@ class WatchlistStore {
 
 			// Server is the source of truth once logged in — always adopt its
 			// state, even when empty, so deletions propagate across devices.
-			const response = await fetch('/api/watchlist', { credentials: 'include' });
+			// When impersonating, fetch the impersonated user's watchlist
+			let url = '/api/watchlist';
+			const impersonatedHeaders: Record<string, string> = {};
+			if (impersonationStore.isImpersonating && impersonationStore.current) {
+				url = `/api/watchlist?impersonate=${impersonationStore.current.id}`;
+				// Also send header for compatibility
+				impersonatedHeaders['X-Impersonate-User'] = impersonationStore.current.id;
+			}
+			const fetchHeaders = { ...headers, ...impersonatedHeaders };
+			// Use impersonation headers if needed, otherwise regular fetch
+			const response = await fetch(url, {
+				credentials: 'include',
+				headers: impersonatedHeaders['X-Impersonate-User'] ? fetchHeaders : undefined
+			});
 			if (response.ok) {
 				const serverMedia = await response.json();
 				const sanitized = dedupe(
@@ -233,7 +248,10 @@ class WatchlistStore {
 				);
 				this.#items = sanitized;
 				this.#dirty = false;
-				persistState({ items: sanitized, dirty: false });
+				// Don't persist impersonated data to localStorage
+				if (!impersonationStore.isImpersonating) {
+					persistState({ items: sanitized, dirty: false });
+				}
 			}
 		} catch (error) {
 			console.error('[watchlist][syncFromServer] Failed', error);

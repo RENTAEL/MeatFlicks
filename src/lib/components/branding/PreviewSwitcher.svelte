@@ -7,6 +7,8 @@
 	import { getBranding, isAdminUser } from '$lib/utils/branding';
 	import type { BrandingType, PreviewBranding } from '$lib/utils/branding';
 	import { previewStore } from '$lib/state/stores/previewStore.svelte.ts';
+	import { impersonationStore } from '$lib/state/stores/impersonationStore.svelte.ts';
+	import { watchlist } from '$lib/state/stores/watchlistStore.svelte.ts';
 
 	let { variant = 'desktop' }: { variant?: 'desktop' | 'mobile' } = $props();
 
@@ -20,13 +22,20 @@
 	);
 
 	const preview = $derived(previewStore.current);
+	const impersonated = $derived(impersonationStore.current);
 	const actual = $derived(
 		getBranding(firebaseUser) ??
 			(sessionUser
 				? getBranding({ displayName: sessionUser.username, email: sessionUser.email })
 				: null)
 	);
-	const effective = $derived(preview === 'streamium' ? null : (preview ?? actual));
+	const effective = $derived(
+		impersonated
+			? getBranding({ displayName: impersonated.username, email: impersonated.email })
+			: preview === 'streamium'
+				? null
+				: (preview ?? actual)
+	);
 
 	// Real-time user list for impersonation
 	interface UserEntry {
@@ -45,13 +54,36 @@
 	];
 
 	function isActive(value: PreviewBranding | null): boolean {
+		if (impersonated) return false;
 		return effective === value;
 	}
 
+	function isUserActive(userId: string): boolean {
+		return impersonated?.id === userId;
+	}
+
 	function pick(value: PreviewBranding | null) {
+		impersonationStore.clear();
 		previewStore.set(value);
 		open = false;
 		if (variant === 'mobile') menuOpen.set(false);
+	}
+
+	function impersonate(user: UserEntry) {
+		previewStore.set(null);
+		impersonationStore.impersonate({ id: user.id, username: user.username, email: user.email });
+		open = false;
+		if (variant === 'mobile') menuOpen.set(false);
+		// Refresh watchlist to show impersonated user's data (empty for new users like aftermidnight)
+		void watchlist.syncFromServer();
+	}
+
+	function clearImpersonation() {
+		impersonationStore.clear();
+		previewStore.set(null);
+		open = false;
+		if (variant === 'mobile') menuOpen.set(false);
+		void watchlist.syncFromServer();
 	}
 
 	let open = $state(false);
@@ -59,7 +91,8 @@
 	let userList = $state<UserEntry[]>([]);
 	let userError = $state<string | null>(null);
 
-	onMount(() => {
+	// Real-time user list - reconnect when admin status changes
+	$effect(() => {
 		if (!isAdmin) return;
 		const es = new EventSource('/api/admin/users/stream');
 		es.addEventListener('users', (event) => {
@@ -105,7 +138,7 @@
 			<button
 				type="button"
 				class="preview-btn"
-				class:active={open || preview !== null}
+				class:active={open || preview !== null || !!impersonated}
 				aria-label="Preview as user"
 				aria-expanded={open}
 				onclick={(e) => {
@@ -161,17 +194,15 @@
 							<button
 								type="button"
 								class="preview-option"
-								class:selected={preview === 'custom' &&
-									effective === 'custom' &&
-									previewStore.current === 'custom'}
+								class:selected={isUserActive(user.id)}
 								role="menuitem"
-								onclick={() => {
-									previewStore.set('custom');
-									open = false;
-								}}
+								onclick={() => impersonate(user)}
 							>
 								<span class="preview-option-label">{user.username}</span>
 								<span class="preview-option-hint">{user.email || 'no email'}</span>
+								{#if isUserActive(user.id)}
+									<span class="preview-check" aria-hidden="true">✓</span>
+								{/if}
 							</button>
 						{/each}
 					{:else}
@@ -181,13 +212,13 @@
 					<button
 						type="button"
 						class="preview-option"
-						class:selected={preview === null}
-						disabled={preview === null}
+						class:selected={preview === null && !impersonated}
+						disabled={preview === null && !impersonated}
 						role="menuitem"
-						onclick={() => pick(null)}
+						onclick={clearImpersonation}
 					>
 						<span class="preview-option-label">Back to me</span>
-						{#if preview === null}
+						{#if preview === null && !impersonated}
 							<span class="preview-check" aria-hidden="true">✓</span>
 						{/if}
 					</button>
@@ -218,14 +249,14 @@
 					<button
 						type="button"
 						class="menu-item preview-mobile-option"
-						onclick={() => {
-							previewStore.set('custom');
-							open = false;
-							menuOpen.set(false);
-						}}
+						class:selected={isUserActive(user.id)}
+						onclick={() => impersonate(user)}
 					>
 						<span class="preview-option-label">{user.username}</span>
 						<span class="preview-option-hint">{user.email || 'no email'}</span>
+						{#if isUserActive(user.id)}
+							<span class="preview-check" aria-hidden="true">✓</span>
+						{/if}
 					</button>
 				{/each}
 			{/if}
@@ -233,12 +264,12 @@
 			<button
 				type="button"
 				class="menu-item preview-mobile-option"
-				class:selected={preview === null}
-				disabled={preview === null}
-				onclick={() => pick(null)}
+				class:selected={preview === null && !impersonated}
+				disabled={preview === null && !impersonated}
+				onclick={clearImpersonation}
 			>
 				<span class="preview-option-label">Back to me</span>
-				{#if preview === null}
+				{#if preview === null && !impersonated}
 					<span class="preview-check" aria-hidden="true">✓</span>
 				{/if}
 			</button>
@@ -358,5 +389,12 @@
 	.preview-mobile-option.selected {
 		color: var(--accent-color, #818cf8);
 		font-weight: var(--font-weight-semibold);
+	}
+
+	.preview-empty {
+		padding: 0.45rem 0.6rem;
+		font-size: 0.8rem;
+		color: var(--text-tertiary);
+		font-style: italic;
 	}
 </style>

@@ -6,11 +6,18 @@ import { errorHandler, ValidationError } from '$lib/server';
 import { validateRequestBody } from '$lib/server/validation';
 import { resolveMediaId } from '$lib/server/db/media-resolver';
 
-export const GET: RequestHandler = async ({ locals }) => {
+export const GET: RequestHandler = async ({ locals, request, url }) => {
 	try {
 		const user = locals.user;
 
 		if (user) {
+			// Admin impersonation: view as another user
+			const impersonateId =
+				url.searchParams.get('impersonate') || request.headers.get('x-impersonate-user');
+			if (impersonateId && user.role === 'ADMIN') {
+				const media = await watchlistRepository.getWatchlist(impersonateId);
+				return json(media);
+			}
 			const media = await watchlistRepository.getWatchlist(user.id);
 			return json(media);
 		}
@@ -41,7 +48,10 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 		let mediaId = validatedBody.mediaId;
 
 		if (!mediaId && validatedBody.tmdbId) {
-			const resolved = await resolveMediaId(validatedBody.tmdbId, validatedBody.mediaType ?? 'movie');
+			const resolved = await resolveMediaId(
+				validatedBody.tmdbId,
+				validatedBody.mediaType ?? 'movie'
+			);
 			if (!resolved) {
 				return json({ error: 'Failed to resolve media' }, { status: 500 });
 			}
@@ -88,7 +98,10 @@ export const DELETE: RequestHandler = async ({ request, locals }) => {
 		let mediaId = validatedBody.mediaId;
 
 		if (!mediaId && validatedBody.tmdbId) {
-			const resolved = await resolveMediaId(validatedBody.tmdbId, validatedBody.mediaType ?? 'movie');
+			const resolved = await resolveMediaId(
+				validatedBody.tmdbId,
+				validatedBody.mediaType ?? 'movie'
+			);
 			if (!resolved) {
 				return json({ error: 'Failed to resolve media' }, { status: 500 });
 			}

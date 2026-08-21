@@ -4,6 +4,7 @@
 	import { getBranding } from '$lib/utils/branding';
 	import { themeStore } from '$lib/stores/theme';
 	import { previewStore } from '$lib/state/stores/previewStore.svelte.ts';
+	import { impersonationStore } from '$lib/state/stores/impersonationStore.svelte.ts';
 	import CustomLogo from './CustomLogo.svelte';
 	import MidnightLogo from './MidnightLogo.svelte';
 	import SofiaLogo from './SofiaLogo.svelte';
@@ -13,6 +14,7 @@
 
 	const sessionUser = $derived(page.data.user ?? null);
 	const firebaseUser = $derived(authStore.state.user);
+	const impersonated = $derived(impersonationStore.current);
 	const actualBranding = $derived(
 		getBranding(firebaseUser) ??
 			(sessionUser
@@ -21,7 +23,11 @@
 	);
 	const previewBranding = $derived(previewStore.current);
 	const branding = $derived(
-		previewBranding === 'streamium' ? null : (previewBranding ?? actualBranding)
+		impersonated
+			? (getBranding({ displayName: impersonated.username, email: impersonated.email }) ?? null)
+			: previewBranding === 'streamium'
+				? null
+				: (previewBranding ?? actualBranding)
 	);
 
 	$effect(() => {

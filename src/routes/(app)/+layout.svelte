@@ -23,6 +23,7 @@
 	import { menuOpen } from '$lib/stores/menu';
 	import { authStore } from '$lib/state/stores/authStore.svelte.ts';
 	import PreviewSwitcher from '$lib/components/branding/PreviewSwitcher.svelte';
+	import ImpersonationBanner from '$lib/components/ImpersonationBanner.svelte';
 	import UblockPopup from '$lib/components/UblockPopup.svelte';
 	import AdblockerIntroPopup from '$lib/components/AdblockerIntroPopup.svelte';
 	import MobileBrowserPopup from '$lib/components/MobileBrowserPopup.svelte';
@@ -74,6 +75,8 @@
 {#if $page.data?.user}
 	<PresencePing />
 {/if}
+
+<ImpersonationBanner />
 
 <!-- Ambient background -->
 <div class="bg-ambient">
