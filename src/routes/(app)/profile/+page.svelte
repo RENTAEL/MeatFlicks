@@ -109,13 +109,18 @@
 	{#if isDemonSlayer}
 		<div class="demon-slayer-banner">
 			<div class="demon-slayer-greeting">
-				<Flame size="18" />
-				<span class="demon-greeting-text">
-					Set your heart ablaze, {effectiveProfile.username} — the night is yours. Breathe, and cut through
-					the darkness.
-				</span>
-				<span class="demon-greeting-sub">— Hashira's log · Demon Slayer Corps</span>
+				<Flame size="18" class="demon-flame-icon" />
+				<div class="demon-greeting-main">
+					<span class="demon-greeting-text">
+						Total Concentration — Moon Breathing. The night is yours, {effectiveProfile.username}.
+					</span>
+					<span class="demon-greeting-line"
+						>Set your heart ablaze and cut through the darkness.</span
+					>
+				</div>
+				<span class="demon-greeting-sub">— Flame Hashira · Demon Slayer Corps</span>
 			</div>
+			<div class="demon-slayer-motif" aria-hidden="true">◈</div>
 		</div>
 	{/if}
 	<div class="profile-header glass" class:demon-slayer-header={isDemonSlayer}>
@@ -414,38 +419,94 @@
 	}
 
 	.demon-slayer-banner {
+		position: relative;
+		overflow: hidden;
 		margin-bottom: 1.5rem;
-		padding: 1rem 1.25rem;
+		padding: 1.15rem 1.35rem;
 		border-radius: var(--radius-lg);
-		background: linear-gradient(135deg, rgba(255, 59, 48, 0.12), rgba(255, 140, 0, 0.12));
-		border: 1px solid rgba(255, 59, 48, 0.22);
-		box-shadow: 0 4px 16px rgba(255, 59, 48, 0.12);
+		background:
+			radial-gradient(ellipse 80% 100% at 0% 0%, rgba(255, 42, 18, 0.14) 0%, transparent 55%),
+			radial-gradient(ellipse 70% 80% at 100% 100%, rgba(255, 107, 0, 0.1) 0%, transparent 50%),
+			linear-gradient(135deg, rgba(255, 26, 26, 0.1), rgba(255, 107, 0, 0.08));
+		border: 1px solid rgba(255, 42, 18, 0.22);
+		box-shadow:
+			0 4px 20px rgba(0, 0, 0, 0.35),
+			0 0 28px rgba(255, 42, 18, 0.1);
 	}
 
 	.demon-slayer-greeting {
+		position: relative;
+		z-index: 1;
 		display: flex;
 		align-items: center;
-		gap: 0.6rem;
+		gap: 0.75rem;
 		flex-wrap: wrap;
 		color: var(--text-primary);
 	}
 
+	.demon-flame-icon {
+		color: #ff3b30;
+		filter: drop-shadow(0 0 6px rgba(255, 59, 48, 0.55));
+		flex-shrink: 0;
+	}
+
+	.demon-greeting-main {
+		display: flex;
+		flex-direction: column;
+		gap: 0.15rem;
+		flex: 1;
+		min-width: 220px;
+	}
+
 	.demon-greeting-text {
 		font-size: 0.95rem;
-		font-weight: 600;
+		font-weight: 700;
 		color: var(--text-primary);
+		letter-spacing: -0.01em;
+	}
+
+	.demon-greeting-line {
+		font-size: 0.85rem;
+		color: var(--text-secondary);
 	}
 
 	.demon-greeting-sub {
-		font-size: 0.78rem;
-		color: var(--text-secondary);
+		font-size: 0.74rem;
+		color: var(--text-tertiary);
 		font-style: italic;
-		margin-left: 0.25rem;
+		letter-spacing: 0.02em;
+		white-space: nowrap;
+	}
+
+	.demon-slayer-motif {
+		position: absolute;
+		top: 50%;
+		right: 1.2rem;
+		transform: translateY(-50%);
+		font-size: 3.2rem;
+		opacity: 0.06;
+		color: #ff3b30;
+		pointer-events: none;
 	}
 
 	.demon-slayer-header {
-		border: 1px solid rgba(255, 59, 48, 0.18) !important;
-		box-shadow: 0 0 20px rgba(255, 59, 48, 0.08);
+		position: relative;
+		overflow: hidden;
+		border: 1px solid rgba(255, 42, 18, 0.18) !important;
+		box-shadow:
+			0 0 0 1px rgba(255, 42, 18, 0.08),
+			0 8px 28px rgba(0, 0, 0, 0.35),
+			0 0 24px rgba(255, 42, 18, 0.06);
+	}
+
+	.demon-slayer-header::before {
+		content: '';
+		position: absolute;
+		inset: 0;
+		background:
+			radial-gradient(ellipse 60% 80% at 95% 10%, rgba(255, 42, 18, 0.07) 0%, transparent 55%),
+			linear-gradient(90deg, transparent 0%, rgba(255, 107, 0, 0.04) 100%);
+		pointer-events: none;
 	}
 
 	.avatar-demon {

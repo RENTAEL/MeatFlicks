@@ -281,30 +281,32 @@ export const themes: Record<ThemeId, ThemeColors> = {
 		warning: '#fbbf24'
 	},
 	demon_slayer: {
-		// Demon Slayer — after-midnight dark, moody, flame-kissed. For aftermidnight only.
+		// Demon Slayer — aftermidnight edition: abyssal night, inferno heart. Fully immersive.
 		name: 'demon_slayer',
 		label: 'Demon Slayer',
 		emoji: '🔥',
 		isDark: true,
-		bg: '#0a0a0f',
-		bgCard: '#14101a',
-		bgElevated: '#1c1628',
-		bgInput: '#0f0a14',
-		textPrimary: '#fff1f0',
-		textSecondary: '#c9a9a8',
-		textTertiary: '#8a6a69',
-		accent: '#ff3b30',
-		accentHover: '#ff5a4f',
-		accentGlow: 'rgba(255, 59, 48, 0.28)',
-		gradientBrand: 'linear-gradient(135deg, #ff3b30, #ff8c00)',
-		gradientBrandHorizontal: 'linear-gradient(90deg, #ff3b30, #ff8c00)',
-		border: 'rgba(255, 59, 48, 0.12)',
-		borderStrong: 'rgba(255, 59, 48, 0.22)',
-		shadowSm: '0 2px 8px rgba(0, 0, 0, 0.45)',
-		shadowMd: '0 4px 16px rgba(255, 59, 48, 0.12)',
-		shadowLg: '0 8px 32px rgba(0, 0, 0, 0.6)',
-		success: '#ff8c00',
-		danger: '#ff3b30',
+		bg: '#050508',
+		bgCard: '#0f0a12',
+		bgElevated: '#1a0f1e',
+		bgInput: '#0d090f',
+		textPrimary: '#fff2f0',
+		textSecondary: '#d4a8a6',
+		textTertiary: '#9a7070',
+		accent: '#ff1a1a',
+		accentHover: '#ff3b2e',
+		accentGlow: 'rgba(255, 26, 26, 0.32)',
+		gradientBrand:
+			'linear-gradient(135deg, #ff0a00 0%, #ff1a1a 18%, #ff3b30 38%, #ff6b00 72%, #ff8c00 100%)',
+		gradientBrandHorizontal:
+			'linear-gradient(90deg, #ff0a00 0%, #ff1a1a 22%, #ff3b30 48%, #ff6b00 78%, #ff8c00 100%)',
+		border: 'rgba(255, 26, 26, 0.14)',
+		borderStrong: 'rgba(255, 26, 26, 0.26)',
+		shadowSm: '0 2px 10px rgba(0, 0, 0, 0.55)',
+		shadowMd: '0 4px 20px rgba(255, 26, 26, 0.14)',
+		shadowLg: '0 10px 36px rgba(0, 0, 0, 0.68)',
+		success: '#ff6b00',
+		danger: '#ff1a1a',
 		warning: '#ffcc00'
 	}
 };
