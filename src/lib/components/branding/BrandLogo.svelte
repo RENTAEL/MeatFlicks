@@ -9,9 +9,27 @@
 	import MidnightLogo from './MidnightLogo.svelte';
 	import SofiaLogo from './SofiaLogo.svelte';
 	import DemonSlayerEye from './DemonSlayerEye.svelte';
+	import { isUser2, getRandomFunFact } from '$lib/experiments/user2';
 
 	let { size = 'md', class: className = '' }: { size?: 'sm' | 'md' | 'lg'; class?: string } =
 		$props();
+
+	let logoClicks = $state<number[]>([]);
+	let logoToast = $state('');
+	let logoToastTimer: ReturnType<typeof setTimeout> | null = null;
+
+	function handleLogoClick(e: MouseEvent) {
+		const u = sessionUser ?? (firebaseUser ? { username: firebaseUser.displayName } : null);
+		if (!isUser2(u as any)) return;
+		const now = Date.now();
+		logoClicks = [...logoClicks.filter((t) => now - t < 2000), now];
+		if (logoClicks.length >= 5) {
+			logoClicks = [];
+			logoToast = getRandomFunFact();
+			if (logoToastTimer) clearTimeout(logoToastTimer);
+			logoToastTimer = setTimeout(() => (logoToast = ''), 3200);
+		}
+	}
 
 	const sessionUser = $derived(page.data.user ?? null);
 	const firebaseUser = $derived(authStore.state.user);
@@ -37,11 +55,13 @@
 	);
 
 	$effect(() => {
-		// Brand themes: Sofia and Demon Slayer carry their series palettes
+		// Brand themes: Sofia, Demon Slayer and Midnight Neon carry their palettes
 		if (previewBranding === 'sofia') {
 			themeStore.setBrandTheme('sofia', true);
 		} else if (branding === 'demon_slayer' || previewBranding === 'demon_slayer') {
 			themeStore.setBrandTheme('demon_slayer', true);
+		} else if (branding === 'midnight_neon' || previewBranding === 'midnight_neon') {
+			themeStore.setBrandTheme('midnight_neon', true);
 		} else {
 			themeStore.setBrandTheme(branding);
 		}
@@ -49,27 +69,68 @@
 </script>
 
 {#if branding === 'midnight'}
-	<a href="/" class="logo {className}" title="Midnight" aria-label="Midnight Home">
+	<a
+		href="/"
+		class="logo {className}"
+		title="Midnight"
+		aria-label="Midnight Home"
+		onclick={handleLogoClick}
+	>
 		<MidnightLogo {size} />
 		<span class="logo-text">Midnight</span>
 	</a>
 {:else if branding === 'sofia'}
-	<a href="/" class="logo {className}" title="Sofia the First" aria-label="Sofia Home">
+	<a
+		href="/"
+		class="logo {className}"
+		title="Sofia the First"
+		aria-label="Sofia Home"
+		onclick={handleLogoClick}
+	>
 		<SofiaLogo {size} />
 		<span class="logo-text logo-text-sofia">Sofia</span>
 	</a>
 {:else if branding === 'custom'}
-	<a href="/" class="logo {className}" title="user" aria-label="Custom Home">
+	<a
+		href="/"
+		class="logo {className}"
+		title="user"
+		aria-label="Custom Home"
+		onclick={handleLogoClick}
+	>
 		<CustomLogo {size} />
 		<span class="logo-text logo-text-custom">user</span>
 	</a>
 {:else if branding === 'demon_slayer'}
-	<a href="/" class="logo {className}" title={demonSlayerName} aria-label="{demonSlayerName} Home">
+	<a
+		href="/"
+		class="logo {className}"
+		title={demonSlayerName}
+		aria-label="{demonSlayerName} Home"
+		onclick={handleLogoClick}
+	>
 		<DemonSlayerEye {size} />
 		<span class="logo-text logo-text-demon">{demonSlayerName}</span>
 	</a>
+{:else if branding === 'midnight_neon'}
+	<a
+		href="/"
+		class="logo logo-neon {className}"
+		title="user2 · Midnight Neon"
+		aria-label="user2 Home"
+		onclick={handleLogoClick}
+	>
+		<MidnightLogo {size} />
+		<span class="logo-text logo-text-neon">user2</span>
+	</a>
 {:else}
-	<a href="/" class="logo {className}" title="Streamium" aria-label="Streamium Home">
+	<a
+		href="/"
+		class="logo {className}"
+		title="Streamium"
+		aria-label="Streamium Home"
+		onclick={handleLogoClick}
+	>
 		{#if size === 'sm'}
 			<span class="logo-icon-sm">▶</span>
 		{:else}
@@ -77,6 +138,10 @@
 		{/if}
 		<span class="logo-text">Streamium</span>
 	</a>
+{/if}
+
+{#if logoToast}
+	<div class="logo-easter-toast" role="status">{logoToast}</div>
 {/if}
 
 <style>
@@ -138,5 +203,57 @@
 		background-clip: text;
 		letter-spacing: -0.03em;
 		text-shadow: 0 0 12px rgba(255, 59, 48, 0.35);
+	}
+
+	.logo-neon {
+		filter: drop-shadow(0 0 8px rgba(168, 85, 247, 0.35));
+	}
+
+	.logo-text-neon {
+		background: linear-gradient(90deg, #a855f7, #06b6d4, #a855f7);
+		-webkit-background-clip: text;
+		-webkit-text-fill-color: transparent;
+		background-clip: text;
+		background-size: 200% 100%;
+		animation: neonShift 3s linear infinite;
+	}
+
+	@keyframes neonShift {
+		0% {
+			background-position: 0% 50%;
+		}
+		100% {
+			background-position: 200% 50%;
+		}
+	}
+
+	.logo-easter-toast {
+		position: fixed;
+		bottom: 24px;
+		left: 50%;
+		transform: translateX(-50%);
+		z-index: 9999;
+		max-width: min(90vw, 420px);
+		padding: 0.85rem 1.2rem;
+		border-radius: 12px;
+		background: linear-gradient(135deg, #a855f7, #06b6d4);
+		color: white;
+		font-size: 0.9rem;
+		font-weight: 600;
+		text-align: center;
+		box-shadow: 0 8px 32px rgba(168, 85, 247, 0.35);
+		animation: toastIn 0.3s ease;
+		pointer-events: none;
+	}
+
+	@keyframes toastIn {
+		from {
+			opacity: 0;
+			transform: translateX(-50%) translateY(8px);
+		}
+		to {
+			opacity: 1;
+			transform: translateX(-50%) translateY(0);
+		}
 	}
 </style>

@@ -9,6 +9,12 @@
 	import { getBranding } from '$lib/utils/branding';
 	import { impersonationStore } from '$lib/state/stores/impersonationStore.svelte.ts';
 	import DemonSlayerEye from '$lib/components/branding/DemonSlayerEye.svelte';
+	import { page as pageState } from '$app/state';
+	import { isUser2 } from '$lib/experiments/user2';
+	import TimeSinceJoined from '$lib/experiments/user2/TimeSinceJoined.svelte';
+	import StreakBadge from '$lib/experiments/user2/StreakBadge.svelte';
+	import RotatingTagline from '$lib/experiments/user2/RotatingTagline.svelte';
+	import MoodSelector from '$lib/experiments/user2/MoodSelector.svelte';
 
 	type FormResult = {
 		success?: boolean;
@@ -28,6 +34,9 @@
 			displayName: effectiveProfile.username,
 			email: effectiveProfile.email ?? null
 		}) === 'demon_slayer'
+	);
+	const isUser2Profile = $derived(
+		isUser2(effectiveProfile as any) || isUser2(pageState.data.user as any)
 	);
 
 	const tabs: { id: TabId; label: string }[] = [
@@ -172,7 +181,11 @@
 					<p class="save-error">{saveError}</p>
 				{/if}
 			{:else}
-				<h1>{profile.username}</h1>
+				<h1 class="profile-username">
+					{profile.username}
+					{#if isUser2Profile}<StreakBadge />{/if}
+				</h1>
+				{#if isUser2Profile}<RotatingTagline />{/if}
 				{#if profile.email}
 					<p class="email">
 						{profile.email}
@@ -221,6 +234,13 @@
 			</div>
 		{/if}
 	</div>
+
+	{#if isUser2Profile}
+		<div class="user2-widgets">
+			<TimeSinceJoined />
+			<MoodSelector />
+		</div>
+	{/if}
 
 	<div class="tabs">
 		{#each tabs as tab}
@@ -539,6 +559,25 @@
 		border-radius: var(--radius-lg);
 		margin-bottom: 2rem;
 		flex-wrap: wrap;
+	}
+
+	.profile-username {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.5rem;
+	}
+
+	.user2-widgets {
+		display: grid;
+		grid-template-columns: 1fr 1fr;
+		gap: 1rem;
+		margin-bottom: 2rem;
+	}
+
+	@media (max-width: 640px) {
+		.user2-widgets {
+			grid-template-columns: 1fr;
+		}
 	}
 
 	.avatar-circle {

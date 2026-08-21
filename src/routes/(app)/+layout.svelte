@@ -24,6 +24,8 @@
 	import { authStore } from '$lib/state/stores/authStore.svelte.ts';
 	import PreviewSwitcher from '$lib/components/branding/PreviewSwitcher.svelte';
 	import ImpersonationBanner from '$lib/components/ImpersonationBanner.svelte';
+	import User2Global from '$lib/experiments/user2/User2Global.svelte';
+	import SurpriseMe from '$lib/experiments/user2/SurpriseMe.svelte';
 	import UblockPopup from '$lib/components/UblockPopup.svelte';
 	import AdblockerIntroPopup from '$lib/components/AdblockerIntroPopup.svelte';
 	import MobileBrowserPopup from '$lib/components/MobileBrowserPopup.svelte';
@@ -76,9 +78,11 @@
 	<PresencePing />
 {/if}
 
-<ImpersonationBanner />
+	<ImpersonationBanner />
+	<User2Global />
+	<SurpriseMe />
 
-<!-- Ambient background -->
+	<!-- Ambient background -->
 <div class="bg-ambient">
 	<div class="bg-gradient-top"></div>
 	<div class="bg-noise"></div>

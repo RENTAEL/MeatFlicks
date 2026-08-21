@@ -96,6 +96,7 @@ export const load: PageServerLoad = async ({ locals, cookies }) => {
 				id: user?.id,
 				username: user?.username ?? locals.user.username,
 				email: user?.email ?? '',
+				createdAt: user?.createdAt ?? null,
 				memberSince: user?.createdAt
 					? new Date(user.createdAt).toLocaleDateString('en-ZA', {
 							year: 'numeric',

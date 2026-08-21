@@ -7,6 +7,7 @@ import {
 	DEFAULT_THEME,
 	SOFIA_THEME,
 	DEMON_SLAYER_THEME,
+	MIDNIGHT_NEON_THEME,
 	shade,
 	alpha,
 	type ThemeColors,
@@ -59,6 +60,7 @@ function createThemeStore() {
 	const effectiveId = (): ThemeId => {
 		if (brandPreview === 'sofia') return SOFIA_THEME;
 		if (brandPreview === 'demon_slayer') return DEMON_SLAYER_THEME;
+		if (brandPreview === 'midnight_neon') return MIDNIGHT_NEON_THEME;
 		return choice ?? brandDefault;
 	};
 
@@ -108,6 +110,7 @@ function createThemeStore() {
 			let nextDefault: ThemeId = DEFAULT_THEME;
 			if (brand === 'sofia') nextDefault = SOFIA_THEME;
 			else if (brand === 'demon_slayer') nextDefault = DEMON_SLAYER_THEME;
+			else if (brand === 'midnight_neon') nextDefault = MIDNIGHT_NEON_THEME;
 			if (nextPreview === brandPreview && nextDefault === brandDefault) return;
 			brandPreview = nextPreview;
 			brandDefault = nextDefault;

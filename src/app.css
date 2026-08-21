@@ -2051,3 +2051,40 @@ textarea {
 		margin-bottom: 12px;
 	}
 }
+
+/* Midnight Neon — user2 header animated gradient */
+[data-theme='midnight_neon'] .top-nav,
+[data-theme='midnight_neon'] .mobile-header,
+[data-theme='midnight_neon'] header {
+	background: linear-gradient(
+		90deg,
+		#0a0a12 0%,
+		#1a0f2e 25%,
+		#0a0a12 50%,
+		#0f1a2e 75%,
+		#0a0a12 100%
+	) !important;
+	background-size: 200% 100% !important;
+	animation: neonHeaderShift 6s linear infinite !important;
+	border-bottom-color: rgba(168, 85, 247, 0.18) !important;
+}
+
+@keyframes neonHeaderShift {
+	0% {
+		background-position: 0% 50%;
+	}
+	100% {
+		background-position: 200% 50%;
+	}
+}
+
+[data-theme='midnight_neon'] .btn-primary {
+	background: linear-gradient(135deg, #a855f7, #06b6d4) !important;
+	box-shadow: 0 4px 16px rgba(168, 85, 247, 0.35) !important;
+}
+
+[data-theme='midnight_neon'] .card-cosmic:hover,
+[data-theme='midnight_neon'] .media-card:hover {
+	border-color: rgba(168, 85, 247, 0.35) !important;
+	box-shadow: 0 8px 32px rgba(168, 85, 247, 0.22) !important;
+}

@@ -35,13 +35,17 @@ export type ThemeId =
 	| 'ocean'
 	| 'lavender'
 	| 'sofia'
-	| 'demon_slayer';
+	| 'demon_slayer'
+	| 'midnight_neon';
 
 /** The theme that carries the Sofia the First series look (cocolemon's brand default). */
 export const SOFIA_THEME: ThemeId = 'sofia';
 
 /** Demon Slayer theme — dark, moody, after-midnight with flame accents for aftermidnight. */
 export const DEMON_SLAYER_THEME: ThemeId = 'demon_slayer';
+
+/** Midnight Neon — experimental dark with neon purple/cyan for user2. */
+export const MIDNIGHT_NEON_THEME: ThemeId = 'midnight_neon';
 
 export const themes: Record<ThemeId, ThemeColors> = {
 	dark: {
@@ -308,6 +312,32 @@ export const themes: Record<ThemeId, ThemeColors> = {
 		success: '#ff6b00',
 		danger: '#ff1a1a',
 		warning: '#ffcc00'
+	},
+	midnight_neon: {
+		name: 'midnight_neon',
+		label: 'Midnight Neon',
+		emoji: '🌃',
+		isDark: true,
+		bg: '#070711',
+		bgCard: '#11111f',
+		bgElevated: '#17172a',
+		bgInput: '#0f0f1e',
+		textPrimary: '#f2f0ff',
+		textSecondary: '#a8a6d4',
+		textTertiary: '#6e6c9a',
+		accent: '#a855f7',
+		accentHover: '#b56cff',
+		accentGlow: 'rgba(168, 85, 247, 0.32)',
+		gradientBrand: 'linear-gradient(135deg, #a855f7 0%, #7c3aed 30%, #06b6d4 100%)',
+		gradientBrandHorizontal: 'linear-gradient(90deg, #a855f7 0%, #7c3aed 45%, #06b6d4 100%)',
+		border: 'rgba(168, 85, 247, 0.14)',
+		borderStrong: 'rgba(168, 85, 247, 0.26)',
+		shadowSm: '0 2px 10px rgba(0, 0, 0, 0.55)',
+		shadowMd: '0 4px 20px rgba(168, 85, 247, 0.16)',
+		shadowLg: '0 10px 36px rgba(0, 0, 0, 0.68)',
+		success: '#06b6d4',
+		danger: '#f43f5e',
+		warning: '#fACC15'
 	}
 };
 

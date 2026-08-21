@@ -1,11 +1,12 @@
-export type BrandingType = 'midnight' | 'sofia' | 'custom' | 'demon_slayer';
+export type BrandingType = 'midnight' | 'sofia' | 'custom' | 'demon_slayer' | 'midnight_neon';
 export type PreviewBranding = BrandingType | 'streamium';
 
 const BRANDING: Record<string, { type: BrandingType }> = {
 	ghostbunny_779: { type: 'midnight' },
 	cocolemon: { type: 'sofia' },
 	user: { type: 'custom' },
-	aftermidnight: { type: 'demon_slayer' }
+	aftermidnight: { type: 'demon_slayer' },
+	user2: { type: 'midnight_neon' }
 };
 
 const ADMIN_USERNAME = 'user';
