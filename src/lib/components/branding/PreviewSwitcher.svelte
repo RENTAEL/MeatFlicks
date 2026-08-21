@@ -28,7 +28,14 @@
 	);
 	const effective = $derived(preview === 'streamium' ? null : (preview ?? actual));
 
-	let open = $state(false);
+	// Real-time user list for impersonation
+	interface UserEntry {
+		id: string;
+		username: string;
+		email: string | null;
+		role: string;
+		createdAt: number;
+	}
 
 	const options: { label: string; value: PreviewBranding | null; hint?: string }[] = [
 		{ label: 'Midnight', value: 'midnight', hint: 'ghostbunny_779' },
@@ -47,6 +54,34 @@
 		if (variant === 'mobile') menuOpen.set(false);
 	}
 
+	let open = $state(false);
+	let connected = $state(false);
+	let userList = $state<UserEntry[]>([]);
+	let userError = $state<string | null>(null);
+
+	onMount(() => {
+		if (!isAdmin) return;
+		const es = new EventSource('/api/admin/users/stream');
+		es.addEventListener('users', (event) => {
+			const data = JSON.parse((event as MessageEvent).data) as {
+				users: UserEntry[];
+				count: number;
+				at: number;
+			};
+			userList = data.users;
+		});
+		es.addEventListener('error', (event) => {
+			userError = 'Failed to load user list';
+			console.error('[PreviewSwitcher] user stream error:', event);
+		});
+		es.onopen = () => (connected = true);
+		es.onerror = () => {
+			connected = false;
+		};
+		return () => es.close();
+	});
+
+	// Close handlers for desktop variant
 	onMount(() => {
 		if (variant !== 'desktop') return;
 		const close = () => {
@@ -120,6 +155,29 @@
 						</button>
 					{/each}
 					<div class="preview-divider"></div>
+					{#if userList.length > 0}
+						<div class="preview-panel-title">View as User</div>
+						{#each userList as user (user.id)}
+							<button
+								type="button"
+								class="preview-option"
+								class:selected={preview === 'custom' &&
+									effective === 'custom' &&
+									previewStore.current === 'custom'}
+								role="menuitem"
+								onclick={() => {
+									previewStore.set('custom');
+									open = false;
+								}}
+							>
+								<span class="preview-option-label">{user.username}</span>
+								<span class="preview-option-hint">{user.email || 'no email'}</span>
+							</button>
+						{/each}
+					{:else}
+						<div class="preview-empty">No users found</div>
+					{/if}
+					<div class="preview-divider"></div>
 					<button
 						type="button"
 						class="preview-option"
@@ -153,6 +211,25 @@
 					{/if}
 				</button>
 			{/each}
+			<div class="preview-divider"></div>
+			{#if userList.length > 0}
+				<div class="preview-mobile-title">View as User</div>
+				{#each userList as user (user.id)}
+					<button
+						type="button"
+						class="menu-item preview-mobile-option"
+						onclick={() => {
+							previewStore.set('custom');
+							open = false;
+							menuOpen.set(false);
+						}}
+					>
+						<span class="preview-option-label">{user.username}</span>
+						<span class="preview-option-hint">{user.email || 'no email'}</span>
+					</button>
+				{/each}
+			{/if}
+			<div class="preview-divider"></div>
 			<button
 				type="button"
 				class="menu-item preview-mobile-option"
