@@ -8,7 +8,6 @@ export type User2Experiment =
 	| 'timeSinceJoined'
 	| 'streak'
 	| 'rotatingTagline'
-	| 'cursorTrail'
 	| 'moodSelector'
 	| 'progressBar';
 
@@ -63,7 +62,7 @@ export function setExperimentEnabled(exp: User2Experiment, enabled: boolean) {
 }
 
 // Global experiments - now live for all users
-export type GlobalExperiment = 'surpriseMe' | 'timeSinceJoined' | 'streak' | 'rotatingTagline' | 'cursorTrail' | 'moodSelector' | 'progressBar';
+export type GlobalExperiment = 'surpriseMe' | 'timeSinceJoined' | 'streak' | 'rotatingTagline' | 'moodSelector' | 'progressBar';
 
 function getGlobalDisabled(): Set<string> {
 	if (!browser) return new Set();
@@ -78,7 +77,7 @@ function getGlobalDisabled(): Set<string> {
 
 export function isGlobalExperimentEnabled(exp: GlobalExperiment, user?: unknown): boolean {
 	// For per-user toggleable ones, check per-user disabled
-	if (exp === 'streak' || exp === 'moodSelector' || exp === 'cursorTrail') {
+	if (exp === 'streak' || exp === 'moodSelector') {
 		const userId = (user as any)?.id ?? (user as any)?.username ?? null;
 		if (userId && browser) {
 			const key = `global-${exp}-disabled-${userId}`;
@@ -91,7 +90,7 @@ export function isGlobalExperimentEnabled(exp: GlobalExperiment, user?: unknown)
 
 export function setGlobalExperimentEnabled(exp: GlobalExperiment, enabled: boolean, user?: unknown) {
 	if (!browser) return;
-	if (exp === 'streak' || exp === 'moodSelector' || exp === 'cursorTrail') {
+	if (exp === 'streak' || exp === 'moodSelector') {
 		const userId = (user as any)?.id ?? (user as any)?.username ?? null;
 		if (userId) {
 			const key = `global-${exp}-disabled-${userId}`;
