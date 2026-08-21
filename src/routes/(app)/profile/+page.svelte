@@ -183,9 +183,9 @@
 			{:else}
 				<h1 class="profile-username">
 					{profile.username}
-					{#if isUser2Profile}<StreakBadge />{/if}
+					<StreakBadge />
 				</h1>
-				{#if isUser2Profile}<RotatingTagline />{/if}
+				<RotatingTagline />
 				{#if profile.email}
 					<p class="email">
 						{profile.email}
@@ -235,12 +235,10 @@
 		{/if}
 	</div>
 
-	{#if isUser2Profile}
-		<div class="user2-widgets">
-			<TimeSinceJoined />
-			<MoodSelector />
-		</div>
-	{/if}
+	<div class="user2-widgets">
+		<TimeSinceJoined />
+		<MoodSelector />
+	</div>
 
 	<div class="tabs">
 		{#each tabs as tab}

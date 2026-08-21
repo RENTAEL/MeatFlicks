@@ -1,16 +1,10 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { page } from '$app/state';
-	import { isUser2 } from '../user2';
-
-	const user = $derived(page.data.user ?? null);
-	const enabled = $derived(isUser2(user as any));
 
 	let progress = $state(0);
 
 	onMount(() => {
 		const onScroll = () => {
-			if (!enabled) return;
 			const max = document.documentElement.scrollHeight - window.innerHeight;
 			progress = max > 0 ? Math.min(100, Math.max(0, (window.scrollY / max) * 100)) : 0;
 		};
@@ -20,11 +14,9 @@
 	});
 </script>
 
-{#if enabled}
-	<div class="progress-track" aria-hidden="true">
-		<div class="progress-fill" style:width="{progress}%"></div>
-	</div>
-{/if}
+<div class="progress-track" aria-hidden="true">
+	<div class="progress-fill" style:width="{progress}%"></div>
+</div>
 
 <style>
 	.progress-track {

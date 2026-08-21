@@ -1,14 +1,18 @@
 <script lang="ts">
 	import { page } from '$app/state';
-	import { isUser2, MOODS, getMood, setMood, type Mood } from '../user2';
+	import { MOODS, getMood, setMood, isGlobalExperimentEnabled, type Mood } from '../user2';
 
 	const user = $derived(page.data.user ?? null);
-	const enabled = $derived(isUser2(user as any));
-	let mood = $state<Mood | null>(getMood());
+	const enabled = $derived(isGlobalExperimentEnabled('moodSelector', user as any));
+	let mood = $state<Mood | null>(null);
+
+	$effect(() => {
+		mood = getMood(user as any);
+	});
 
 	function pick(m: Mood) {
 		mood = m === mood ? null : m;
-		setMood(mood);
+		setMood(mood, user as any);
 	}
 </script>
 

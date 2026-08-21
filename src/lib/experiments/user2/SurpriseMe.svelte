@@ -1,9 +1,7 @@
 <script lang="ts">
 	import { page } from '$app/state';
 	import { goto } from '$app/navigation';
-	import { isUser2 } from '../user2';
 
-	const user = $derived(page.data.user ?? null);
 	const isCatalog = $derived(
 		['/', '/browse', '/movies', '/tv', '/afrikaans', '/search'].some(
 			(p) => page.url.pathname === p || page.url.pathname.startsWith(p + '/')
@@ -11,7 +9,7 @@
 			page.url.pathname.startsWith('/movie/') ||
 			page.url.pathname.startsWith('/tv/')
 	);
-	const enabled = $derived(isUser2(user as any) && isCatalog);
+	const enabled = $derived(isCatalog);
 
 	let spinning = $state(false);
 

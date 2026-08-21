@@ -1,10 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { page } from '$app/state';
-	import { isUser2, formatTimeSince } from '../user2';
-
-	const user = $derived(page.data.user ?? null);
-	const enabled = $derived(isUser2(user as any));
+	import { formatTimeSince } from '../user2';
 
 	let text = $state('');
 	let joinedAt = $derived(
@@ -19,23 +16,20 @@
 	}
 
 	onMount(() => {
-		if (!enabled) return;
 		tick();
 		const id = setInterval(tick, 60000);
 		return () => clearInterval(id);
 	});
 
 	$effect(() => {
-		if (enabled) tick();
+		tick();
 	});
 </script>
 
-{#if enabled}
-	<div class="time-card">
-		<div class="time-label">⏱ Time since joined</div>
-		<div class="time-value">{text}</div>
-	</div>
-{/if}
+<div class="time-card">
+	<div class="time-label">⏱ Time since joined</div>
+	<div class="time-value">{text}</div>
+</div>
 
 <style>
 	.time-card {

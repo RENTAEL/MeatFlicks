@@ -1,10 +1,10 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { page } from '$app/state';
-	import { isUser2 } from '../user2';
+	import { isGlobalExperimentEnabled } from '../user2';
 
 	const user = $derived(page.data.user ?? null);
-	const enabled = $derived(isUser2(user as any));
+	const enabled = $derived(isGlobalExperimentEnabled('cursorTrail', user as any));
 
 	let dots: { x: number; y: number; id: number }[] = $state([]);
 	let nextId = 0;
@@ -26,17 +26,15 @@
 	});
 </script>
 
-{#if enabled}
-	{#each dots as dot, i (dot.id)}
-		<span
-			class="cursor-dot"
-			style:left="{dot.x}px"
-			style:top="{dot.y}px"
-			style:opacity={((i + 1) / dots.length) * 0.55}
-			aria-hidden="true"
-		></span>
-	{/each}
-{/if}
+{#each dots as dot, i (dot.id)}
+	<span
+		class="cursor-dot"
+		style:left="{dot.x}px"
+		style:top="{dot.y}px"
+		style:opacity={((i + 1) / dots.length) * 0.55}
+		aria-hidden="true"
+	></span>
+{/each}
 
 <style>
 	.cursor-dot {

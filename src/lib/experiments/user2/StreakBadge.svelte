@@ -1,19 +1,19 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { page } from '$app/state';
-	import { isUser2, bumpStreakIfNeeded, getStreak } from '../user2';
+	import { bumpStreakIfNeeded, getStreak, isGlobalExperimentEnabled } from '../user2';
 
 	const user = $derived(page.data.user ?? null);
-	const enabled = $derived(isUser2(user as any));
+	const enabled = $derived(isGlobalExperimentEnabled('streak', user as any));
 	let count = $state(0);
 
 	onMount(() => {
 		if (!enabled) return;
-		count = bumpStreakIfNeeded();
+		count = bumpStreakIfNeeded(user as any);
 	});
 
 	$effect(() => {
-		if (enabled) count = getStreak().count;
+		if (enabled) count = getStreak(user as any).count;
 	});
 </script>
 
