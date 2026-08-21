@@ -12,43 +12,86 @@
 	const enabled = $derived(isCatalog);
 
 	let spinning = $state(false);
+	let message = $state('');
 
-	const FALLBACK_IDS = [
-		{ id: 27205, type: 'movie' }, // Inception
-		{ id: 155, type: 'movie' }, // The Dark Knight
-		{ id: 603, type: 'movie' }, // The Matrix
-		{ id: 680, type: 'movie' }, // Pulp Fiction
-		{ id: 238, type: 'movie' }, // The Godfather
-		{ id: 1399, type: 'tv' }, // Game of Thrones
-		{ id: 1396, type: 'tv' }, // Breaking Bad
-		{ id: 66732, type: 'tv' }, // Stranger Things
-		{ id: 82856, type: 'tv' }, // The Mandalorian
-		{ id: 1429, type: 'tv' } // Attack on Titan
+	// Movies only — curated pool for instant fallback (no TV)
+	const MOVIE_POOL = [
+		27205, // Inception
+		155, // The Dark Knight
+		603, // The Matrix
+		680, // Pulp Fiction
+		238, // The Godfather
+		496243, // Parasite
+		389, // 12 Angry Men
+		13, // Forrest Gump
+		278, // The Shawshank Redemption
+		550, // Fight Club
+		120, // LOTR Fellowship
+		122, // LOTR Return
+		429, // Good Will Hunting
+		1891 // The Empire Strikes Back
 	];
+
+	let cachedMovies: string[] | null = null;
+
+	function pickFromDom(): string | null {
+		// Fast path: pick from already-rendered movie cards (no fetch)
+		const links = Array.from(document.querySelectorAll<HTMLAnchorElement>('a[href^="/movie/"]'));
+		// Filter to only movie links with valid IDs and exclude duplicates
+		const hrefs = [...new Set(links.map((a) => a.getAttribute('href')).filter(Boolean) as string[])];
+		if (hrefs.length === 0) return null;
+		return hrefs[Math.floor(Math.random() * hrefs.length)];
+	}
+
+	async function fetchRandomMovies(): Promise<string[] | null> {
+		if (cachedMovies) return cachedMovies;
+		try {
+			// Lightweight: fetch a small set of popular movies, cache it
+			const res = await fetch('/api/media/top-rated?limit=20', { headers: { accept: 'application/json' } });
+			if (res.ok) {
+				const data = await res.json();
+				const list = Array.isArray(data) ? data : data?.results ?? data?.items ?? [];
+				const movieHrefs = list
+					.filter((m: any) => (m.mediaType ?? m.media_type ?? 'movie') === 'movie')
+					.map((m: any) => `/movie/${m.tmdbId ?? m.id}`)
+					.filter(Boolean);
+				if (movieHrefs.length > 0) {
+					cachedMovies = movieHrefs;
+					return movieHrefs;
+				}
+			}
+		} catch {}
+		return null;
+	}
 
 	async function surprise() {
 		if (spinning) return;
 		spinning = true;
+		message = '';
 		try {
-			// Try catalog random if it exists
-			try {
-				const res = await fetch('/api/catalog/random');
-				if (res.ok) {
-					const data = await res.json();
-					const item = data?.item ?? data;
-					if (item?.tmdbId || item?.id) {
-						const id = item.tmdbId ?? item.id;
-						const type = item.mediaType ?? item.media_type ?? 'movie';
-						await goto(`/${type === 'tv' ? 'tv' : 'movie'}/${id}`);
-						return;
-					}
-				}
-			} catch {}
-			// Fallback: random from curated pool
-			const pick = FALLBACK_IDS[Math.floor(Math.random() * FALLBACK_IDS.length)];
-			await goto(`/${pick.type}/${pick.id}`);
+			// 1. Instant: pick from already-loaded movie cards on the page (fastest, no fetch)
+			const domPick = pickFromDom();
+			if (domPick) {
+				await goto(domPick);
+				return;
+			}
+
+			// 2. Fast lightweight fetch with cache — movies only
+			const cached = await fetchRandomMovies();
+			if (cached && cached.length > 0) {
+				const href = cached[Math.floor(Math.random() * cached.length)];
+				await goto(href);
+				return;
+			}
+
+			// 3. Instant fallback: curated movies-only pool (no TV)
+			const id = MOVIE_POOL[Math.floor(Math.random() * MOVIE_POOL.length)];
+			await goto(`/movie/${id}`);
+		} catch {
+			message = 'No movies available right now — try again!';
+			setTimeout(() => (message = ''), 2500);
 		} finally {
-			setTimeout(() => (spinning = false), 800);
+			setTimeout(() => (spinning = false), 700);
 		}
 	}
 </script>
@@ -57,6 +100,9 @@
 	<button class="surprise-btn" class:spin={spinning} onclick={surprise} aria-label="Surprise me">
 		<span class="dice" aria-hidden="true">🎲</span> Surprise!
 	</button>
+	{#if message}
+		<div class="surprise-msg" role="status">{message}</div>
+	{/if}
 {/if}
 
 <style>
@@ -106,12 +152,30 @@
 			transform: rotate(360deg) scale(1);
 		}
 	}
+	.surprise-msg {
+		position: fixed;
+		right: 18px;
+		bottom: 132px;
+		z-index: 40;
+		padding: 0.6rem 0.9rem;
+		border-radius: 12px;
+		background: rgba(20, 20, 30, 0.92);
+		border: 1px solid rgba(255, 255, 255, 0.08);
+		color: var(--text-primary);
+		font-size: 0.85rem;
+		box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+	}
+
 	@media (max-width: 640px) {
 		.surprise-btn {
 			right: 12px;
 			bottom: 76px;
 			padding: 0.55rem 0.9rem;
 			font-size: 0.85rem;
+		}
+		.surprise-msg {
+			right: 12px;
+			bottom: 118px;
 		}
 	}
 </style>
