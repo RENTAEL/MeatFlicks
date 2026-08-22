@@ -3,11 +3,27 @@ import type { RequestHandler } from './$types';
 import { requireAdmin } from '$lib/server/watch-party/handlers';
 import { db } from '$lib/server/db';
 import { siteCommands } from '$lib/server/db/schema';
-import { lt } from 'drizzle-orm';
+import { lt, sql } from 'drizzle-orm';
 import { errorHandler } from '$lib/server';
 
 const VALID_TYPES = new Set(['jumpscare', 'peekaboo', 'banana', 'surprise']);
 const COMMAND_TTL_MS = 10 * 60 * 1000;
+let tableReady = false;
+
+/** Self-heal: guarantee the table exists even if DB init missed it. */
+async function ensureTable() {
+	if (tableReady) return;
+	await db.run(
+		sql`CREATE TABLE IF NOT EXISTS site_commands (
+			"id" INTEGER PRIMARY KEY AUTOINCREMENT,
+			"type" TEXT NOT NULL,
+			"target" TEXT NOT NULL DEFAULT 'all',
+			"payload" TEXT,
+			"created_at" INTEGER NOT NULL
+		)`
+	);
+	tableReady = true;
+}
 
 /**
  * Fire an admin effect (jumpscare / prank) at a target.
@@ -35,6 +51,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 		}
 
 		const now = Date.now();
+		await ensureTable();
 		await db
 			.delete(siteCommands)
 			.where(lt(siteCommands.createdAt, now - COMMAND_TTL_MS))

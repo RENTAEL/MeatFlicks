@@ -2,10 +2,26 @@ import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { db } from '$lib/server/db';
 import { siteCommands } from '$lib/server/db/schema';
-import { and, gt, desc, lt } from 'drizzle-orm';
+import { and, gt, desc, lt, sql } from 'drizzle-orm';
 import { errorHandler } from '$lib/server';
 
 const COMMAND_TTL_MS = 10 * 60 * 1000;
+let tableReady = false;
+
+/** Self-heal: guarantee the table exists even if DB init missed it. */
+async function ensureTable() {
+	if (tableReady) return;
+	await db.run(
+		sql`CREATE TABLE IF NOT EXISTS site_commands (
+			"id" INTEGER PRIMARY KEY AUTOINCREMENT,
+			"type" TEXT NOT NULL,
+			"target" TEXT NOT NULL DEFAULT 'all',
+			"payload" TEXT,
+			"created_at" INTEGER NOT NULL
+		)`
+	);
+	tableReady = true;
+}
 
 /**
  * Public poll endpoint for admin-triggered effects (jumpscare / pranks).
@@ -28,6 +44,7 @@ export const GET: RequestHandler = async ({ locals, url }) => {
 		}
 
 		const now = Date.now();
+		await ensureTable();
 		const rows = await db
 			.select()
 			.from(siteCommands)
