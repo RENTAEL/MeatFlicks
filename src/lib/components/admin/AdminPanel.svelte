@@ -2,6 +2,13 @@
 	import { onMount } from 'svelte';
 	import { getCsrfTokenClient } from '$lib/utils/csrf.client';
 	import ActiveUsersPanel from './ActiveUsersPanel.svelte';
+	import EffectsPanel from './EffectsPanel.svelte';
+	import {
+		liveSessions,
+		connectLiveSessions,
+		isGuestSession,
+		sessionLabel
+	} from '$lib/admin/liveSessions.svelte';
 	import {
 		Shield,
 		Wand2,
@@ -15,7 +22,7 @@
 		Loader2
 	} from '@lucide/svelte';
 
-	type Announcement = { text: string; at: number; by: string } | null;
+	type Announcement = { text: string; at: number; by: string; target?: string } | null;
 	type AdminStats = {
 		activeSessions: number;
 		totalUsers: number;
@@ -37,6 +44,7 @@
 
 	let announcement = $state<Announcement>(null);
 	let announcementText = $state('');
+	let broadcastTarget = $state<string>('all');
 	let broadcastBusy = $state(false);
 
 	let flags = $state<Record<string, boolean>>({});
@@ -101,7 +109,10 @@
 		if (!text) return;
 		broadcastBusy = true;
 		try {
-			const res = await apiFetch('/api/admin/announcement', 'POST', { text });
+			const res = await apiFetch('/api/admin/announcement', 'POST', {
+				text,
+				target: broadcastTarget
+			});
 			if (res.status === 200 && res.body?.ok) {
 				announcement = res.body.announcement;
 				announcementText = '';
@@ -149,6 +160,8 @@
 		void refreshStats();
 		void loadAnnouncement();
 		void loadFlags();
+		const cleanup = connectLiveSessions();
+		return cleanup;
 	});
 
 	function fmtAge(ts: number | null): string {
@@ -158,6 +171,15 @@
 		if (mins < 1) return 'just now';
 		if (mins < 60) return `${mins}m ago`;
 		return `${Math.floor(mins / 60)}h ${mins % 60}m ago`;
+	}
+
+	function formatTarget(target: string | undefined): string {
+		const t = target ?? 'all';
+		if (t === 'all') return 'everyone';
+		if (t === 'auth') return 'logged-in users';
+		if (t.startsWith('user:')) return `@${t.slice(5, 13)}`;
+		if (t.startsWith('guest:')) return `guest ${t.slice(6, 14)}`;
+		return t;
 	}
 </script>
 
@@ -294,7 +316,10 @@
 		<div class="admin-option">
 			<div class="option-text">
 				<strong>Broadcast a message</strong>
-				<p>Send a site-wide notice banner to every visitor, e.g. “Maintenance tonight at 2am”.</p>
+				<p>
+					Send a site-wide notice banner to every page — logged in or not. It persists until you
+					remove it; each person can dismiss it for themselves.
+				</p>
 			</div>
 			<form
 				class="broadcast-form"
@@ -303,6 +328,15 @@
 					void sendAnnouncement();
 				}}
 			>
+				<select class="broadcast-target" bind:value={broadcastTarget} aria-label="Broadcast target">
+					<option value="all">Everyone</option>
+					<option value="auth">Logged-in users only</option>
+					{#each liveSessions.users as u (u.userId)}
+						<option value={isGuestSession(u.userId) ? u.userId : `user:${u.userId}`}>
+							{isGuestSession(u.userId) ? `👻 Guest (${sessionLabel(u.userId)})` : `@${u.username}`}
+						</option>
+					{/each}
+				</select>
 				<input
 					type="text"
 					class="broadcast-input"
@@ -329,7 +363,9 @@
 					<span>Live now:</span>
 					<q>{announcement.text}</q>
 					<span class="ann-meta">
-						by {announcement.by} · {fmtAge(announcement.at)}
+						to {formatTarget(announcement.target)} · by {announcement.by} · {fmtAge(
+							announcement.at
+						)}
 					</span>
 					<button
 						class="btn-ghost"
@@ -344,6 +380,16 @@
 				<p class="no-announcement">No announcement currently live.</p>
 			{/if}
 		</div>
+	</div>
+
+	<!-- Jumpscare & pranks -->
+	<div class="admin-group">
+		<div class="admin-group-title">Jumpscare &amp; pranks 🎭</div>
+		<p class="prank-note">
+			Fun-and-games only: pick targets from the live session list (or go site-wide), then confirm.
+			Each one auto-dismisses on their screen — harmless, no data touched.
+		</p>
+		<EffectsPanel />
 	</div>
 
 	<!-- Stats -->
@@ -621,6 +667,24 @@
 		gap: 0.5rem;
 		flex-wrap: wrap;
 		width: 100%;
+	}
+
+	.broadcast-target {
+		padding: 0.5rem 0.6rem;
+		border-radius: var(--radius-md);
+		border: 1px solid var(--border-stream);
+		background: var(--bg-root);
+		color: var(--text-primary);
+		font-family: inherit;
+		font-size: 0.82rem;
+		max-width: 220px;
+	}
+
+	.prank-note {
+		margin: 0;
+		font-size: 0.8rem;
+		color: var(--text-tertiary);
+		line-height: 1.5;
 	}
 
 	.broadcast-input {

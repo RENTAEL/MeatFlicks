@@ -219,6 +219,19 @@ const runInitSql = async (client: Client) => {
 			);
 		} catch {}
 
+		await client.execute(`CREATE TABLE IF NOT EXISTS site_commands (
+			"id" INTEGER PRIMARY KEY AUTOINCREMENT,
+			"type" TEXT NOT NULL,
+			"target" TEXT NOT NULL DEFAULT 'all',
+			"payload" TEXT,
+			"createdAt" INTEGER NOT NULL
+		)`);
+		try {
+			await client.execute(
+				'CREATE INDEX IF NOT EXISTS idx_site_commands_created ON site_commands("created_at")'
+			);
+		} catch {}
+
 		await client.execute(`CREATE TABLE IF NOT EXISTS watchlist (
 			"id" INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
 			"userId" TEXT NOT NULL REFERENCES users("id") ON DELETE CASCADE,

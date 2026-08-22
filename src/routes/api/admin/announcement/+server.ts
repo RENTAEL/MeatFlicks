@@ -17,12 +17,15 @@ export const GET: RequestHandler = async ({ locals }) => {
 export const POST: RequestHandler = async ({ request, locals }) => {
 	try {
 		const admin = requireAdmin(locals);
-		const body = (await request.json().catch(() => null)) as { text?: string } | null;
+		const body = (await request.json().catch(() => null)) as {
+			text?: string;
+			target?: string;
+		} | null;
 		const text = body?.text?.trim() ?? '';
 		if (!text) {
 			return json({ ok: false, error: 'Announcement text is required' }, { status: 400 });
 		}
-		const announcement = await setAnnouncement(text, admin.username);
+		const announcement = await setAnnouncement(text, admin.username, body?.target ?? 'all');
 		return json({ ok: true, announcement });
 	} catch (error) {
 		const { status, body } = errorHandler.handleError(error);

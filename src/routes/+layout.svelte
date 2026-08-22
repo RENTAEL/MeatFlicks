@@ -6,6 +6,8 @@
 	import { watchlist } from '$lib/state/stores/watchlistStore.svelte';
 	import { watchHistory } from '$lib/state/stores/historyStore.svelte';
 	import AnnouncementBanner from '$lib/components/AnnouncementBanner.svelte';
+	import GuestPresence from '$lib/components/admin/GuestPresence.svelte';
+	import CommandPoller from '$lib/components/admin/CommandPoller.svelte';
 
 	let { children } = $props();
 
@@ -35,4 +37,6 @@
 </script>
 
 <AnnouncementBanner />
+<GuestPresence />
+<CommandPoller />
 {@render children()}

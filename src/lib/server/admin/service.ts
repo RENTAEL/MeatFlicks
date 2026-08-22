@@ -125,24 +125,46 @@ export async function getSystemStats(): Promise<AdminStats> {
 	};
 }
 
-export type Announcement = { text: string; at: number; by: string } | null;
+export type AnnouncementTarget = 'all' | 'auth' | string; // 'all' | 'auth' | 'user:<id>' | 'guest:<sessionId>'
+export type Announcement = {
+	text: string;
+	at: number;
+	by: string;
+	target: AnnouncementTarget;
+} | null;
 
 export async function getAnnouncement(): Promise<Announcement> {
 	const raw = await getSchemaValue(ANNOUNCEMENT_KEY);
 	if (!raw) return null;
 	try {
-		const parsed = JSON.parse(raw) as { text?: string; at?: number; by?: string };
+		const parsed = JSON.parse(raw) as { text?: string; at?: number; by?: string; target?: string };
 		if (!parsed.text) return null;
-		return { text: parsed.text, at: parsed.at ?? Date.now(), by: parsed.by ?? 'unknown' };
+		return {
+			text: parsed.text,
+			at: parsed.at ?? Date.now(),
+			by: parsed.by ?? 'unknown',
+			target: parsed.target ?? 'all'
+		};
 	} catch {
 		return null;
 	}
 }
 
-export async function setAnnouncement(text: string, by: string): Promise<Announcement> {
+export async function setAnnouncement(
+	text: string,
+	by: string,
+	target: AnnouncementTarget = 'all'
+): Promise<Announcement> {
 	const clean = text.trim().slice(0, 280);
 	if (!clean) throw new Error('Announcement text is required');
-	const announcement: NonNullable<Announcement> = { text: clean, at: Date.now(), by };
+	const validTarget =
+		target === 'all' || target === 'auth' || /^(user|guest):[\w-]+$/.test(target) ? target : 'all';
+	const announcement: NonNullable<Announcement> = {
+		text: clean,
+		at: Date.now(),
+		by,
+		target: validTarget
+	};
 	await setSchemaValue(ANNOUNCEMENT_KEY, JSON.stringify(announcement));
 	return announcement;
 }

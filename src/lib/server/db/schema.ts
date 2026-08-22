@@ -158,6 +158,25 @@ export const sessionRevocations = sqliteTable(
 	(table) => [index('idx_session_revocations_revoked').on(table.revokedAt)]
 );
 
+/**
+ * Short-lived admin effect commands (jumpscare / pranks). Clients poll with
+ * their last seen id; rows auto-expire after ~10 minutes (pruned on insert).
+ * Target: 'all' | 'auth' | 'user:<id>' | 'guest:<sessionId>'
+ */
+export const siteCommands = sqliteTable(
+	'site_commands',
+	{
+		id: integer('id').primaryKey({ autoIncrement: true }),
+		type: text('type').notNull(),
+		target: text('target').notNull().default('all'),
+		payload: text('payload'),
+		createdAt: integer('created_at')
+			.notNull()
+			.$defaultFn(() => Date.now())
+	},
+	(table) => [index('idx_site_commands_created').on(table.createdAt)]
+);
+
 export const watchlistFolders = sqliteTable(
 	'watchlist_folders',
 	{

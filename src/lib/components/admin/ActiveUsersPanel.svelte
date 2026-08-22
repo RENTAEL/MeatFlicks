@@ -12,19 +12,13 @@
 	} from '@lucide/svelte';
 	import ActiveSessionsPanel from './ActiveSessionsPanel.svelte';
 	import { getCsrfTokenClient } from '$lib/utils/csrf.client';
-
-	type SnapshotUser = {
-		userId: string;
-		username: string;
-		joinedAt: number;
-		lastSeen: number;
-		path: string | null;
-		title: string | null;
-		roomId: string | null;
-		roomTitle: string | null;
-		roomHost: boolean;
-		roomMemberSince: number | null;
-	};
+	import {
+		liveSessions,
+		connectLiveSessions,
+		isGuestSession,
+		sessionLabel,
+		type LiveSessionUser
+	} from '$lib/admin/liveSessions.svelte';
 
 	type Session = {
 		roomId: string;
@@ -41,32 +35,21 @@
 
 	let connected = $state(false);
 	let counts = $state({ users: 0, sessions: 0 });
-	let users = $state<SnapshotUser[]>([]);
+	let users = $state<LiveSessionUser[]>([]);
 	let sessions = $state<Session[]>([]);
 	let lastAt = $state(0);
 	let confirmKick = $state<string | null>(null);
 	let kicking = $state(false);
 	let kickError = $state('');
 
-	onMount(() => {
-		const es = new EventSource('/api/admin/presence/stream');
-		es.addEventListener('presence', (event) => {
-			const data = JSON.parse((event as MessageEvent).data) as {
-				users: SnapshotUser[];
-				sessions: Session[];
-				counts: { users: number; sessions: number };
-				at: number;
-			};
-			users = data.users;
-			sessions = data.sessions;
-			counts = data.counts;
-			lastAt = data.at;
-		});
-		es.onopen = () => (connected = true);
-		es.onerror = () => {
-			connected = false;
-		};
-		return () => es.close();
+	onMount(() => connectLiveSessions());
+
+	// Mirror the shared store into local state (keeps the template unchanged)
+	$effect(() => {
+		users = liveSessions.users;
+		counts = liveSessions.counts;
+		connected = liveSessions.connected;
+		lastAt = liveSessions.lastAt;
 	});
 
 	async function endSession(userId: string) {
@@ -112,14 +95,14 @@
 		return `${mins}m ago`;
 	}
 
-	function pageLabel(u: SnapshotUser): string {
+	function pageLabel(u: LiveSessionUser): string {
 		if (u.roomId) return `In session ${u.roomId}`;
 		if (u.title) return u.title;
 		if (u.path && u.path !== '/') return u.path;
 		return 'Browsing home';
 	}
 
-	function pageHref(u: SnapshotUser): string | null {
+	function pageHref(u: LiveSessionUser): string | null {
 		return u.path && u.path !== '/' ? u.path : null;
 	}
 </script>
@@ -154,20 +137,25 @@
 			<Users size={13} aria-hidden="true" /> Who's online
 		</div>
 		{#if users.length === 0}
-			<p class="apu-empty">No signed-in users with an open app right now.</p>
+			<p class="apu-empty">Nobody on the site right now — no users, no guests.</p>
 		{:else}
 			<ul class="apu-user-list">
 				{#each users as u (u.userId)}
-					<li class="apu-user">
+					{@const guest = isGuestSession(u.userId)}
+					<li class="apu-user" class:apu-guest={guest}>
 						<div class="apu-user-main">
-							<span class="apu-avatar" aria-hidden="true">
-								{u.username.slice(0, 1).toUpperCase()}
+							<span class="apu-avatar" class:apu-avatar-guest={guest} aria-hidden="true">
+								{guest ? '👻' : u.username.slice(0, 1).toUpperCase()}
 							</span>
 							<div class="apu-user-info">
 								<span class="apu-username">
-									{u.username}
+									{guest ? 'Guest / Anonymous' : u.username}
+									<span class="apu-sid" title={u.userId}>{sessionLabel(u.userId)}</span>
 									{#if u.roomHost}
 										<span class="apu-host-tag">host</span>
+									{/if}
+									{#if guest}
+										<span class="apu-guest-tag">not signed in</span>
 									{/if}
 								</span>
 								<span class="apu-watching">
@@ -391,6 +379,34 @@
 		border-radius: var(--radius-md);
 		background: var(--bg-root);
 		border: 1px solid var(--border-stream);
+	}
+
+	.apu-guest {
+		border-style: dashed;
+	}
+
+	.apu-avatar-guest {
+		background: linear-gradient(135deg, #475569, #334155) !important;
+	}
+
+	.apu-sid {
+		font-family: ui-monospace, monospace;
+		font-size: 0.62rem;
+		color: var(--text-tertiary);
+		background: rgba(255, 255, 255, 0.04);
+		padding: 0.02rem 0.35rem;
+		border-radius: var(--radius-full);
+	}
+
+	.apu-guest-tag {
+		font-size: 0.6rem;
+		text-transform: uppercase;
+		letter-spacing: 0.05em;
+		padding: 0.05rem 0.4rem;
+		border-radius: var(--radius-full);
+		background: rgba(148, 163, 184, 0.14);
+		border: 1px solid rgba(148, 163, 184, 0.35);
+		color: #94a3b8;
 	}
 
 	.apu-user-main {
