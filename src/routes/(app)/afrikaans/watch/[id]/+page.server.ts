@@ -40,8 +40,9 @@ function pickTrailer(videos: any): string | null {
 /**
  * Probe every embed host once per page load so the player can skip offline
  * sources automatically instead of making the user sit through dead frames.
- * Server-side GET (HEAD is unreliable on these hosts), 4s cap each, all in
- * parallel. Results are advisory — the player still has manual fallback.
+ * Server-side GET, 4s cap each, all in parallel. Only hard failures count
+ * as offline — these hosts commonly answer datacenter requests with 403
+ * while serving real users fine.
  */
 async function probeSources(
 	kind: 'movie' | 'tv',
@@ -56,7 +57,7 @@ async function probeSources(
 					signal: AbortSignal.timeout(4000),
 					redirect: 'follow'
 				});
-				return [src.id, res.ok || (res.status >= 300 && res.status < 400)];
+				return [src.id, res.status < 500];
 			} catch {
 				return [src.id, false];
 			}
