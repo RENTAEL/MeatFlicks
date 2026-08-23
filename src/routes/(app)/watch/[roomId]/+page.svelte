@@ -122,6 +122,9 @@
 		if (s.kicked) {
 			handleKick(s.kicked.by, s.kicked.at);
 		}
+		// Drop frames older than what we already applied — a slow poll response
+		// or out-of-order SSE replay must never regress playback/media state.
+		if (state.playback.seq > 0 && s.playback.seq < state.playback.seq) return;
 		if (s.playback.seq !== state.playback.seq || s.playback.playing !== state.playback.playing) {
 			soakEvent(
 				'playback',
@@ -181,11 +184,20 @@
 			soakEvent('sse-error', 'connection error (EventSource auto-reconnect pending)');
 			// EventSource reconnects automatically; onopen catches us up
 		};
+		let refetchInFlight = false;
 		if (!refetchTimer) {
 			refetchTimer = setInterval(() => {
-				api<RoomState>(`/watch-party/rooms/${roomId}?since=${lastMessageId}`).then((s) => {
-					if (s) handleState(s);
-				});
+				// Never pile up overlapping polls — a slow response must not
+				// queue a burst of stale catch-ups behind it.
+				if (refetchInFlight) return;
+				refetchInFlight = true;
+				api<RoomState>(`/watch-party/rooms/${roomId}?since=${lastMessageId}`)
+					.then((s) => {
+						if (s) handleState(s);
+					})
+					.finally(() => {
+						refetchInFlight = false;
+					});
 			}, 15000);
 		}
 	}
@@ -205,9 +217,12 @@
 					(await res.json().catch(() => ({ message: 'Request failed' }))).message ??
 						'Request failed'
 				);
+			error = '';
 			return (await res.json()) as T;
 		} catch (e) {
-			error = e instanceof Error ? e.message : 'Something went wrong';
+			if (e instanceof Error && e.name !== 'AbortError') {
+				error = e.message || 'Something went wrong';
+			}
 			return null;
 		}
 	}
