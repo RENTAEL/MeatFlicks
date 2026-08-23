@@ -80,14 +80,10 @@
 	let currentUrl = $derived.by(() => {
 		const entry = CHAIN[sourceIndex];
 		if (!entry) return '';
-		if (entry.kind === 'youtube') return youtubeEmbedUrl(entry.videoId, pageOrigin());
+		if (entry.kind === 'youtube') return youtubeEmbedUrl(entry.videoId);
 		return entry.source.url(details.mediaType, details.tmdbId, season, episode);
 	});
 	let currentIsYouTube = $derived(CHAIN[sourceIndex]?.kind === 'youtube');
-
-	function pageOrigin(): string {
-		return typeof window !== 'undefined' ? window.location.origin : '';
-	}
 
 	function clearTimers() {
 		if (graceTimer) {

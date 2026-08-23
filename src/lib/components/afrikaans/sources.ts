@@ -12,8 +12,8 @@ export interface AfSource {
 }
 
 /** YouTube is the primary playback layer for Afrikaans titles. */
-export const youtubeEmbedUrl = (videoId: string, origin: string) =>
-	`https://www.youtube-nocookie.com/embed/${videoId}?autoplay=1&enablejsapi=1&origin=${encodeURIComponent(origin)}&rel=0`;
+export const youtubeEmbedUrl = (videoId: string) =>
+	`https://www.youtube-nocookie.com/embed/${videoId}?autoplay=1&enablejsapi=1&rel=0`;
 
 export const AFRIKAANS_SOURCES: AfSource[] = [
 	{
