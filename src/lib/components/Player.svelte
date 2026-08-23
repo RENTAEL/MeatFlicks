@@ -242,6 +242,9 @@
 			url.hash = '#t=' + Math.max(0, Math.round(req.position));
 			frameSrc = url.toString();
 			builtByUs = true;
+			console.info(
+				`[player] iframe src changed (build t=${Math.max(0, Math.round(req.position))} provider=${currentProvider?.id ?? 'none'})`
+			);
 		} else if (readOnly && remoteSync && remoteAppliedSeq === -1 && !hasFullPlaybackControl) {
 			// Member joined with a host state before the first iframe ever
 			// rendered: hold the base URL until the join build lands (see the
@@ -253,6 +256,18 @@
 			// for blind embeds — full-control providers load the base and seek.
 			builtByUs = true;
 		} else {
+			// GUARD: never clobber a deliberately built URL (it carries #t=
+			// and autoplay params — resetting to the clean base reloads the
+			// iframe and kills playback). Only fall back to the base when the
+			// provider actually changed or nothing is built yet.
+			if (builtByUs && frameSrc && frameSrc.startsWith(base.split('?')[0])) {
+				return;
+			}
+			if (frameSrc !== base) {
+				console.info(
+					`[player] iframe src changed (base provider=${currentProvider?.id ?? 'none'})`
+				);
+			}
 			frameSrc = base;
 			builtByUs = false;
 		}
@@ -1125,6 +1140,17 @@
 		if (next !== currentIndex) switchTo(next);
 	}
 
+	// Diagnostic: prove whether the iframe element is ever recreated (a
+	// remount reloads the embed and freezes playback).
+	function iframeLifecycle(node: HTMLIFrameElement) {
+		console.info('[player] iframe created', (node.getAttribute('src') || '').slice(0, 80));
+		return {
+			destroy() {
+				console.warn('[player] iframe destroyed');
+			}
+		};
+	}
+
 	function onIframeLoad() {
 		iframeLoaded = true;
 		hasError = false;
@@ -1162,13 +1188,14 @@
 
 	function onIframeError() {
 		// vidlink-class embeds fire iframe errors for INTERNAL navigations
-		// (redirects, ad frames) — yanking the provider mid-playback was the
-		// "randomly stops playing" bug. If this element ever proved real
-		// playback, treat it as a connection drop: offer a manual reconnect
-		// instead of silently switching away.
+		// (redirects, ad frames, player handshakes — often ~10s in). An error
+		// alone is NOT proof playback died. Only trust it once the embed has
+		// ALSO gone silent (no PLAYER_EVENT timeupdates for 8s). Before my
+		// hardening this insta-switched providers mid-play — the classic
+		// "randomly stops at 10-11s".
 		const hadPlayback = hasStartedPlayback;
 		console.warn(
-			`[player] iframe error provider=${currentProvider?.id ?? 'none'} hadPlayback=${hadPlayback}`
+			`[player] iframe error provider=${currentProvider?.id ?? 'none'} hadPlayback=${hadPlayback} — verifying against embed silence`
 		);
 		soakEvent(
 			'iframe-error',
@@ -1176,9 +1203,7 @@
 		);
 		loadedProviders.delete(currentProvider?.id || '');
 		if (hadPlayback) {
-			connectionLost = true;
-			iframeLoaded = false;
-			soakUpdate({ iframeLoaded: false });
+			startSilenceWatchdog();
 			return;
 		}
 		hasError = true;
@@ -1191,6 +1216,24 @@
 				startAutoSwitch();
 			}, 500);
 		}
+	}
+
+	// One watchdog at a time: an error only becomes "connection lost" if the
+	// embed stays silent for 8s after it. vidlink recovers internally from
+	// most of its own navigation errors and playback just continues.
+	let silenceWatchdog: ReturnType<typeof setTimeout> | null = null;
+	function startSilenceWatchdog() {
+		if (silenceWatchdog) clearTimeout(silenceWatchdog);
+		silenceWatchdog = setTimeout(() => {
+			silenceWatchdog = null;
+			const lastEventAt = embedEvent?.at ?? 0;
+			if (hasStartedPlayback && Date.now() - lastEventAt > 8000) {
+				console.warn('[player] embed silent 8s after error — connection lost');
+				connectionLost = true;
+				iframeLoaded = false;
+				soakUpdate({ iframeLoaded: false });
+			}
+		}, 8000);
 	}
 
 	function reconnectCurrent() {
@@ -1311,6 +1354,7 @@
 					allow="autoplay; fullscreen; encrypted-media; picture-in-picture; accelerometer; gyroscope"
 					referrerpolicy="origin"
 					title={title || 'Video Player'}
+					use:iframeLifecycle
 					onload={onIframeLoad}
 					onerror={onIframeError}
 				></iframe>
