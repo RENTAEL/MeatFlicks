@@ -1,8 +1,7 @@
+import { redirect } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
 
-export const load: PageServerLoad = async ({ locals }) => {
-	return {
-		isAdmin: locals.user?.role === 'ADMIN',
-		username: locals.user?.username ?? null
-	};
+// The admin console lives at /admin now — same shared AdminPanel component.
+export const load: PageServerLoad = async () => {
+	redirect(301, '/admin');
 };

@@ -323,6 +323,7 @@
 					<p class="section-desc">
 						Operations console: end watch-party sessions, clear orphaned rooms, refresh the catalog,
 						broadcast messages, view system stats and flip feature flags.
+						<a href="/admin" class="admin-console-link">Open full console →</a>
 					</p>
 				</div>
 			</div>
@@ -410,6 +411,17 @@
 		color: var(--text-tertiary);
 		margin: 0;
 		line-height: 1.5;
+	}
+
+	.admin-console-link {
+		display: inline-block;
+		margin-top: 0.35rem;
+		color: var(--accent, #7c5cfc);
+		text-decoration: none;
+		font-weight: 600;
+	}
+	.admin-console-link:hover {
+		text-decoration: underline;
 	}
 
 	.ublock-card {

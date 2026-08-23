@@ -78,18 +78,18 @@
 	<PresencePing />
 {/if}
 
-	<ImpersonationBanner />
-	<User2Global />
-	<SurpriseMe />
+<ImpersonationBanner />
+<User2Global />
+<SurpriseMe />
 
-	<!-- Ambient background -->
+<!-- Ambient background -->
 <div class="bg-ambient">
 	<div class="bg-gradient-top"></div>
 	<div class="bg-noise"></div>
 </div>
 
-	<!-- Demon Slayer custom background for aftermidnight — gated to demon_slayer theme -->
-	<div class="demon-slayer-bg" aria-hidden="true"><div class="demon-slayer-bg-overlay"></div></div>
+<!-- Demon Slayer custom background for aftermidnight — gated to demon_slayer theme -->
+<div class="demon-slayer-bg" aria-hidden="true"><div class="demon-slayer-bg-overlay"></div></div>
 
 <ModeWatcher defaultMode="dark" themeColors={{ dark: '#0a0a1a', light: '#0a0a1a' }} />
 <ThemeContext>
@@ -229,6 +229,16 @@
 				>
 				History
 			</a>
+			{#if $page.data.user?.role === 'ADMIN'}
+				<a href="/admin" class="menu-item" onclick={() => menuOpen.set(false)}>
+					<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+						><circle cx="12" cy="12" r="3" /><path
+							d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9c0 .66.39 1.26 1 1.51zM15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0z"
+						/></svg
+					>
+					Admin Console
+				</a>
+			{/if}
 			<PreviewSwitcher variant="mobile" />
 			{#if authStore.state.user}
 				<a href="/profile" class="menu-item" onclick={() => menuOpen.set(false)}>
@@ -329,8 +339,20 @@
 		inset: 0;
 		/* Designed, readable, cohesive — vignette + theme-tinted gradients, center stays clear */
 		background:
-			radial-gradient(ellipse 92% 78% at 50% 36%, rgba(255, 255, 255, 0) 0%, rgba(255, 255, 255, 0) 46%, rgba(5, 5, 8, 0.32) 74%, rgba(5, 5, 8, 0.78) 100%),
-			linear-gradient(180deg, rgba(5, 5, 8, 0.38) 0%, rgba(5, 5, 8, 0.22) 30%, rgba(5, 5, 8, 0.52) 68%, rgba(5, 5, 8, 0.86) 100%),
+			radial-gradient(
+				ellipse 92% 78% at 50% 36%,
+				rgba(255, 255, 255, 0) 0%,
+				rgba(255, 255, 255, 0) 46%,
+				rgba(5, 5, 8, 0.32) 74%,
+				rgba(5, 5, 8, 0.78) 100%
+			),
+			linear-gradient(
+				180deg,
+				rgba(5, 5, 8, 0.38) 0%,
+				rgba(5, 5, 8, 0.22) 30%,
+				rgba(5, 5, 8, 0.52) 68%,
+				rgba(5, 5, 8, 0.86) 100%
+			),
 			radial-gradient(ellipse 88% 52% at 50% 10%, rgba(255, 42, 18, 0.08) 0%, transparent 60%),
 			radial-gradient(ellipse 62% 42% at 88% 90%, rgba(255, 107, 0, 0.06) 0%, transparent 56%);
 	}
@@ -354,7 +376,13 @@
 		}
 		.demon-slayer-bg-overlay {
 			background:
-				radial-gradient(ellipse 98% 72% at 50% 30%, rgba(255, 255, 255, 0) 0%, rgba(255, 255, 255, 0) 42%, rgba(5, 5, 8, 0.38) 72%, rgba(5, 5, 8, 0.82) 100%),
+				radial-gradient(
+					ellipse 98% 72% at 50% 30%,
+					rgba(255, 255, 255, 0) 0%,
+					rgba(255, 255, 255, 0) 42%,
+					rgba(5, 5, 8, 0.38) 72%,
+					rgba(5, 5, 8, 0.82) 100%
+				),
 				linear-gradient(180deg, rgba(5, 5, 8, 0.32) 0%, rgba(5, 5, 8, 0.68) 100%),
 				radial-gradient(ellipse 90% 44% at 50% 8%, rgba(255, 42, 18, 0.07) 0%, transparent 58%);
 		}
