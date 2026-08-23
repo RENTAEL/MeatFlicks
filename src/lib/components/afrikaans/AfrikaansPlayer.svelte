@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { onDestroy } from 'svelte';
 	import { Loader2 } from '@lucide/svelte';
-	import { AFRIKAANS_SOURCES, type AfSource } from './sources';
+	import { AFRIKAANS_SOURCES, youtubeEmbedUrl, type AfSource } from './sources';
 
 	type AfrikaansDetails = {
 		tmdbId: number;
@@ -11,6 +11,7 @@
 		overview: string | null;
 		backdropPath: string | null;
 		trailerKey: string | null;
+		youtubeIds: string[];
 	};
 
 	let {
@@ -21,27 +22,41 @@
 		reachability?: Record<string, boolean>;
 	} = $props();
 
-	const LOAD_GRACE_MS = 9000;
+	const YT_GRACE_MS = 10_000;
 
-	interface ChainEntry extends AfSource {
-		online: boolean;
-	}
+	type ChainEntry =
+		| { kind: 'youtube'; videoId: string; label: string }
+		| { kind: 'embed'; source: AfSource; online: boolean };
 
 	/**
-	 * Ordered chain: hosts the server probe reached come first (original
-	 * order preserved); offline hosts follow, still playable via manual
-	 * fallback but never auto-selected.
+	 * Playback chain for this title:
+	 *   1. curated + TMDb YouTube videos (primary — reliable, never blocked)
+	 *   2. probed embed hosts (fallback; offline hosts sink to the tail)
+	 * Titles with no YouTube source at all show a clean "no source" state
+	 * instead of a guaranteed-dead embed player.
 	 */
+	// The chain is fixed per title — details never changes for this route,
+	// so capturing its current value here is intentional.
+	// svelte-ignore state_referenced_locally
 	const CHAIN: ChainEntry[] = [
-		...AFRIKAANS_SOURCES.filter((s) => reachability[s.id] !== false).map((s) => ({
-			...s,
+		...details.youtubeIds.map((videoId) => ({
+			kind: 'youtube' as const,
+			videoId,
+			label: details.youtubeIds.indexOf(videoId) === 0 ? 'YouTube · primary' : 'YouTube'
+		})),
+		...AFRIKAANS_SOURCES.filter((s) => reachability[s.id] !== false).map((source) => ({
+			kind: 'embed' as const,
+			source,
 			online: true
 		})),
-		...AFRIKAANS_SOURCES.filter((s) => reachability[s.id] === false).map((s) => ({
-			...s,
+		...AFRIKAANS_SOURCES.filter((s) => reachability[s.id] === false).map((source) => ({
+			kind: 'embed' as const,
+			source,
 			online: false
 		}))
 	];
+
+	const hasYoutube = $derived(details.youtubeIds.length > 0);
 
 	let season = $state(1);
 	let episode = $state(1);
@@ -50,47 +65,68 @@
 	let switching = $state(true);
 	let statusNote = $state('');
 	let graceTimer: ReturnType<typeof setTimeout> | null = null;
-	let usingTrailerFallback = $state(false);
+	let ytHandshakeTimer: ReturnType<typeof setTimeout> | null = null;
+	// svelte-ignore state_referenced_locally
+	let usingNoSource = $state(details.youtubeIds.length === 0);
 
-	let currentUrl = $derived(
-		CHAIN[sourceIndex].url(details.mediaType, details.tmdbId, season, episode)
-	);
+	let currentUrl = $derived.by(() => {
+		const entry = CHAIN[sourceIndex];
+		if (!entry) return '';
+		if (entry.kind === 'youtube') return youtubeEmbedUrl(entry.videoId, pageOrigin());
+		return entry.source.url(details.mediaType, details.tmdbId, season, episode);
+	});
+	let currentIsYouTube = $derived(CHAIN[sourceIndex]?.kind === 'youtube');
 
-	function clearGrace() {
+	function pageOrigin(): string {
+		return typeof window !== 'undefined' ? window.location.origin : '';
+	}
+
+	function clearTimers() {
 		if (graceTimer) {
 			clearTimeout(graceTimer);
 			graceTimer = null;
 		}
+		if (ytHandshakeTimer) {
+			clearTimeout(ytHandshakeTimer);
+			ytHandshakeTimer = null;
+		}
 	}
 
-	function armGrace() {
-		clearGrace();
+	function armSource() {
+		clearTimers();
 		iframeLoaded = false;
-		switching = !usingTrailerFallback;
-		graceTimer = setTimeout(() => advance('did not respond'), LOAD_GRACE_MS);
+		switching = !usingNoSource && sourceIndex < CHAIN.length;
+		if (sourceIndex >= CHAIN.length) return;
+		graceTimer = setTimeout(() => advance('did not respond'), YT_GRACE_MS);
+		if (currentIsYouTube) {
+			// Ask the embedded YouTube player to report lifecycle events so
+			// unavailable videos (onError) auto-skip and playback confirms.
+			ytHandshakeTimer = setTimeout(() => {
+				const frame = document.querySelector<HTMLIFrameElement>('.af-stage iframe');
+				frame?.contentWindow?.postMessage(
+					JSON.stringify({ event: 'listening', id: 1, channel: 'widget' }),
+					'*'
+				);
+			}, 1500);
+		}
 	}
 
-	/**
-	 * Advance to the next source. Browsers fire `load` even for failed
-	 * iframes, so auto-advance is driven by (a) hosts marked offline by the
-	 * server probe — skipped instantly — and (b) VidLink's own error events.
-	 */
 	function advance(reason: string) {
-		clearGrace();
+		clearTimers();
 		const next = sourceIndex + 1;
 		if (next < CHAIN.length) {
-			const wasOffline = !CHAIN[sourceIndex].online;
-			statusNote = wasOffline
-				? `${CHAIN[sourceIndex].label} is offline — skipped.`
-				: `${CHAIN[sourceIndex].label} failed (${reason}) — trying ${CHAIN[next].label}…`;
+			statusNote = `${entryLabel(sourceIndex)} failed (${reason}) — trying ${entryLabel(next)}…`;
 			sourceIndex = next;
 			return;
 		}
-		if (!usingTrailerFallback) {
-			usingTrailerFallback = true;
-			switching = false;
-			statusNote = 'No streaming sources responded — playing the trailer instead.';
-		}
+		switching = false;
+		statusNote = hasYoutube ? 'None of the sources for this title are working right now.' : '';
+	}
+
+	function entryLabel(i: number): string {
+		const entry = CHAIN[i];
+		if (!entry) return 'Source';
+		return entry.kind === 'youtube' ? entry.label : `Embed · ${entry.source.label}`;
 	}
 
 	function onIframeLoad() {
@@ -111,6 +147,29 @@
 	}
 
 	function onMessage(event: MessageEvent) {
+		const origin = event.origin || '';
+		const isYouTube = origin.endsWith('youtube-nocookie.com') || origin.endsWith('youtube.com');
+		if (isYouTube) {
+			try {
+				const data = JSON.parse(typeof event.data === 'string' ? event.data : '{}');
+				if (data?.event === 'onError') {
+					advance(`unavailable (${data.info ?? 'error'})`);
+					return;
+				}
+				if (
+					data?.event === 'onStateChange' &&
+					(data?.info === 1 || data?.info?.playerState === 1)
+				) {
+					// Confirmed playback — stop the fallback clock.
+					clearTimers();
+					switching = false;
+					return;
+				}
+			} catch {
+				// non-JSON message from YouTube — ignore
+			}
+			return;
+		}
 		if (event.origin !== 'https://vidlink.pro') return;
 		const data = event.data as { type?: string; data?: string } | string | null;
 		const type =
@@ -119,35 +178,29 @@
 		else if (/playing/i.test(type)) onIframeLoad();
 	}
 
-	onDestroy(clearGrace);
+	onDestroy(clearTimers);
 
 	$effect(() => {
 		void currentUrl;
-		armGrace();
+		armSource();
 	});
 </script>
 
 <div class="af-player">
 	<div class="af-stage">
-		{#if usingTrailerFallback}
-			{#if details.trailerKey}
-				<iframe
-					src={`https://www.youtube-nocookie.com/embed/${details.trailerKey}?autoplay=1`}
-					title="{details.title} trailer"
-					allow="autoplay; encrypted-media; fullscreen"
-					allowfullscreen
-				></iframe>
-			{:else}
-				<div class="af-none">
-					<p class="af-none-title">{details.title}</p>
-					<p>No streams available for this title right now.</p>
-				</div>
-			{/if}
-		{:else}
+		{#if usingNoSource}
+			<div class="af-none">
+				<span class="af-none-icon" aria-hidden="true">🎬</span>
+				<p class="af-none-title">{details.title}</p>
+				<p class="af-none-text">
+					Geen bron nog / No working source yet — kom binnekort / coming soon.
+				</p>
+			</div>
+		{:else if sourceIndex < CHAIN.length}
 			{#key currentUrl}
 				<iframe
 					src={currentUrl}
-					title="{details.title} — {CHAIN[sourceIndex].label}"
+					title="{details.title} — {entryLabel(sourceIndex)}"
 					allow="autoplay; encrypted-media; fullscreen"
 					allowfullscreen
 					onload={onIframeLoad}
@@ -156,9 +209,25 @@
 			{#if switching}
 				<div class="af-loading">
 					<span class="af-spin"><Loader2 size={26} aria-hidden="true" /></span>
-					<span>Loading {CHAIN[sourceIndex].label}…</span>
+					<span>Loading {entryLabel(sourceIndex)}…</span>
 				</div>
 			{/if}
+		{:else}
+			<div class="af-none">
+				<span class="af-none-icon" aria-hidden="true">⚠️</span>
+				<p class="af-none-title">{details.title}</p>
+				<p class="af-none-text">No working source for this title right now.</p>
+				<button
+					type="button"
+					class="af-retry"
+					onclick={() => {
+						sourceIndex = 0;
+						statusNote = '';
+					}}
+				>
+					Retry from start
+				</button>
+			</div>
 		{/if}
 	</div>
 
@@ -170,7 +239,7 @@
 			{/if}
 		</span>
 
-		{#if details.mediaType === 'tv' && !usingTrailerFallback}
+		{#if details.mediaType === 'tv' && !usingNoSource && sourceIndex < CHAIN.length}
 			<span class="af-steps">
 				<button type="button" onclick={() => stepSeason(-1)} aria-label="Previous season">S−</button
 				>
@@ -184,11 +253,11 @@
 
 		<span class="af-status" role="status">{statusNote}</span>
 		<span class="af-src">
-			{usingTrailerFallback
-				? 'Trailer'
-				: `Source ${sourceIndex + 1}/${CHAIN.length} · ${CHAIN[sourceIndex].label}${CHAIN[sourceIndex].online ? '' : ' (offline)'}`}
+			{usingNoSource || sourceIndex >= CHAIN.length
+				? '—'
+				: `${entryLabel(sourceIndex)} · ${sourceIndex + 1}/${CHAIN.length}`}
 		</span>
-		{#if !usingTrailerFallback}
+		{#if !usingNoSource && sourceIndex < CHAIN.length}
 			<button type="button" class="af-next" onclick={manualNext}>Try next ▸</button>
 		{/if}
 	</div>
@@ -261,7 +330,8 @@
 		gap: 0.3rem;
 	}
 	.af-steps button,
-	.af-next {
+	.af-next,
+	.af-retry {
 		padding: 0.25rem 0.6rem;
 		border-radius: 0.5rem;
 		border: 1px solid var(--afrikaans-accent, #f5a623);
@@ -271,7 +341,8 @@
 		cursor: pointer;
 	}
 	.af-steps button:hover,
-	.af-next:hover {
+	.af-next:hover,
+	.af-retry:hover {
 		background: color-mix(in srgb, var(--afrikaans-accent, #f5a623) 14%, transparent);
 	}
 	.af-status {
@@ -291,14 +362,21 @@
 		flex-direction: column;
 		align-items: center;
 		justify-content: center;
-		gap: 0.4rem;
+		gap: 0.5rem;
 		text-align: center;
 		color: #a1a1aa;
 		padding: 1rem;
+	}
+	.af-none-icon {
+		font-size: 2rem;
 	}
 	.af-none-title {
 		font-size: 1.2rem;
 		font-weight: 800;
 		color: #fafafa;
+	}
+	.af-none-text {
+		max-width: 34ch;
+		line-height: 1.5;
 	}
 </style>

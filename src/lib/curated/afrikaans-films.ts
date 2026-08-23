@@ -13,6 +13,12 @@ export interface AfrikaansFilm {
 	director?: string;
 	youtubeId?: string;
 	youtubeTrailerId?: string;
+	/**
+	 * Curated YouTube playback IDs — preferred over the TMDb video feed.
+	 * Fill these in as full-length uploads are found; titles without any
+	 * YouTube source get a clean "no source" state instead of a dead player.
+	 */
+	youtubeIds?: string[];
 	sources?: AfrikaansSource[];
 	poster?: string;
 }
@@ -46,9 +52,7 @@ export const AFRIKAANS_FILMS: AfrikaansFilm[] = [
 	{ tmdbId: 171957, title: 'Verraaiers', year: 2013, titleEn: 'Traitors' },
 	{ tmdbId: 426347, title: 'Tess', year: 2016 },
 	{ tmdbId: 795853, title: 'Gaia', year: 2021 },
-	{ tmdbId: 236788, title: 'Die Laaste Tango', year: 2013 },
+	{ tmdbId: 236788, title: 'Die Laaste Tango', year: 2013 }
 ];
 
-export const AFRIKAANS_FILM_MAP = new Map(
-	AFRIKAANS_FILMS.map((f) => [f.tmdbId, f])
-);
+export const AFRIKAANS_FILM_MAP = new Map(AFRIKAANS_FILMS.map((f) => [f.tmdbId, f]));

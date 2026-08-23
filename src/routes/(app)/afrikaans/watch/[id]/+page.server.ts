@@ -1,6 +1,7 @@
 import { redirect } from '@sveltejs/kit';
 import { env } from '$lib/config/env';
 import { AFRIKAANS_SOURCES } from '$lib/components/afrikaans/sources';
+import { AFRIKAANS_FILM_MAP } from '$lib/curated/afrikaans-films';
 
 const TMDB_BASE = 'https://api.themoviedb.org/3';
 const UA = { 'User-Agent': 'MeatFlicks/1.0' };
@@ -14,6 +15,7 @@ type AfrikaansWatchDetails = {
 	backdropPath: string | null;
 	posterPath: string | null;
 	trailerKey: string | null;
+	youtubeIds: string[];
 };
 
 async function fetchJson(url: string): Promise<any | null> {
@@ -26,15 +28,13 @@ async function fetchJson(url: string): Promise<any | null> {
 	}
 }
 
-function pickTrailer(videos: any): string | null {
+/** All official YouTube video keys for a title — trailers, teasers, clips. */
+function collectYoutubeKeys(videos: any): string[] {
 	const results = Array.isArray(videos?.results) ? videos.results : [];
-	const youtube = results.filter((v: any) => v.site === 'YouTube');
-	return (
-		youtube.find((v: any) => v.type === 'Trailer' && v.official)?.key ??
-		youtube.find((v: any) => v.type === 'Trailer')?.key ??
-		youtube[0]?.key ??
-		null
-	);
+	const yt = results.filter((v: any) => v.site === 'YouTube' && v.key);
+	const rank = (v: any) =>
+		(v.type === 'Trailer' ? 0 : v.type === 'Teaser' ? 1 : 2) + (v.official ? 0 : 0.5);
+	return [...yt].sort((a, b) => rank(a) - rank(b)).map((v: any) => v.key as string);
 }
 
 /**
@@ -76,15 +76,23 @@ export async function load({ params, url }) {
 	if (!/^\d+$/.test(id)) throw redirect(301, '/afrikaans');
 
 	let mediaType: 'movie' | 'tv' = url.searchParams.get('type') === 'tv' ? 'tv' : 'movie';
+	// Curated YouTube IDs always lead the playback chain.
+	const curated = AFRIKAANS_FILM_MAP.get(Number(id));
+	const curatedIds: string[] = [
+		...(curated?.youtubeIds ?? []),
+		...(curated?.youtubeId ? [curated.youtubeId] : [])
+	];
+
 	let details: AfrikaansWatchDetails = {
 		tmdbId: Number(id),
 		mediaType,
-		title: 'Afrikaans Film',
+		title: curated?.title ?? 'Afrikaans Film',
 		year: null,
 		overview: null,
 		backdropPath: null,
 		posterPath: null,
-		trailerKey: null
+		trailerKey: null,
+		youtubeIds: [...new Set(curatedIds)]
 	};
 
 	const apiKey = env.TMDB_API_KEY;
@@ -104,7 +112,11 @@ export async function load({ params, url }) {
 			const videos = await fetchJson(
 				`${TMDB_BASE}/movie/${id}/videos?api_key=${apiKey}&language=en`
 			);
-			details.trailerKey = pickTrailer(videos);
+			details.trailerKey = collectYoutubeKeys(videos)[0] ?? null;
+			details.youtubeIds = [
+				...details.youtubeIds,
+				...collectYoutubeKeys(videos).filter((k) => !details.youtubeIds.includes(k))
+			];
 			return { details, reachability: await probeSources('movie', Number(id), 1, 1) };
 		}
 	}
@@ -121,7 +133,11 @@ export async function load({ params, url }) {
 			posterPath: tv.poster_path ?? null
 		};
 		const videos = await fetchJson(`${TMDB_BASE}/tv/${id}/videos?api_key=${apiKey}&language=en`);
-		details.trailerKey = pickTrailer(videos);
+		details.trailerKey = collectYoutubeKeys(videos)[0] ?? null;
+		details.youtubeIds = [
+			...details.youtubeIds,
+			...collectYoutubeKeys(videos).filter((k) => !details.youtubeIds.includes(k))
+		];
 		return { details, reachability: await probeSources('tv', Number(id), 1, 1) };
 	}
 

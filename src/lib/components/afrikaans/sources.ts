@@ -11,6 +11,10 @@ export interface AfSource {
 	url: (kind: 'movie' | 'tv', id: number, s: number, e: number) => string;
 }
 
+/** YouTube is the primary playback layer for Afrikaans titles. */
+export const youtubeEmbedUrl = (videoId: string, origin: string) =>
+	`https://www.youtube-nocookie.com/embed/${videoId}?autoplay=1&enablejsapi=1&origin=${encodeURIComponent(origin)}&rel=0`;
+
 export const AFRIKAANS_SOURCES: AfSource[] = [
 	{
 		id: 'vidlink',
