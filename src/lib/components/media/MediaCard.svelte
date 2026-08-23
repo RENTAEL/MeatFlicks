@@ -118,10 +118,10 @@
 	function handlePlay(event: MouseEvent) {
 		event.stopPropagation();
 		event.preventDefault();
-		// If this card lives inside the detail sheet, dismiss it so the
-		// destination player is never covered.
-		closeMediaSheet();
-		if (detailsHref && browser) goto(detailsHref);
+		// Navigate first; the sheet (if this card lives inside one) is
+		// dismissed on a timeout so its teardown never aborts the nav.
+		if (detailsHref && browser) goto(detailsHref).catch(() => {});
+		setTimeout(() => closeMediaSheet(), 80);
 	}
 </script>
 

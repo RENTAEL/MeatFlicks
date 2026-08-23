@@ -92,10 +92,16 @@
 	}
 
 	function handlePlay() {
-		// Dismiss the sheet FIRST — on mobile it otherwise stays stacked over
-		// the player that the destination page mounts.
-		closeMediaSheet();
-		if (detailsHref !== '/') goto(detailsHref);
+		const href = detailsHref;
+		// Navigate FIRST. Closing the sheet in the same tick as goto() is a
+		// reactive store write that tears this component down mid-handler —
+		// empirically that aborted the navigation outright on mobile, leaving
+		// the movie page unopened.
+		if (href && href !== '/') {
+			goto(href).catch(() => {});
+		}
+		// Dismiss once the navigation is underway.
+		setTimeout(() => closeMediaSheet(), 80);
 	}
 </script>
 
