@@ -8,12 +8,22 @@
 		isSoundUnlocked
 	} from '$lib/watch-party/sounds';
 
-	type Command = { id: number; type: string; target: string; at: number };
+	type Command = {
+		id: number;
+		type: string;
+		target: string;
+		at: number;
+		payload?: { seconds?: number } | null;
+	};
 
 	let scareActive = $state(false);
 	let peekabooActive = $state(false);
 	let surpriseActive = $state(false);
 	let bananaActive = $state(false);
+	let ghostTypingUntil = $state(0);
+	let ghostSeconds = $state(8);
+	let ghostTimer: ReturnType<typeof setTimeout> | null = null;
+	let ghostTicker: ReturnType<typeof setInterval> | null = null;
 
 	// The banana prank is a body-class toggle; bind it imperatively so it
 	// applies reliably regardless of hydration timing.
@@ -118,7 +128,7 @@
 		queuedEffect = null;
 	}
 
-	function fire(type: string) {
+	function fire(type: string, payload?: { seconds?: number } | null) {
 		switch (type) {
 			case 'jumpscare':
 				if (scareActive) return;
@@ -147,6 +157,16 @@
 					bananaActive = false;
 					window.removeEventListener('click', stop);
 				}, 8000);
+				break;
+			case 'ghosttyping':
+				if (ghostTypingUntil > Date.now()) return;
+				const secs = Math.min(15, Math.max(3, Math.round(Number(payload?.seconds) || 8)));
+				ghostTypingUntil = Date.now() + secs * 1000;
+				ghostSeconds = secs;
+				if (ghostTimer) clearTimeout(ghostTimer);
+				ghostTimer = setTimeout(() => {
+					ghostTypingUntil = 0;
+				}, secs * 1000);
 				break;
 		}
 	}
@@ -184,7 +204,7 @@
 				const res = await fetch(`/api/commands?${params}`, { credentials: 'include' });
 				if (res.ok) {
 					const data = (await res.json()) as { commands: Command[]; latestId: number };
-					for (const cmd of data.commands ?? []) fire(cmd.type);
+					for (const cmd of data.commands ?? []) fire(cmd.type, cmd.payload);
 					if (typeof data.latestId === 'number') setLastId(data.latestId);
 				}
 			} catch {
@@ -198,9 +218,32 @@
 		return () => {
 			stopped = true;
 			clearTimeout(timer);
+			if (ghostTimer) clearTimeout(ghostTimer);
+			if (ghostTicker) clearInterval(ghostTicker);
 			window.removeEventListener('pointerdown', onGesture);
 			window.removeEventListener('keydown', onGesture);
 			window.removeEventListener('touchstart', onGesture);
+		};
+	});
+
+	// Ticks the ghost typing countdown while it is active.
+	const ghostActive = $derived(ghostTypingUntil > Date.now());
+	$effect(() => {
+		if (ghostActive) {
+			ghostTicker = setInterval(() => {
+				if (ghostTypingUntil <= Date.now()) {
+					ghostTypingUntil = 0;
+				}
+			}, 500);
+		} else if (ghostTicker) {
+			clearInterval(ghostTicker);
+			ghostTicker = null;
+		}
+		return () => {
+			if (ghostTicker) {
+				clearInterval(ghostTicker);
+				ghostTicker = null;
+			}
 		};
 	});
 </script>
@@ -222,6 +265,14 @@
 			<span class="prank-title">You've been pranked!</span>
 			<span class="prank-sub">Nothing is broken. Probably.</span>
 		</div>
+	</div>
+{/if}
+
+{#if ghostActive}
+	<div class="ghost-typing" role="status" aria-label="Someone is typing">
+		<span class="ghost-avatar" aria-hidden="true">👻</span>
+		<span class="ghost-name">Someone is typing</span>
+		<span class="ghost-dots" aria-hidden="true"><i></i><i></i><i></i></span>
 	</div>
 {/if}
 
@@ -371,12 +422,93 @@
 		}
 	}
 
+	/* Ghost typing prank — a fake "someone is typing…" pill. Purely visual:
+	 * no message is ever composed or sent behind it. */
+	.ghost-typing {
+		position: fixed;
+		left: 24px;
+		bottom: 24px;
+		z-index: 2997;
+		display: inline-flex;
+		align-items: center;
+		gap: 0.5rem;
+		padding: 0.55rem 0.95rem;
+		border-radius: 999px;
+		background: var(--bg-card, #18181b);
+		border: 1px solid rgba(255, 255, 255, 0.12);
+		box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
+		font-size: 0.82rem;
+		color: #d4d4d8;
+		animation: ghost-in 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+		pointer-events: none;
+	}
+	.ghost-avatar {
+		font-size: 1rem;
+		line-height: 1;
+		animation: ghost-bob 1.6s ease-in-out infinite;
+	}
+	.ghost-name {
+		font-weight: 600;
+	}
+	.ghost-dots {
+		display: inline-flex;
+		gap: 3px;
+		align-items: center;
+	}
+	.ghost-dots i {
+		width: 5px;
+		height: 5px;
+		border-radius: 50%;
+		background: #a1a1aa;
+		animation: ghost-dot 1.2s ease-in-out infinite;
+	}
+	.ghost-dots i:nth-child(2) {
+		animation-delay: 0.15s;
+	}
+	.ghost-dots i:nth-child(3) {
+		animation-delay: 0.3s;
+	}
+	@keyframes ghost-in {
+		from {
+			transform: translateY(8px);
+			opacity: 0;
+		}
+		to {
+			transform: translateY(0);
+			opacity: 1;
+		}
+	}
+	@keyframes ghost-bob {
+		0%,
+		100% {
+			transform: translateY(0);
+		}
+		50% {
+			transform: translateY(-2px);
+		}
+	}
+	@keyframes ghost-dot {
+		0%,
+		60%,
+		100% {
+			opacity: 0.25;
+			transform: translateY(0);
+		}
+		30% {
+			opacity: 1;
+			transform: translateY(-2px);
+		}
+	}
+
 	@media (prefers-reduced-motion: reduce) {
 		.jumpscare-overlay,
 		.scare-face,
 		.peekaboo-pop,
 		.prank-overlay,
-		.prank-card {
+		.prank-card,
+		.ghost-typing,
+		.ghost-avatar,
+		.ghost-dots i {
 			animation: none !important;
 		}
 	}

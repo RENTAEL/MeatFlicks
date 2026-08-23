@@ -5,6 +5,7 @@
 	import { playerPreferences } from '$lib/state/stores/playerPreferences.svelte';
 	import { sendEmbedCommand, extractYoutubeId, loadYoutubeApi } from '$lib/utils/embedCommands';
 	import { soakEvent, soakUpdate } from '$lib/soak/soak';
+	import { reportPlayback } from '$lib/playback/reportPlayback';
 
 	let {
 		tmdbId,
@@ -130,6 +131,10 @@
 	let ytPlayer: any = null;
 	let ytReady = $state(false);
 	let playing = $state(false);
+	// Presence reporting — admin live stats show play/pause per viewer.
+	$effect(() => {
+		reportPlayback(playing);
+	});
 	let elapsedSeconds = $state(0);
 	let elapsedTick: ReturnType<typeof setInterval> | null = null;
 	let effectiveVolume = $derived(playerPreferences.muted ? 0 : playerPreferences.volume);

@@ -3,6 +3,7 @@
 	import { getCsrfTokenClient } from '$lib/utils/csrf.client';
 	import ActiveUsersPanel from './ActiveUsersPanel.svelte';
 	import EffectsPanel from './EffectsPanel.svelte';
+	import LiveSessionStats from './LiveSessionStats.svelte';
 	import {
 		liveSessions,
 		connectLiveSessions,
@@ -308,6 +309,11 @@
 	<!-- Active users & sessions (live) -->
 	<div class="admin-group">
 		<ActiveUsersPanel />
+	</div>
+
+	<!-- Live session stats (who's watching what, right now) -->
+	<div class="admin-group">
+		<LiveSessionStats />
 	</div>
 
 	<!-- Broadcast -->

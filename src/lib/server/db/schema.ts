@@ -24,7 +24,8 @@ export const presence = sqliteTable(
 		title: text('title'),
 		joinedAt: integer('joinedAt').notNull(),
 		lastSeenAt: integer('lastSeenAt').notNull(),
-		disconnectedAt: integer('disconnectedAt')
+		disconnectedAt: integer('disconnectedAt'),
+		playing: integer('playing')
 	},
 	(table) => [index('idx_presence_seen').on(table.lastSeenAt)]
 );

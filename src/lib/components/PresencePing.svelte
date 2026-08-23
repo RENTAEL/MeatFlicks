@@ -2,6 +2,7 @@
 	import { onMount } from 'svelte';
 	import { page } from '$app/stores';
 	import { getCsrfTokenClient } from '$lib/utils/csrf.client';
+	import { getReportedPlayback } from '$lib/playback/reportPlayback';
 	import { LogIn, X } from '@lucide/svelte';
 
 	// Heartbeat reporting "I'm online and on this page" to the server-side
@@ -25,7 +26,7 @@
 				await fetch('/api/presence/heartbeat', {
 					method: 'POST',
 					headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': token },
-					body: JSON.stringify({ path, title }),
+					body: JSON.stringify({ path, title, playing: getReportedPlayback() }),
 					credentials: 'include',
 					keepalive: true
 				});

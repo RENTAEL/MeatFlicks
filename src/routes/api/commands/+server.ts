@@ -55,7 +55,15 @@ export const GET: RequestHandler = async ({ locals, url }) => {
 		const matched = rows
 			.filter((r) => audience.includes(r.target))
 			.slice(0, 20)
-			.map((r) => ({ id: r.id, type: r.type, target: r.target, at: r.createdAt }))
+			.map((r) => {
+				let payload: unknown = null;
+				if (r.payload) {
+					try {
+						payload = JSON.parse(r.payload);
+					} catch {}
+				}
+				return { id: r.id, type: r.type, target: r.target, at: r.createdAt, payload };
+			})
 			.reverse();
 
 		// Prune old rows opportunistically

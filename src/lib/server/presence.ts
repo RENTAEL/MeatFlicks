@@ -21,6 +21,7 @@ export type PresenceUser = {
 	lastSeen: number;
 	path: string | null;
 	title: string | null;
+	playing: boolean | null;
 };
 
 export type PresenceSnapshotUser = PresenceUser & {
@@ -52,9 +53,10 @@ if (!globalTimers[globalTimerKey]) {
 export async function touchPresence(
 	userId: string,
 	username: string,
-	info: { path?: string | null; title?: string | null }
+	info: { path?: string | null; title?: string | null; playing?: boolean | null }
 ): Promise<PresenceUser> {
 	const now = Date.now();
+	const playing = typeof info.playing === 'boolean' ? (info.playing ? 1 : 0) : null;
 	await db
 		.insert(presence)
 		.values({
@@ -63,7 +65,8 @@ export async function touchPresence(
 			path: info.path ?? null,
 			title: info.title ?? null,
 			joinedAt: now,
-			lastSeenAt: now
+			lastSeenAt: now,
+			playing: playing === null ? undefined : playing
 		})
 		.onConflictDoUpdate({
 			target: presence.userId,
@@ -71,7 +74,8 @@ export async function touchPresence(
 				username,
 				path: info.path ?? undefined,
 				title: info.title ?? undefined,
-				lastSeenAt: now
+				lastSeenAt: now,
+				playing: playing === null ? undefined : playing
 			}
 		})
 		.run();
@@ -81,7 +85,8 @@ export async function touchPresence(
 		joinedAt: now,
 		lastSeen: now,
 		path: info.path ?? null,
-		title: info.title ?? null
+		title: info.title ?? null,
+		playing: playing === null ? null : playing === 1
 	};
 }
 
@@ -120,12 +125,15 @@ export async function listPresence(): Promise<PresenceUser[]> {
 			path: presence.path,
 			title: presence.title,
 			joinedAt: presence.joinedAt,
-			lastSeen: presence.lastSeenAt
+			lastSeen: presence.lastSeenAt,
+			playing: presence.playing
 		})
 		.from(presence)
 		.where(sql`${presence.lastSeenAt} > ${cutoff}`)
 		.all();
-	return rows.sort((a, b) => a.joinedAt - b.joinedAt);
+	return rows
+		.map((r) => ({ ...r, playing: r.playing === null || r.playing === undefined ? null : !!r.playing }))
+		.sort((a, b) => a.joinedAt - b.joinedAt);
 }
 
 export async function presenceCount(): Promise<number> {

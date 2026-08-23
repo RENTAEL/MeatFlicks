@@ -16,6 +16,7 @@ export const POST: RequestHandler = async ({ request }) => {
 			sessionId?: unknown;
 			path?: unknown;
 			title?: unknown;
+			playing?: unknown;
 		} | null;
 
 		const rawSid = typeof body?.sessionId === 'string' ? body.sessionId : '';
@@ -25,10 +26,12 @@ export const POST: RequestHandler = async ({ request }) => {
 
 		const rawPath = typeof body?.path === 'string' ? body.path : null;
 		const rawTitle = typeof body?.title === 'string' ? body.title : null;
+		const rawPlaying = typeof body?.playing === 'boolean' ? body.playing : null;
 
 		await touchPresence(`${GUEST_PREFIX}${rawSid}`, 'Guest', {
 			path: rawPath ? rawPath.slice(0, 160) : null,
-			title: rawTitle ? rawTitle.slice(0, 120) : null
+			title: rawTitle ? rawTitle.slice(0, 120) : null,
+			playing: rawPlaying
 		});
 
 		return json({ ok: true });

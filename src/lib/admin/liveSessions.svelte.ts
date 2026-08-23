@@ -11,6 +11,7 @@ export type LiveSessionUser = {
 	lastSeen: number;
 	path: string | null;
 	title: string | null;
+	playing: boolean | null;
 	roomId: string | null;
 	roomTitle: string | null;
 	roomHost: boolean;

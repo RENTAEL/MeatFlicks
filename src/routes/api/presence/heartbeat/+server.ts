@@ -13,14 +13,17 @@ export const POST: RequestHandler = async (event) => {
 		const body = (await event.request.json().catch(() => null)) as {
 			path?: unknown;
 			title?: unknown;
+			playing?: unknown;
 		} | null;
 
 		const rawPath = typeof body?.path === 'string' ? body.path : null;
 		const rawTitle = typeof body?.title === 'string' ? body.title : null;
+		const rawPlaying = typeof body?.playing === 'boolean' ? body.playing : null;
 
 		await touchPresence(user.id, user.username, {
 			path: rawPath ? rawPath.slice(0, 160) : null,
-			title: rawTitle ? rawTitle.slice(0, 120) : null
+			title: rawTitle ? rawTitle.slice(0, 120) : null,
+			playing: rawPlaying
 		});
 
 		return json({ ok: true });

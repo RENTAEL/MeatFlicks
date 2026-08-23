@@ -2,6 +2,7 @@
 	import { onMount } from 'svelte';
 	import { page } from '$app/state';
 	import { X } from '@lucide/svelte';
+	import { getReportedPlayback } from '$lib/playback/reportPlayback';
 
 	// Anonymous visitors report presence so admins can see (and end) their
 	// sessions. Logged-in users are covered by PresencePing.
@@ -38,7 +39,7 @@
 			void fetch('/api/presence/guest/heartbeat', {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({ sessionId: sid, path, title }),
+				body: JSON.stringify({ sessionId: sid, path, title, playing: getReportedPlayback() }),
 				keepalive: true
 			}).catch(() => {});
 		};

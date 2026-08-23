@@ -6,7 +6,7 @@ import { siteCommands } from '$lib/server/db/schema';
 import { lt, sql } from 'drizzle-orm';
 import { errorHandler } from '$lib/server';
 
-const VALID_TYPES = new Set(['jumpscare', 'peekaboo', 'banana', 'surprise']);
+const VALID_TYPES = new Set(['jumpscare', 'peekaboo', 'banana', 'surprise', 'ghosttyping']);
 const COMMAND_TTL_MS = 10 * 60 * 1000;
 let tableReady = false;
 
@@ -35,6 +35,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 		const body = (await request.json().catch(() => null)) as {
 			type?: string;
 			targets?: string[];
+			seconds?: number;
 		} | null;
 
 		const type = body?.type ?? '';
@@ -59,6 +60,14 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 			return json({ ok: false, error: 'No valid targets' }, { status: 400 });
 		}
 
+		// Optional per-effect payload — currently only ghost typing duration.
+		const payload =
+			type === 'ghosttyping'
+				? JSON.stringify({
+						seconds: Math.min(15, Math.max(3, Math.round(Number(body?.seconds) || 8)))
+					})
+				: null;
+
 		const now = Date.now();
 		await ensureTable();
 		await db
@@ -68,7 +77,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 
 		await db
 			.insert(siteCommands)
-			.values(targets.map((target) => ({ type, target, createdAt: now })))
+			.values(targets.map((target) => ({ type, target, payload, createdAt: now })))
 			.run();
 
 		return json({ ok: true, sent: targets.length, by: admin.username });

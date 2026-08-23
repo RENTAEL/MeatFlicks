@@ -9,12 +9,13 @@
 	} from '$lib/admin/liveSessions.svelte';
 	import { Ghost, Loader2 } from '@lucide/svelte';
 
-	type EffectType = 'jumpscare' | 'peekaboo' | 'banana' | 'surprise';
+	type EffectType = 'jumpscare' | 'peekaboo' | 'banana' | 'surprise' | 'ghosttyping';
 
 	let selected = $state<string[]>([]);
 	let confirming = $state<EffectType | null>(null);
 	let globalMode = $state(false);
 	let busy = $state(false);
+	let ghostSeconds = $state(8);
 	let result = $state<{ ok: boolean; message: string } | null>(null);
 
 	const EFFECTS: { type: EffectType; label: string; emoji: string; hint: string }[] = [
@@ -31,6 +32,12 @@
 			label: "You've been pranked",
 			emoji: '🎉',
 			hint: 'Silly full-screen surprise'
+		},
+		{
+			type: 'ghosttyping',
+			label: 'Ghost typing',
+			emoji: '👻',
+			hint: 'Fake "someone is typing…" — nothing ever sends'
 		}
 	];
 
@@ -61,7 +68,9 @@
 			const res = await fetch('/api/admin/effects', {
 				method: 'POST',
 				headers,
-				body: JSON.stringify({ type, targets }),
+				body: JSON.stringify(
+					type === 'ghosttyping' ? { type, targets, seconds: ghostSeconds } : { type, targets }
+				),
 				credentials: 'include'
 			});
 			const body = await res.json().catch(() => null);
@@ -70,7 +79,9 @@
 					ok: true,
 					message:
 						targets[0] === 'all'
-							? `Fired ${type} site-wide. Chaos delivered.`
+							? type === 'ghosttyping'
+								? `Ghost typing everywhere for ${ghostSeconds}s. Nothing will ever arrive.`
+								: `Fired ${type} site-wide. Chaos delivered.`
 							: `Fired ${type} on ${targets.length} session${targets.length === 1 ? '' : 's'}.`
 				};
 			} else {
@@ -183,6 +194,16 @@
 						: `${selected.length} session${selected.length === 1 ? '' : 's'}`}</strong
 				>?
 			</span>
+			{#if confirming === 'ghosttyping'}
+				<label class="ghost-dur">
+					for
+					<select bind:value={ghostSeconds} disabled={busy}>
+						<option value={5}>5s</option>
+						<option value={8}>8s</option>
+						<option value={12}>12s</option>
+					</select>
+				</label>
+			{/if}
 			<button class="btn-fire" type="button" disabled={busy} onclick={() => void fire(confirming!)}>
 				{#if busy}<Loader2 size={14} class="spin" />{/if}
 				Yes, do it
@@ -406,6 +427,21 @@
 		font-size: 0.8rem;
 		cursor: pointer;
 		font-family: inherit;
+	}
+	.ghost-dur {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.35rem;
+		font-size: 0.78rem;
+		color: var(--text-secondary, #a1a1aa);
+	}
+	.ghost-dur select {
+		padding: 0.3rem 0.5rem;
+		border-radius: 8px;
+		border: 1px solid var(--border-stream, rgba(255, 255, 255, 0.14));
+		background: var(--bg-elevated, #18181b);
+		color: var(--text-primary, #fafafa);
+		font-size: 0.78rem;
 	}
 	.btn-cancel {
 		padding: 0.45rem 0.9rem;

@@ -170,6 +170,9 @@ const runInitSql = async (client: Client) => {
 				'CREATE INDEX IF NOT EXISTS idx_presence_seen ON presence("lastSeenAt")'
 			);
 		} catch {}
+		try {
+			await client.execute('ALTER TABLE presence ADD COLUMN "playing" INTEGER');
+		} catch {}
 
 		await client.execute(`CREATE VIRTUAL TABLE IF NOT EXISTS movie_fts USING fts5(
 			title, overview, content='media', content_rowid='numericId',
