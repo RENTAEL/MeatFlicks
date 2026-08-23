@@ -6,6 +6,7 @@
 	import { sendEmbedCommand, extractYoutubeId, loadYoutubeApi } from '$lib/utils/embedCommands';
 	import { soakEvent, soakUpdate } from '$lib/soak/soak';
 	import { reportPlayback } from '$lib/playback/reportPlayback';
+	import VidLinkMobileWarning from './player/VidLinkMobileWarning.svelte';
 
 	let {
 		tmdbId,
@@ -108,6 +109,46 @@
 	let workingProviders: ScanResult[] = $derived(allProviders.filter((p) => p.status !== 'dead'));
 	let currentIndex = $state(0);
 	let currentProvider = $derived(workingProviders[currentIndex]);
+
+	// VidLink's invisible mobile ad freezes playback ~10s in on phones. Warn
+	// before landing on it (mobile only), but never hard-block the user.
+	let vidlinkWarnVisible = $state(false);
+	let vidlinkWarnAccepted = false;
+	let pendingVidlinkIndex = -1;
+
+	function isMobileViewport(): boolean {
+		if (typeof window === 'undefined') return false;
+		return window.matchMedia('(max-width: 767px)').matches || isCoarse;
+	}
+
+	/**
+	 * Gate a provider selection on mobile: vidlink triggers the funny warning
+	 * first; everything else switches straight away. Returns true when the
+	 * warning took over the click.
+	 */
+	function maybeWarnVidlink(idx: number): boolean {
+		const target = workingProviders[idx];
+		if (!target || target.id !== 'vidlink') return false;
+		if (!isMobileViewport() || vidlinkWarnAccepted) return false;
+		pendingVidlinkIndex = idx;
+		vidlinkWarnVisible = true;
+		return true;
+	}
+
+	function vidlinkTryOther() {
+		vidlinkWarnVisible = false;
+		// Hop to the first working provider that isn't vidlink.
+		const alt = workingProviders.findIndex((p) => p.id !== 'vidlink');
+		if (alt >= 0) switchTo(alt);
+		vidlinkWarnAccepted = true;
+	}
+
+	function vidlinkPlayAnyway() {
+		vidlinkWarnVisible = false;
+		vidlinkWarnAccepted = true;
+		if (pendingVidlinkIndex >= 0) switchTo(pendingVidlinkIndex);
+		pendingVidlinkIndex = -1;
+	}
 	let canResumePosition = $derived(
 		TRACKING_CAPS[currentProvider?.id ?? '']?.tracksPosition ?? false
 	);
@@ -1361,6 +1402,14 @@
 			{/if}
 		{/if}
 
+		{#if vidlinkWarnVisible}
+			<VidLinkMobileWarning
+				onTryOther={vidlinkTryOther}
+				onPlayAnyway={vidlinkPlayAnyway}
+				onDismiss={() => (vidlinkWarnVisible = false)}
+			/>
+		{/if}
+
 		{#if needsTapToContinue}
 			<div
 				class="tap-overlay"
@@ -1505,7 +1554,7 @@
 								const idx = workingProviders.indexOf(p);
 								if (idx >= 0) {
 									showServerList = false;
-									switchTo(idx);
+									if (!maybeWarnVidlink(idx)) switchTo(idx);
 								}
 							}}
 							class="server-item"
