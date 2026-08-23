@@ -202,6 +202,14 @@ function toRailItem(m: any, mediaType: 'movie' | 'tv'): LibraryMedia | null {
 	item.backdropPath = m.backdrop_path
 		? `https://image.tmdb.org/t/p/w1280${m.backdrop_path}`
 		: item.backdropPath;
+	// Route playback through the dedicated Afrikaans player instead of the
+	// shared /movie and /tv players.
+	if (item.tmdbId) {
+		item.canonicalPath =
+			mediaType === 'tv'
+				? `afrikaans/watch/${item.tmdbId}?type=tv`
+				: `afrikaans/watch/${item.tmdbId}`;
+	}
 	return item;
 }
 
@@ -321,7 +329,11 @@ export async function fetchAfrikaansBrowse(opts: {
 	const curatedIds = new Set(AFRIKAANS_FILMS.map((f) => f.tmdbId));
 	const eligible = raw
 		.filter((m) => m.poster_path && !curatedIds.has(m.id))
-		.map((m) => formatMovie({ ...m, media_type: m._tag }));
+		.map((m) => ({
+			...formatMovie({ ...m, media_type: m._tag }),
+			// Browse cards also open in the dedicated Afrikaans player.
+			canonicalPath: m._tag === 'tv' ? `afrikaans/watch/${m.id}?type=tv` : `afrikaans/watch/${m.id}`
+		}));
 
 	return {
 		results: eligible,

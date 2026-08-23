@@ -1,7 +1,12 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { page } from '$app/state';
-	import { playSoundEffect, unlockAudio } from '$lib/watch-party/sounds';
+	import {
+		playSoundEffect,
+		unlockAudio,
+		preloadSounds,
+		isSoundUnlocked
+	} from '$lib/watch-party/sounds';
 
 	type Command = { id: number; type: string; target: string; at: number };
 
@@ -19,24 +24,45 @@
 		}
 	}
 
+	let queuedEffect: { kind: string; at: number } | null = null;
+
+	/**
+	 * Play an admin effect sound. Browsers block audio until a user gesture;
+	 * if audio is still locked the effect is queued and replayed on the next
+	 * gesture anywhere on the page (within 60s) so it is not lost.
+	 */
+	function tryPlaySound(kind: string) {
+		if (!isSoundUnlocked()) unlockAudio();
+		playSoundEffect(kind);
+		queuedEffect = { kind, at: Date.now() };
+	}
+
+	function onGesture() {
+		unlockAudio();
+		if (queuedEffect && Date.now() - queuedEffect.at < 60_000) {
+			playSoundEffect(queuedEffect.kind);
+		}
+		queuedEffect = null;
+	}
+
 	function fire(type: string) {
 		switch (type) {
 			case 'jumpscare':
 				if (scareActive) return;
 				scareActive = true;
-				playSoundEffect('jump');
+				tryPlaySound('jump');
 				setTimeout(() => (scareActive = false), 1800);
 				break;
 			case 'peekaboo':
 				if (peekabooActive) return;
 				peekabooActive = true;
-				playSoundEffect('suspense');
+				tryPlaySound('suspense');
 				setTimeout(() => (peekabooActive = false), 4000);
 				break;
 			case 'surprise':
 				if (surpriseActive) return;
 				surpriseActive = true;
-				playSoundEffect('applause');
+				tryPlaySound('applause');
 				setTimeout(() => (surpriseActive = false), 3800);
 				break;
 			case 'banana':
@@ -53,11 +79,11 @@
 	}
 
 	onMount(() => {
-		// Browsers require a user gesture before audio can play — unlock on
-		// first interaction so admin-triggered sounds actually come through.
-		const unlock = () => unlockAudio();
-		window.addEventListener('pointerdown', unlock, { once: true, passive: true });
-		window.addEventListener('keydown', unlock, { once: true });
+		// Warm the audio buffers immediately so effects fire without delay.
+		preloadSounds();
+		window.addEventListener('pointerdown', onGesture, { passive: true });
+		window.addEventListener('keydown', onGesture);
+		window.addEventListener('touchstart', onGesture, { passive: true });
 
 		let stopped = false;
 		let timer: ReturnType<typeof setTimeout>;
@@ -98,8 +124,9 @@
 		return () => {
 			stopped = true;
 			clearTimeout(timer);
-			window.removeEventListener('pointerdown', unlock);
-			window.removeEventListener('keydown', unlock);
+			window.removeEventListener('pointerdown', onGesture);
+			window.removeEventListener('keydown', onGesture);
+			window.removeEventListener('touchstart', onGesture);
 		};
 	});
 </script>
@@ -127,6 +154,16 @@
 <svelte:body class:banana-cursor={bananaActive} />
 
 <style>
+	/* Banana cursor prank — must be global to reach <body>, and !important
+	 * to override the app's per-element pointer cursors site-wide. */
+	:global(body.banana-cursor),
+	:global(body.banana-cursor *) {
+		cursor:
+			url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='28' height='28'><text x='1' y='21' font-size='21'>🍌</text></svg>")
+				6 4,
+			auto !important;
+	}
+
 	.jumpscare-overlay {
 		position: fixed;
 		inset: 0;
