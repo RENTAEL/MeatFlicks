@@ -15,6 +15,12 @@
 	let surpriseActive = $state(false);
 	let bananaActive = $state(false);
 
+	// The banana prank is a body-class toggle; bind it imperatively so it
+	// applies reliably regardless of hydration timing.
+	$effect(() => {
+		document.body.classList.toggle('banana-cursor', bananaActive);
+	});
+
 	function guestSid(): string | null {
 		if (page.data.user) return null;
 		try {
@@ -150,8 +156,6 @@
 		</div>
 	</div>
 {/if}
-
-<svelte:body class:banana-cursor={bananaActive} />
 
 <style>
 	/* Banana cursor prank — must be global to reach <body>, and !important
