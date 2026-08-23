@@ -1,7 +1,7 @@
-# Netlify mirror deployment for Streamium (SvelteKit + adapter-auto).
+﻿# Netlify mirror deployment for Streamium (SvelteKit + adapter-auto).
 # adapter-auto detects Netlify at build time and emits adapter-netlify output
 # (static assets + a single "render" Netlify Function for SSR/API routes).
-# Functions are produced by the adapter — no manual [functions] config needed.
+# Functions are produced by the adapter â€” no manual [functions] config needed.
 
 [build]
 	command = "npm run build"
@@ -9,3 +9,4 @@
 
 [build.environment]
 	NODE_VERSION = "20"
+
