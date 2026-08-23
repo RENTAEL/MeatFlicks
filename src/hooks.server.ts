@@ -14,6 +14,7 @@ import {
 	getSessionCookieOptions
 } from '$lib/server/session-crypto';
 import { isUserSessionRevoked } from '$lib/server/session-revocation';
+import { WATCH_PARTY_ENABLED } from '$lib/config/watchParty';
 
 declare global {
 	var __envValidated: boolean;
@@ -90,6 +91,19 @@ async function applyRateLimiting(event: RequestEvent) {
 }
 
 export const handle: Handle = async ({ event, resolve }) => {
+	// Watch Party kill switch — reject before ANY session/CSRF/rate-limit
+	// work so a disabled feature costs zero server CPU. Stale open tabs
+	// polling old URLs hit this wall instead of the DB-backed handlers.
+	if (!WATCH_PARTY_ENABLED && event.url.pathname.startsWith('/api/watch-party')) {
+		return new Response(
+			JSON.stringify({ ok: false, error: 'Watch Party is temporarily disabled' }),
+			{
+				status: 503,
+				headers: { 'content-type': 'application/json', 'retry-after': '3600' }
+			}
+		);
+	}
+
 	if (!globalThis.__envValidated) {
 		try {
 			validateApiKeys();
@@ -108,10 +122,7 @@ export const handle: Handle = async ({ event, resolve }) => {
 	let sessionData = raw ? decryptSession(raw) : null;
 	if (sessionData) {
 		try {
-			const revoked = await isUserSessionRevoked(
-				sessionData.userId,
-				sessionData.issuedAt ?? 0
-			);
+			const revoked = await isUserSessionRevoked(sessionData.userId, sessionData.issuedAt ?? 0);
 			if (revoked) {
 				// Admin ended this session — treat as logged out and drop the stale cookie.
 				sessionData = null;

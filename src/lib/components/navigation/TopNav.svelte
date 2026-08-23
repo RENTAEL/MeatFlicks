@@ -9,6 +9,7 @@
 	import BrandLogo from '$lib/components/branding/BrandLogo.svelte';
 	import PreviewSwitcher from '$lib/components/branding/PreviewSwitcher.svelte';
 	import { getScrollY, addScrollListener } from '$lib/utils/scrollPosition';
+	import { WATCH_PARTY_ENABLED } from '$lib/config/watchParty';
 
 	let scrolled = $state(false);
 	let adminOpen = $state(false);
@@ -83,23 +84,25 @@
 						<span class="username-label">{page.data.user.username}</span>
 					</a>
 					<PreviewSwitcher variant="desktop" />
-					<a href="/watch-party" class="wp-btn">
-						<svg
-							width="15"
-							height="15"
-							viewBox="0 0 24 24"
-							fill="none"
-							stroke="currentColor"
-							stroke-width="2"
-							stroke-linecap="round"
-							stroke-linejoin="round"
-							><path
-								d="M15 10l4.553-2.276A1 1 0 0 1 21 8.618v6.764a1 1 0 0 1-1.447.894L15 14M5 18h8a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2z"
-							/></svg
-						>
-						Watch Party
-					</a>
-					{#if page.data.user?.role === 'ADMIN'}
+					{#if WATCH_PARTY_ENABLED}
+						<a href="/watch-party" class="wp-btn">
+							<svg
+								width="15"
+								height="15"
+								viewBox="0 0 24 24"
+								fill="none"
+								stroke="currentColor"
+								stroke-width="2"
+								stroke-linecap="round"
+								stroke-linejoin="round"
+								><path
+									d="M15 10l4.553-2.276A1 1 0 0 1 21 8.618v6.764a1 1 0 0 1-1.447.894L15 14M5 18h8a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2z"
+								/></svg
+							>
+							Watch Party
+						</a>
+					{/if}
+					{#if WATCH_PARTY_ENABLED && page.data.user?.role === 'ADMIN'}
 						<a href="/admin" class="wp-btn admin-console-btn" aria-label="Open admin console">
 							<svg
 								width="15"

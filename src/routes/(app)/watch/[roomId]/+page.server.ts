@@ -2,8 +2,13 @@ import { error, redirect } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
 import { getRoomState } from '$lib/server/watch-party/service';
 import { roomIdSchema } from '$lib/server/watch-party/handlers';
+import { WATCH_PARTY_ENABLED } from '$lib/config/watchParty';
 
 export const load: PageServerLoad = async ({ params, locals }) => {
+	// Feature disabled: send stale room links to the lobby's "back soon"
+	// message instead of running any room state queries.
+	if (!WATCH_PARTY_ENABLED) throw redirect(302, '/watch-party');
+
 	const parsed = roomIdSchema.safeParse(params.roomId);
 	if (!parsed.success) throw error(404, 'Room not found');
 

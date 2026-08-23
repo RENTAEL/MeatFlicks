@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { getCsrfTokenClient } from '$lib/utils/csrf.client';
+	import { WATCH_PARTY_ENABLED } from '$lib/config/watchParty';
 	import ActiveUsersPanel from './ActiveUsersPanel.svelte';
 	import EffectsPanel from './EffectsPanel.svelte';
 	import LiveSessionStats from './LiveSessionStats.svelte';
@@ -200,83 +201,85 @@
 	{/if}
 
 	<!-- Destructive session actions -->
-	<div class="admin-group">
-		<div class="admin-group-title">Watch-party sessions</div>
+	{#if WATCH_PARTY_ENABLED}
+		<div class="admin-group">
+			<div class="admin-group-title">Watch-party sessions</div>
 
-		<div class="admin-option">
-			<div class="option-text">
-				<strong>End all active sessions</strong>
-				<p>Force-close every running watch party and disconnect all members. No survivors.</p>
-			</div>
-			{#if confirming === 'end-all'}
-				<div class="confirm-row">
-					<span class="confirm-hint">Kill them all?</span>
-					<button
-						class="btn-danger"
-						type="button"
-						disabled={busy === 'end-all'}
-						onclick={() =>
-							runAction(
-								'end-all',
-								'/api/admin/watch-party/sessions/end-all',
-								'All sessions ended.'
-							)}
-					>
-						{#if busy === 'end-all'}
-							<Loader2 size={14} class="spin" />
-							Ending…
-						{:else}
-							Yes, end everything
-						{/if}
-					</button>
-					<button class="btn-ghost" type="button" onclick={() => (confirming = null)}>
-						Cancel
-					</button>
+			<div class="admin-option">
+				<div class="option-text">
+					<strong>End all active sessions</strong>
+					<p>Force-close every running watch party and disconnect all members. No survivors.</p>
 				</div>
-			{:else}
-				<button class="btn-danger" type="button" onclick={() => (confirming = 'end-all')}>
-					<Trash2 size={14} aria-hidden="true" /> End all
-				</button>
-			{/if}
-		</div>
+				{#if confirming === 'end-all'}
+					<div class="confirm-row">
+						<span class="confirm-hint">Kill them all?</span>
+						<button
+							class="btn-danger"
+							type="button"
+							disabled={busy === 'end-all'}
+							onclick={() =>
+								runAction(
+									'end-all',
+									'/api/admin/watch-party/sessions/end-all',
+									'All sessions ended.'
+								)}
+						>
+							{#if busy === 'end-all'}
+								<Loader2 size={14} class="spin" />
+								Ending…
+							{:else}
+								Yes, end everything
+							{/if}
+						</button>
+						<button class="btn-ghost" type="button" onclick={() => (confirming = null)}>
+							Cancel
+						</button>
+					</div>
+				{:else}
+					<button class="btn-danger" type="button" onclick={() => (confirming = 'end-all')}>
+						<Trash2 size={14} aria-hidden="true" /> End all
+					</button>
+				{/if}
+			</div>
 
-		<div class="admin-option">
-			<div class="option-text">
-				<strong>Clear orphaned sessions</strong>
-				<p>Scan for stale, abandoned sessions that never ended and sweep them away.</p>
-			</div>
-			{#if confirming === 'clear-orphans'}
-				<div class="confirm-row">
-					<span class="confirm-hint">Run the cleanup?</span>
-					<button
-						class="btn-danger"
-						type="button"
-						disabled={busy === 'clear-orphans'}
-						onclick={() =>
-							runAction(
-								'clear-orphans',
-								'/api/admin/watch-party/sessions/clear-orphans',
-								'Orphaned sessions cleaned.'
-							)}
-					>
-						{#if busy === 'clear-orphans'}
-							<Loader2 size={14} class="spin" />
-							Cleaning…
-						{:else}
-							Yes, clean up
-						{/if}
-					</button>
-					<button class="btn-ghost" type="button" onclick={() => (confirming = null)}>
-						Cancel
-					</button>
+			<div class="admin-option">
+				<div class="option-text">
+					<strong>Clear orphaned sessions</strong>
+					<p>Scan for stale, abandoned sessions that never ended and sweep them away.</p>
 				</div>
-			{:else}
-				<button class="btn-danger" type="button" onclick={() => (confirming = 'clear-orphans')}>
-					<Wand2 size={14} aria-hidden="true" /> Clean up
-				</button>
-			{/if}
+				{#if confirming === 'clear-orphans'}
+					<div class="confirm-row">
+						<span class="confirm-hint">Run the cleanup?</span>
+						<button
+							class="btn-danger"
+							type="button"
+							disabled={busy === 'clear-orphans'}
+							onclick={() =>
+								runAction(
+									'clear-orphans',
+									'/api/admin/watch-party/sessions/clear-orphans',
+									'Orphaned sessions cleaned.'
+								)}
+						>
+							{#if busy === 'clear-orphans'}
+								<Loader2 size={14} class="spin" />
+								Cleaning…
+							{:else}
+								Yes, clean up
+							{/if}
+						</button>
+						<button class="btn-ghost" type="button" onclick={() => (confirming = null)}>
+							Cancel
+						</button>
+					</div>
+				{:else}
+					<button class="btn-danger" type="button" onclick={() => (confirming = 'clear-orphans')}>
+						<Wand2 size={14} aria-hidden="true" /> Clean up
+					</button>
+				{/if}
+			</div>
 		</div>
-	</div>
+	{/if}
 
 	<!-- Catalog -->
 	<div class="admin-group">

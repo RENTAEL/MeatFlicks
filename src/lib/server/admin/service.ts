@@ -13,6 +13,7 @@ import { invalidateCachePrefix } from '$lib/server/cache';
 import { updateLastRefreshTime } from '$lib/server/utils';
 import { ensureHomeLibraryPrimed } from '$lib/server/services/home-library-optimizer';
 import { listActiveSessions } from '$lib/server/watch-party/service';
+import { WATCH_PARTY_ENABLED } from '$lib/config/watchParty';
 
 const FLAG_PREFIX = 'flag:';
 const ANNOUNCEMENT_KEY = 'announcement';
@@ -23,6 +24,11 @@ const FLAG_DEFAULTS: Record<string, boolean> = {
 	dqEnabled: true,
 	watchPartyEnabled: true
 };
+
+// Hard master switch — see src/lib/config/watchParty.ts. When false, the
+// watch party flag reads false no matter what the DB says, so every entry
+// point (home strip included) disappears until the constant flips back.
+const WATCH_PARTY_MASTER_ENABLED = WATCH_PARTY_ENABLED;
 
 export type AdminStats = {
 	activeSessions: number;
@@ -184,6 +190,7 @@ export async function getFeatureFlags(): Promise<Record<string, boolean>> {
 		const name = row.key.slice(FLAG_PREFIX.length);
 		flags[name] = row.value === '1' || row.value === 'true';
 	}
+	flags.watchPartyEnabled = flags.watchPartyEnabled && WATCH_PARTY_MASTER_ENABLED;
 	return flags;
 }
 

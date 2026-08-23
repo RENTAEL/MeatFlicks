@@ -4,6 +4,7 @@
 	import Player from '$lib/components/Player.svelte';
 	import { resolveNextEpisode } from '$lib/episodeNav';
 	import { createWatchParty } from '$lib/watch-party/client';
+	import { WATCH_PARTY_ENABLED } from '$lib/config/watchParty';
 	import WpJoinOverlay from '$lib/components/watch-party/WpJoinOverlay.svelte';
 
 	let show: any = $state(null);
@@ -92,7 +93,7 @@
 	let joinError = $state('');
 
 	async function startParty() {
-		if (joining) return;
+		if (joining || !WATCH_PARTY_ENABLED) return;
 		joining = true;
 		joinError = '';
 		const result = await createWatchParty({
@@ -200,16 +201,18 @@
 			}}
 		/>
 
-		<button class="word-press-btn" onclick={startParty} disabled={joining}>
-			<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-				><path
-					stroke-linecap="round"
-					stroke-linejoin="round"
-					d="M15 10l4.553-2.276A1 1 0 0 1 21 8.618v6.764a1 1 0 0 1-1.447.894L15 14M5 18h8a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2z"
-				/></svg
-			>
-			Start Watch Party
-		</button>
+		{#if WATCH_PARTY_ENABLED}
+			<button class="word-press-btn" onclick={startParty} disabled={joining}>
+				<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+					><path
+						stroke-linecap="round"
+						stroke-linejoin="round"
+						d="M15 10l4.553-2.276A1 1 0 0 1 21 8.618v6.764a1 1 0 0 1-1.447.894L15 14M5 18h8a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2z"
+					/></svg
+				>
+				Start Watch Party
+			</button>
+		{/if}
 
 		<div class="ep-section">
 			<h3 class="ep-section-title">Episode List</h3>
