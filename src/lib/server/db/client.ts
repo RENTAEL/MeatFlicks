@@ -15,9 +15,23 @@ const MAX_CONNECTION_ATTEMPTS = 1;
 
 const isTurso = () => !!(process.env.TURSO_DATABASE_URL || env.TURSO_DATABASE_URL);
 
+// Production hosts (Vercel/Netlify) MUST use Turso — the local file fallback
+// would silently fork user data per host, breaking the shared-database
+// guarantee between deployments. Local dev keeps the file fallback.
+const isProductionHost = () =>
+	process.env.NODE_ENV === 'production' ||
+	process.env.VERCEL === '1' ||
+	process.env.NETLIFY === 'true' ||
+	process.env.CONTEXT === 'production';
+
 const resolveDatabaseUrl = () => {
 	if (isTurso()) {
 		return process.env.TURSO_DATABASE_URL || env.TURSO_DATABASE_URL || '';
+	}
+	if (isProductionHost()) {
+		throw new Error(
+			'TURSO_DATABASE_URL is required in production — refusing to fall back to a local database (it would fork data per host).'
+		);
 	}
 	let target = env.SQLITE_DB_PATH;
 	if (process.env.VERCEL === '1') {

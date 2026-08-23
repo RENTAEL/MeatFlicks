@@ -34,6 +34,7 @@
 		Plus
 	} from '@lucide/svelte';
 	import type { RoomState, RoomQueueItem } from '$lib/server/watch-party/types';
+	import { WATCH_PARTY_URL } from '$lib/config/watchParty';
 
 	interface WatchData {
 		roomId: string;
@@ -154,7 +155,11 @@
 
 	function connectStream() {
 		if (eventSource) eventSource.close();
-		eventSource = new EventSource(`/api/watch-party/rooms/${roomId}/stream`);
+		// Standalone backend: identity travels in the query (EventSource
+		// cannot send headers).
+		eventSource = new EventSource(
+			`${WATCH_PARTY_URL}/api/watch-party/rooms/${roomId}/stream?u=${encodeURIComponent(user.id)}&n=${encodeURIComponent(user.username)}`
+		);
 		eventSource.addEventListener('state', (e) => {
 			if (!e.data) return;
 			try {
@@ -204,9 +209,27 @@
 
 	async function api<T = unknown>(path: string, init?: RequestInit): Promise<T | null> {
 		try {
-			const res = await fetch(`/api${path}`, {
+			// Standalone backend support: when PUBLIC_WATCH_PARTY_URL points at
+			// the Cloudflare Worker, route calls there and carry identity in
+			// the payload (the Worker is cookie-less).
+			const useWorker = Boolean(WATCH_PARTY_URL);
+			const base = useWorker ? `${WATCH_PARTY_URL}/api` : '/api';
+			let url = `${base}${path}`;
+			let body = init?.body;
+			if (useWorker) {
+				const sep = url.includes('?') ? '&' : '?';
+				url += `${sep}u=${encodeURIComponent(user.id)}&n=${encodeURIComponent(user.username)}`;
+				if (typeof body === 'string' && body) {
+					try {
+						const parsed = JSON.parse(body);
+						body = JSON.stringify({ ...parsed, u: user.id, n: user.username });
+					} catch {}
+				}
+			}
+			const res = await fetch(url, {
 				headers: { 'content-type': 'application/json' },
-				...init
+				...init,
+				body
 			});
 			if (res.status === 401 || res.status === 403) {
 				await goto(`/login?next=${encodeURIComponent(`/watch/${roomId}`)}`);

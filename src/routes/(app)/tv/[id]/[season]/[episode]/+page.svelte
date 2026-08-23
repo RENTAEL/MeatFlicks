@@ -100,7 +100,8 @@
 			mediaType: 'tv',
 			tmdbId,
 			season: seasonNum,
-			episode: episodeNum
+			episode: episodeNum,
+			title: show?.name ?? `S${seasonNum}:E${episodeNum}`
 		});
 		if (result.ok) {
 			await goto(`/watch/${result.roomId}`);

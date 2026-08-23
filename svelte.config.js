@@ -1,15 +1,12 @@
-import adapter from '@sveltejs/adapter-vercel';
+import adapter from '@sveltejs/adapter-auto';
 import { vitePreprocess } from '@sveltejs/vite-plugin-svelte';
 
 /** @type {import('@sveltejs/kit').Config} */
 const config = {
 	preprocess: vitePreprocess(),
 	kit: {
-		adapter: adapter({
-			runtime: 'nodejs22.x',
-			esbuild: false,
-			memory: 512
-		}),
+		// Detects Vercel AND Netlify at build time (NETLIFY/VERCEL env vars).
+		adapter: adapter(),
 		alias: {
 			'@': './src',
 			types: '$lib/types'

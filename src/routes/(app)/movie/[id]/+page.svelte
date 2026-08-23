@@ -21,7 +21,11 @@
 		if (joining || !data.movie || !WATCH_PARTY_ENABLED) return;
 		joining = true;
 		joinError = '';
-		const result = await createWatchParty({ mediaType: 'movie', tmdbId: data.movie.id });
+		const result = await createWatchParty({
+			mediaType: 'movie',
+			tmdbId: data.movie.id,
+			title: data.movie.title
+		});
 		if (result.ok) {
 			await goto(`/watch/${result.roomId}`);
 			return;
