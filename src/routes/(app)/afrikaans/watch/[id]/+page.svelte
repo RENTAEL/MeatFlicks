@@ -3,6 +3,7 @@
 	import { page } from '$app/state';
 
 	const details = page.data.details;
+	const reachability = page.data.reachability ?? {};
 </script>
 
 <svelte:head>
@@ -11,7 +12,7 @@
 </svelte:head>
 
 <div class="af-watch">
-	<AfrikaansPlayer {details} />
+	<AfrikaansPlayer {details} {reachability} />
 	<a class="af-watch-back" href="/afrikaans">← Terug na Afrikaans / Back to Afrikaans</a>
 </div>
 

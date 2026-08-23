@@ -1,5 +1,6 @@
 import { redirect } from '@sveltejs/kit';
 import { env } from '$lib/config/env';
+import { AFRIKAANS_SOURCES } from '$lib/components/afrikaans/sources';
 
 const TMDB_BASE = 'https://api.themoviedb.org/3';
 const UA = { 'User-Agent': 'MeatFlicks/1.0' };
@@ -34,6 +35,34 @@ function pickTrailer(videos: any): string | null {
 		youtube[0]?.key ??
 		null
 	);
+}
+
+/**
+ * Probe every embed host once per page load so the player can skip offline
+ * sources automatically instead of making the user sit through dead frames.
+ * Server-side GET (HEAD is unreliable on these hosts), 4s cap each, all in
+ * parallel. Results are advisory — the player still has manual fallback.
+ */
+async function probeSources(
+	kind: 'movie' | 'tv',
+	id: number,
+	s: number,
+	e: number
+): Promise<Record<string, boolean>> {
+	const entries = await Promise.all(
+		AFRIKAANS_SOURCES.map(async (src) => {
+			try {
+				const res = await fetch(src.url(kind, id, s, e), {
+					signal: AbortSignal.timeout(4000),
+					redirect: 'follow'
+				});
+				return [src.id, res.ok || (res.status >= 300 && res.status < 400)];
+			} catch {
+				return [src.id, false];
+			}
+		})
+	);
+	return Object.fromEntries(entries);
 }
 
 /**
@@ -75,7 +104,7 @@ export async function load({ params, url }) {
 				`${TMDB_BASE}/movie/${id}/videos?api_key=${apiKey}&language=en`
 			);
 			details.trailerKey = pickTrailer(videos);
-			return { details };
+			return { details, reachability: await probeSources('movie', Number(id), 1, 1) };
 		}
 	}
 
@@ -92,8 +121,8 @@ export async function load({ params, url }) {
 		};
 		const videos = await fetchJson(`${TMDB_BASE}/tv/${id}/videos?api_key=${apiKey}&language=en`);
 		details.trailerKey = pickTrailer(videos);
-		return { details };
+		return { details, reachability: await probeSources('tv', Number(id), 1, 1) };
 	}
 
-	return { details };
+	return { details, reachability: await probeSources(details.mediaType, Number(id), 1, 1) };
 }

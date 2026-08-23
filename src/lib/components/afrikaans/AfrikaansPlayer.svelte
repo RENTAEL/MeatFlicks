@@ -1,6 +1,7 @@
 <script lang="ts">
-	import { onMount, onDestroy } from 'svelte';
+	import { onDestroy } from 'svelte';
 	import { Loader2 } from '@lucide/svelte';
+	import { AFRIKAANS_SOURCES, type AfSource } from './sources';
 
 	type AfrikaansDetails = {
 		tmdbId: number;
@@ -12,68 +13,34 @@
 		trailerKey: string | null;
 	};
 
-	let { details }: { details: AfrikaansDetails } = $props();
+	let {
+		details,
+		reachability = {}
+	}: {
+		details: AfrikaansDetails;
+		reachability?: Record<string, boolean>;
+	} = $props();
 
 	const LOAD_GRACE_MS = 9000;
 
-	interface AfSource {
-		id: string;
-		label: string;
-		url: (kind: 'movie' | 'tv', id: number, s: number, e: number) => string;
-		reportsEvents: boolean;
+	interface ChainEntry extends AfSource {
+		online: boolean;
 	}
 
 	/**
-	 * Isolated source chain for the Afrikaans section only — deliberately
-	 * independent from the main catalog's provider system so changes here can
-	 * never affect other playback paths.
+	 * Ordered chain: hosts the server probe reached come first (original
+	 * order preserved); offline hosts follow, still playable via manual
+	 * fallback but never auto-selected.
 	 */
-	const SOURCES: AfSource[] = [
-		{
-			id: 'vidlink',
-			label: 'VidLink',
-			reportsEvents: true,
-			url: (k, id, s, e) =>
-				k === 'movie'
-					? `https://vidlink.pro/movie/${id}?autoplay=true&title=false&poster=true`
-					: `https://vidlink.pro/tv/${id}/${s}/${e}?autoplay=true&title=false&poster=true`
-		},
-		{
-			id: 'vidsrc-to',
-			label: 'VidSrc',
-			reportsEvents: false,
-			url: (k, id, s, e) =>
-				k === 'movie'
-					? `https://vidsrc.to/embed/movie/${id}`
-					: `https://vidsrc.to/embed/tv/${id}/${s}/${e}`
-		},
-		{
-			id: 'vidsrc-xyz',
-			label: 'VidSrc XYZ',
-			reportsEvents: false,
-			url: (k, id, s, e) =>
-				k === 'movie'
-					? `https://vidsrc.xyz/embed/movie/${id}`
-					: `https://vidsrc.xyz/embed/tv/${id}/${s}/${e}`
-		},
-		{
-			id: '2embed',
-			label: '2Embed',
-			reportsEvents: false,
-			url: (k, id, s, e) =>
-				k === 'movie'
-					? `https://www.2embed.cc/embed/${id}`
-					: `https://www.2embed.cc/embedtv/${id}&s=${s}&e=${e}`
-		},
-		{
-			id: 'vidsrc-pm',
-			label: 'VidSrc PM',
-			reportsEvents: false,
-			url: (k, id, s, e) =>
-				k === 'movie'
-					? `https://vidsrc.pm/embed/movie/${id}`
-					: `https://vidsrc.pm/embed/tv/${id}/${s}/${e}`
-		}
+	const CHAIN: ChainEntry[] = [
+		...AFRIKAANS_SOURCES.filter((s) => reachability[s.id] !== false).map((s) => ({
+			...s,
+			online: true
+		})),
+		...AFRIKAANS_SOURCES.filter((s) => reachability[s.id] === false).map((s) => ({
+			...s,
+			online: false
+		}))
 	];
 
 	let season = $state(1);
@@ -83,11 +50,11 @@
 	let switching = $state(true);
 	let statusNote = $state('');
 	let graceTimer: ReturnType<typeof setTimeout> | null = null;
+	let usingTrailerFallback = $state(false);
 
 	let currentUrl = $derived(
-		SOURCES[sourceIndex].url(details.mediaType, details.tmdbId, season, episode)
+		CHAIN[sourceIndex].url(details.mediaType, details.tmdbId, season, episode)
 	);
-	let usingTrailerFallback = $state(false);
 
 	function clearGrace() {
 		if (graceTimer) {
@@ -99,20 +66,27 @@
 	function armGrace() {
 		clearGrace();
 		iframeLoaded = false;
-		switching = true;
-		graceTimer = setTimeout(() => {
-			// No load event within the grace window — the host is dead or
-			// unreachable. Move to the next source automatically.
-			advance('source did not respond');
-		}, LOAD_GRACE_MS);
+		switching = !usingTrailerFallback;
+		graceTimer = setTimeout(() => advance('did not respond'), LOAD_GRACE_MS);
 	}
 
+	/**
+	 * Advance to the next source. Browsers fire `load` even for failed
+	 * iframes, so auto-advance is driven by (a) hosts marked offline by the
+	 * server probe — skipped instantly — and (b) VidLink's own error events.
+	 */
 	function advance(reason: string) {
 		clearGrace();
-		if (sourceIndex < SOURCES.length - 1) {
-			statusNote = `${SOURCES[sourceIndex].label} failed (${reason}) — trying ${SOURCES[sourceIndex + 1].label}…`;
-			sourceIndex += 1;
-		} else if (!usingTrailerFallback) {
+		const next = sourceIndex + 1;
+		if (next < CHAIN.length) {
+			const wasOffline = !CHAIN[sourceIndex].online;
+			statusNote = wasOffline
+				? `${CHAIN[sourceIndex].label} is offline — skipped.`
+				: `${CHAIN[sourceIndex].label} failed (${reason}) — trying ${CHAIN[next].label}…`;
+			sourceIndex = next;
+			return;
+		}
+		if (!usingTrailerFallback) {
 			usingTrailerFallback = true;
 			switching = false;
 			statusNote = 'No streaming sources responded — playing the trailer instead.';
@@ -122,7 +96,6 @@
 	function onIframeLoad() {
 		iframeLoaded = true;
 		switching = false;
-		clearGrace();
 	}
 
 	function manualNext() {
@@ -141,20 +114,14 @@
 		if (event.origin !== 'https://vidlink.pro') return;
 		const data = event.data as { type?: string; data?: string } | string | null;
 		const type =
-			typeof data === 'string' ? data : (data?.type ?? '') + (data?.data ? `:${data.data}` : '');
+			typeof data === 'string' ? data : `${data?.type ?? ''}${data?.data ? `:${data.data}` : ''}`;
 		if (/PLAYER_ERROR|error/i.test(type)) advance('player error');
-		else if (/playing|PLAYER_PLAYBACK/i.test(type)) onIframeLoad();
+		else if (/playing/i.test(type)) onIframeLoad();
 	}
-
-	onMount(() => {
-		window.addEventListener('message', onMessage);
-		return () => window.removeEventListener('message', onMessage);
-	});
 
 	onDestroy(clearGrace);
 
 	$effect(() => {
-		// Re-arm the grace timer whenever the active source URL changes.
 		void currentUrl;
 		armGrace();
 	});
@@ -180,7 +147,7 @@
 			{#key currentUrl}
 				<iframe
 					src={currentUrl}
-					title="{details.title} — {SOURCES[sourceIndex].label}"
+					title="{details.title} — {CHAIN[sourceIndex].label}"
 					allow="autoplay; encrypted-media; fullscreen"
 					allowfullscreen
 					onload={onIframeLoad}
@@ -189,7 +156,7 @@
 			{#if switching}
 				<div class="af-loading">
 					<span class="af-spin"><Loader2 size={26} aria-hidden="true" /></span>
-					<span>Loading {SOURCES[sourceIndex].label}…</span>
+					<span>Loading {CHAIN[sourceIndex].label}…</span>
 				</div>
 			{/if}
 		{/if}
@@ -219,7 +186,7 @@
 		<span class="af-src">
 			{usingTrailerFallback
 				? 'Trailer'
-				: `Source ${sourceIndex + 1}/${SOURCES.length} · ${SOURCES[sourceIndex].label}`}
+				: `Source ${sourceIndex + 1}/${CHAIN.length} · ${CHAIN[sourceIndex].label}${CHAIN[sourceIndex].online ? '' : ' (offline)'}`}
 		</span>
 		{#if !usingTrailerFallback}
 			<button type="button" class="af-next" onclick={manualNext}>Try next ▸</button>
