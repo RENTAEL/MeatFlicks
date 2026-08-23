@@ -33,17 +33,84 @@
 	let queuedEffect: { kind: string; at: number } | null = null;
 
 	/**
-	 * Play an admin effect sound. Browsers block audio until a user gesture;
-	 * if audio is still locked the effect is queued and replayed on the next
-	 * gesture anywhere on the page (within 60s) so it is not lost.
+	 * Media-element sound path. Web Audio only produces output after a
+	 * gesture IN THE CURRENT session, so a passively-watching target would
+	 * hear nothing. Unlocked <audio> elements behave differently: once an
+	 * element has been play()-ed inside a gesture (muted), it can be
+	 * replayed programmatically forever — even for viewers who never touch
+	 * anything again.
 	 */
+	const EFFECT_FILES: Record<string, string> = {
+		jump: '/sounds/jumpscare.mp3',
+		suspense: '/sounds/suspense.mp3',
+		applause: '/sounds/applause.mp3',
+		boo: '/sounds/boo.mp3'
+	};
+	let audioPool: Record<string, HTMLAudioElement> = {};
+	let mediaUnlocked = false;
+
+	function initAudioPool() {
+		if (Object.keys(audioPool).length > 0 || typeof document === 'undefined') return;
+		for (const [kind, src] of Object.entries(EFFECT_FILES)) {
+			const el = new Audio(src);
+			el.preload = 'auto';
+			el.volume = 0.85;
+			audioPool[kind] = el;
+		}
+	}
+
+	function unlockMedia() {
+		if (mediaUnlocked) return;
+		mediaUnlocked = true;
+		initAudioPool();
+		for (const el of Object.values(audioPool)) {
+			el.muted = true;
+			const pr = el.play();
+			if (pr && typeof pr.then === 'function') {
+				pr.then(() => {
+					el.pause();
+					try {
+						el.currentTime = 0;
+					} catch {}
+					el.muted = false;
+				}).catch(() => {
+					el.muted = false;
+				});
+			}
+		}
+	}
+
 	function tryPlaySound(kind: string) {
+		initAudioPool();
+		if (mediaUnlocked) {
+			const el = audioPool[kind];
+			if (el) {
+				try {
+					el.pause();
+				} catch {}
+				el.muted = false;
+				el.volume = 0.85;
+				try {
+					el.currentTime = 0;
+				} catch {}
+				const pr = el.play();
+				if (pr && typeof pr.catch === 'function') {
+					pr.catch(() => {
+						// Element refused — fall back to the Web Audio path.
+						unlockAudio();
+						playSoundEffect(kind);
+					});
+				}
+				return;
+			}
+		}
 		if (!isSoundUnlocked()) unlockAudio();
 		playSoundEffect(kind);
 		queuedEffect = { kind, at: Date.now() };
 	}
 
 	function onGesture() {
+		unlockMedia();
 		unlockAudio();
 		if (queuedEffect && Date.now() - queuedEffect.at < 60_000) {
 			playSoundEffect(queuedEffect.kind);
@@ -87,6 +154,7 @@
 	onMount(() => {
 		// Warm the audio buffers immediately so effects fire without delay.
 		preloadSounds();
+		initAudioPool();
 		window.addEventListener('pointerdown', onGesture, { passive: true });
 		window.addEventListener('keydown', onGesture);
 		window.addEventListener('touchstart', onGesture, { passive: true });
