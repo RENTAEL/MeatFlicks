@@ -177,6 +177,7 @@
 	let frameSrc = $state('');
 	let syncingToHost = $state(false);
 	let needsTapToContinue = $state(false);
+	let connectionLost = $state(false);
 	let latestRemote: RemoteSync | null = null;
 	// The drift target is anchored to the member's own clock: when a new
 	// SSE frame arrives, we record the local receipt time and extrapolate
@@ -307,6 +308,7 @@
 					reportHostSignal({ playing: true, position: pos });
 				}
 			} else if (ev.event === 'pause') {
+				console.info(`[player] paused at ${pos.toFixed(1)}s`);
 				needsTapToContinue = false;
 				if (!readOnly) {
 					if (pendingPauseTimer) clearTimeout(pendingPauseTimer);
@@ -399,7 +401,10 @@
 	// Rebuild the current source at the given position + play state — the ONLY
 	// control vidlink-class embeds accept (load-time #t= and autoplay=). This
 	// is how a host event is applied: exactly once per changed event.
-	function requestBuild(position: number, playing: boolean) {
+	function requestBuild(position: number, playing: boolean, reason = 'unspecified') {
+		console.info(
+			`[player] iframe reload reason=${reason} t=${Math.max(0, Math.round(position))} playing=${playing} provider=${currentProvider?.id ?? 'none'}`
+		);
 		const now = Date.now();
 		lastBuilt = {
 			seq: latestRemote?.seq ?? 0,
@@ -454,7 +459,7 @@
 					'apply',
 					`seq=${rs.seq} action=source-switch target=${target.toFixed(1)} playing=${rs.playing}`
 				);
-				requestBuild(target, rs.playing);
+				requestBuild(target, rs.playing, 'host-source-switch');
 			}
 			markSyncApplied(rs);
 			return;
@@ -530,7 +535,7 @@
 				'apply',
 				`seq=${rs.seq} action=${action} target=${target.toFixed(1)} cur=${cur.toFixed(1)} gap=${(target - cur).toFixed(1)} playing=${rs.playing}`
 			);
-			requestBuild(target, rs.playing);
+			requestBuild(target, rs.playing, `host-${action}`);
 			markSyncApplied(rs);
 			return;
 		}
@@ -588,7 +593,7 @@
 			playing = true;
 			elapsedSeconds = target;
 		} else {
-			requestBuild(target, true);
+			requestBuild(target, true, 'tap-continue');
 		}
 	}
 
@@ -1067,16 +1072,22 @@
 
 	function startAutoSwitch() {
 		stopAutoSwitch();
-		autoSwitchTimer = setTimeout(() => {
-			if (!iframeLoaded && workingProviders.length > 1) {
-				isAutoSwitching = true;
-				switchToNext();
-				setTimeout(() => {
-					isAutoSwitching = false;
-					startAutoSwitch();
-				}, 500);
-			}
-		}, 4000);
+		autoSwitchTimer = setTimeout(
+			() => {
+				if (!iframeLoaded && workingProviders.length > 1) {
+					console.info(`[player] auto-switch: ${currentProvider?.id ?? 'none'} did not load in 9s`);
+					isAutoSwitching = true;
+					switchToNext();
+					setTimeout(() => {
+						isAutoSwitching = false;
+						startAutoSwitch();
+					}, 500);
+				}
+			},
+			// 9s — mobile networks routinely take longer than 4s to load an
+			// embed; switching too early churns providers and kills playback.
+			9000
+		);
 	}
 
 	function stopAutoSwitch() {
@@ -1117,6 +1128,7 @@
 	function onIframeLoad() {
 		iframeLoaded = true;
 		hasError = false;
+		connectionLost = false;
 		loadedProviders.add(currentProvider?.id || '');
 		lastFrameLoadAt = Date.now();
 		soakEvent(
@@ -1149,9 +1161,27 @@
 	}
 
 	function onIframeError() {
-		hasError = true;
+		// vidlink-class embeds fire iframe errors for INTERNAL navigations
+		// (redirects, ad frames) — yanking the provider mid-playback was the
+		// "randomly stops playing" bug. If this element ever proved real
+		// playback, treat it as a connection drop: offer a manual reconnect
+		// instead of silently switching away.
+		const hadPlayback = hasStartedPlayback;
+		console.warn(
+			`[player] iframe error provider=${currentProvider?.id ?? 'none'} hadPlayback=${hadPlayback}`
+		);
+		soakEvent(
+			'iframe-error',
+			`provider=${currentProvider?.id ?? 'none'} hadPlayback=${hadPlayback}`
+		);
 		loadedProviders.delete(currentProvider?.id || '');
-		soakEvent('iframe-error', `provider=${currentProvider?.id ?? 'none'}`);
+		if (hadPlayback) {
+			connectionLost = true;
+			iframeLoaded = false;
+			soakUpdate({ iframeLoaded: false });
+			return;
+		}
+		hasError = true;
 		soakUpdate({ iframeLoaded: false });
 		if (workingProviders.length > 1 && !isAutoSwitching) {
 			isAutoSwitching = true;
@@ -1160,6 +1190,22 @@
 				isAutoSwitching = false;
 				startAutoSwitch();
 			}, 500);
+		}
+	}
+
+	function reconnectCurrent() {
+		console.info(`[player] reconnect requested provider=${currentProvider?.id ?? 'none'}`);
+		connectionLost = false;
+		const pos = embedEvent?.position ?? 0;
+		iframeLoaded = false;
+		hasError = false;
+		hasStartedPlayback = false;
+		lastFrameLoadAt = Date.now();
+		if (pos > 0) {
+			requestBuild(pos, true, 'reconnect');
+		} else {
+			// No known position — reload the same provider fresh.
+			switchTo(currentIndex);
 		}
 	}
 
@@ -1218,7 +1264,29 @@
 			</div>
 		{/if}
 
-		{#if !iframeLoaded && !isScanning && !scanError && currentProvider}
+		{#if connectionLost}
+			<div class="overlay">
+				<svg
+					class="error-icon"
+					viewBox="0 0 24 24"
+					fill="none"
+					stroke="currentColor"
+					stroke-width="2"
+				>
+					<circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line
+						x1="12"
+						y1="16"
+						x2="12.01"
+						y2="16"
+					/>
+				</svg>
+				<p class="overlay-text">Connection lost</p>
+				<p class="overlay-sub">The stream dropped. Pick up where you left off.</p>
+				<button onclick={reconnectCurrent} class="retry-btn">Reconnect</button>
+			</div>
+		{/if}
+
+		{#if !iframeLoaded && !isScanning && !scanError && currentProvider && !connectionLost}
 			<div class="overlay loading-overlay">
 				<div class="spinner"></div>
 				<p class="overlay-text">Loading via {currentProvider.name}...</p>

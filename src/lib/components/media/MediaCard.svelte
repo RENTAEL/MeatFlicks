@@ -13,7 +13,7 @@
 	import { getImageUrl, getSrcSet, POSTER_SIZES } from '$lib/utils/image';
 	import ProviderBadges from '$lib/components/ProviderBadges.svelte';
 	import HoverPreview from '$lib/components/media/HoverPreview.svelte';
-	import { openMediaSheet } from '$lib/state/stores/mediaSheetStore.svelte';
+	import { openMediaSheet, closeMediaSheet } from '$lib/state/stores/mediaSheetStore.svelte';
 
 	let {
 		movie,
@@ -118,6 +118,9 @@
 	function handlePlay(event: MouseEvent) {
 		event.stopPropagation();
 		event.preventDefault();
+		// If this card lives inside the detail sheet, dismiss it so the
+		// destination player is never covered.
+		closeMediaSheet();
 		if (detailsHref && browser) goto(detailsHref);
 	}
 </script>

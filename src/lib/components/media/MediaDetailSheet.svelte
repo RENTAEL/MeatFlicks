@@ -92,6 +92,9 @@
 	}
 
 	function handlePlay() {
+		// Dismiss the sheet FIRST — on mobile it otherwise stays stacked over
+		// the player that the destination page mounts.
+		closeMediaSheet();
 		if (detailsHref !== '/') goto(detailsHref);
 	}
 </script>

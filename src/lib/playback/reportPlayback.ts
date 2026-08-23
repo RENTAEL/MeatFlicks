@@ -20,6 +20,11 @@ export function reportPlayback(playing: boolean): void {
 	try {
 		sessionStorage.setItem(KEY, playing ? '1' : '0');
 	} catch {}
+	// Ambient layers (particles, blurs) pause while video plays so low-end
+	// phones never starve the decoder.
+	if (typeof window !== 'undefined') {
+		window.dispatchEvent(new CustomEvent('streamium-playback', { detail: { playing } }));
+	}
 }
 
 export function getReportedPlayback(): boolean | null {

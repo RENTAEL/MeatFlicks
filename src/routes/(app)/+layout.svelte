@@ -35,12 +35,22 @@
 	// Fewer ambient particles on small screens — heavy blurred layers over
 	// video cost frames on low-end phones.
 	let particleCount = $state(20);
+	// Ambient animations freeze entirely while a video is playing so the
+	// decoder never competes for frames.
+	let videoLive = $state(false);
 	onMount(() => {
 		const mq = window.matchMedia('(max-width: 768px)');
 		const apply = () => (particleCount = mq.matches ? 8 : 20);
 		apply();
 		mq.addEventListener('change', apply);
-		return () => mq.removeEventListener('change', apply);
+		const onPlayback = (e: Event) => {
+			videoLive = Boolean((e as CustomEvent).detail?.playing);
+		};
+		window.addEventListener('streamium-playback', onPlayback);
+		return () => {
+			mq.removeEventListener('change', apply);
+			window.removeEventListener('streamium-playback', onPlayback);
+		};
 	});
 
 	onMount(() => {
@@ -93,14 +103,17 @@
 <User2Global />
 <SurpriseMe />
 
-<!-- Ambient background -->
-<div class="bg-ambient">
+<!-- Ambient background — frozen while video plays (class toggled by the
+     player's playback reporter) -->
+<div class="bg-ambient" class:ambient-frozen={videoLive}>
 	<div class="bg-gradient-top"></div>
 	<div class="bg-noise"></div>
 </div>
 
 <!-- Demon Slayer custom background for aftermidnight — gated to demon_slayer theme -->
-<div class="demon-slayer-bg" aria-hidden="true"><div class="demon-slayer-bg-overlay"></div></div>
+<div class="demon-slayer-bg" class:ambient-frozen={videoLive} aria-hidden="true">
+	<div class="demon-slayer-bg-overlay"></div>
+</div>
 
 <ModeWatcher defaultMode="dark" themeColors={{ dark: '#0a0a1a', light: '#0a0a1a' }} />
 <ThemeContext>
@@ -111,7 +124,10 @@
 				class="relative flex min-h-dvh-fallback flex-col text-foreground"
 				data-sveltekit-preload-data="hover"
 			>
-				<div class="pointer-events-none fixed inset-0 z-0 overflow-hidden">
+				<div
+					class="pointer-events-none fixed inset-0 z-0 overflow-hidden"
+					class:ambient-frozen={videoLive}
+				>
 					{#each Array.from({ length: particleCount }) as _, i}
 						<div
 							class="absolute animate-float-up"
@@ -296,6 +312,13 @@
 		inset: 0;
 		z-index: -1;
 		pointer-events: none;
+	}
+
+	/* Video is live — freeze every ambient animation so the decoder on
+	 * low-end phones gets all the frames. */
+	:global(.ambient-frozen),
+	:global(.ambient-frozen *) {
+		animation-play-state: paused !important;
 	}
 
 	.bg-gradient-top {
