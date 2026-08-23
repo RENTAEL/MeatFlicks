@@ -33,8 +33,9 @@
 	 * Playback chain for this title:
 	 *   1. curated + TMDb YouTube videos (primary — reliable, never blocked)
 	 *   2. probed embed hosts (fallback; offline hosts sink to the tail)
-	 * Titles with no YouTube source at all show a clean "no source" state
-	 * instead of a guaranteed-dead embed player.
+	 * Titles with YouTube play there first; titles without any YouTube video
+	 * still try reachable embeds, and only a completely empty chain gets the
+	 * clean "no source" state.
 	 */
 	// The chain is fixed per title — details never changes for this route,
 	// so capturing its current value here is intentional.
@@ -74,7 +75,7 @@
 	// skip: a working video that just hasn't pressed play yet stays put.
 	const YT_FATAL_ERRORS = new Set([2, 5, 100, 101, 150]);
 	// svelte-ignore state_referenced_locally
-	let usingNoSource = $state(details.youtubeIds.length === 0);
+	let usingNoSource = $state(CHAIN.length === 0);
 
 	let currentUrl = $derived.by(() => {
 		const entry = CHAIN[sourceIndex];
