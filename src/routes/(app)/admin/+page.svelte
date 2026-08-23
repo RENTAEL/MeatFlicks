@@ -32,7 +32,8 @@
 <style>
 	.admin-console {
 		min-height: 100vh;
-		padding-top: calc(var(--header-height) + env(safe-area-inset-top, 0px) + 1.25rem);
+		/* Layout wrapper already clears the fixed header — own spacing only. */
+		padding-top: calc(env(safe-area-inset-top, 0px) + 1.25rem);
 		padding-bottom: 4rem;
 	}
 	.admin-header {

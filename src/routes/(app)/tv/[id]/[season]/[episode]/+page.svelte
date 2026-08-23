@@ -255,7 +255,7 @@
 
 <style>
 	.ep-page {
-		padding-top: calc(var(--header-height) + env(safe-area-inset-top, 0px) + 1.5rem);
+		padding-top: calc(env(safe-area-inset-top, 0px) + 1.5rem);
 		padding-bottom: 40px;
 	}
 	.back-btn {

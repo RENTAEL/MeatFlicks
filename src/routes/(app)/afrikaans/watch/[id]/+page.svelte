@@ -19,7 +19,7 @@
 <style>
 	.af-watch {
 		min-height: 100vh;
-		padding-top: calc(var(--header-height) + env(safe-area-inset-top, 0px) + 1rem);
+		padding-top: calc(env(safe-area-inset-top, 0px) + 1rem);
 		padding-bottom: 3rem;
 		background: #09090b;
 	}

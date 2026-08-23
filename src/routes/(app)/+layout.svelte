@@ -120,7 +120,7 @@
 				</div>
 				<div
 					class="relative z-10 flex-1"
-					style="padding-bottom: var(--content-pb, max(4rem, calc(env(safe-area-inset-bottom, 20px) + 0.5rem)));"
+					style="padding-top: var(--header-height); padding-bottom: var(--content-pb, max(4rem, calc(env(safe-area-inset-bottom, 20px) + 0.5rem)));"
 				>
 					<div class="page-transition">
 						<slot />
