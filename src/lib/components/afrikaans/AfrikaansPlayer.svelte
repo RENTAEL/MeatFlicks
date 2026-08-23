@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { onDestroy } from 'svelte';
+	import { onMount, onDestroy } from 'svelte';
 	import { Loader2 } from '@lucide/svelte';
 	import { AFRIKAANS_SOURCES, youtubeEmbedUrl, type AfSource } from './sources';
 
@@ -22,7 +22,8 @@
 		reachability?: Record<string, boolean>;
 	} = $props();
 
-	const YT_GRACE_MS = 10_000;
+	// Load-grace for third-party embed frames only (see armSource).
+	const LOAD_GRACE_MS = 9_000;
 
 	type ChainEntry =
 		| { kind: 'youtube'; videoId: string; label: string }
@@ -65,7 +66,13 @@
 	let switching = $state(true);
 	let statusNote = $state('');
 	let graceTimer: ReturnType<typeof setTimeout> | null = null;
-	let ytHandshakeTimer: ReturnType<typeof setTimeout> | null = null;
+	// One-shot skip guard — exactly one automatic advance per source.
+	let skipFiredFor = -1;
+	// Only genuinely unplayable videos report these YouTube error codes
+	// (bad id, removed/private, embed-disabled, player failure). Anything
+	// else — buffering, unstarted, autoplay-blocked — must never trigger a
+	// skip: a working video that just hasn't pressed play yet stays put.
+	const YT_FATAL_ERRORS = new Set([2, 5, 100, 101, 150]);
 	// svelte-ignore state_referenced_locally
 	let usingNoSource = $state(details.youtubeIds.length === 0);
 
@@ -86,32 +93,40 @@
 			clearTimeout(graceTimer);
 			graceTimer = null;
 		}
-		if (ytHandshakeTimer) {
-			clearTimeout(ytHandshakeTimer);
-			ytHandshakeTimer = null;
-		}
 	}
 
 	function armSource() {
 		clearTimers();
 		iframeLoaded = false;
 		switching = !usingNoSource && sourceIndex < CHAIN.length;
+		skipFiredFor = -1;
 		if (sourceIndex >= CHAIN.length) return;
-		graceTimer = setTimeout(() => advance('did not respond'), YT_GRACE_MS);
-		if (currentIsYouTube) {
-			// Ask the embedded YouTube player to report lifecycle events so
-			// unavailable videos (onError) auto-skip and playback confirms.
-			ytHandshakeTimer = setTimeout(() => {
-				const frame = document.querySelector<HTMLIFrameElement>('.af-stage iframe');
-				frame?.contentWindow?.postMessage(
-					JSON.stringify({ event: 'listening', id: 1, channel: 'widget' }),
-					'*'
-				);
+		// Load-grace applies ONLY to third-party embed hosts: if their frame
+		// cannot even load, move on quickly. YouTube sources get NO timeout —
+		// they are confirmed by PLAYING or rejected by a fatal onError, and
+		// anything in between (slow buffers, autoplay-blocked) is left alone.
+		if (!currentIsYouTube) {
+			graceTimer = setTimeout(() => advance('did not respond'), LOAD_GRACE_MS);
+		} else {
+			setTimeout(() => {
+				if (!currentIsYouTube || sourceIndex >= CHAIN.length) return;
+				document
+					.querySelector<HTMLIFrameElement>('.af-stage iframe')
+					?.contentWindow?.postMessage(
+						JSON.stringify({ event: 'listening', id: 1, channel: 'widget' }),
+						'*'
+					);
 			}, 1500);
 		}
 	}
 
-	function advance(reason: string) {
+	function advance(reason: string, opts?: { force?: boolean }) {
+		if (!opts?.force) {
+			// One-shot: whichever trigger fires first wins; later triggers
+			// (a stray error after a timeout, or vice versa) are ignored.
+			if (skipFiredFor === sourceIndex) return;
+			skipFiredFor = sourceIndex;
+		}
 		clearTimers();
 		const next = sourceIndex + 1;
 		if (next < CHAIN.length) {
@@ -132,10 +147,13 @@
 	function onIframeLoad() {
 		iframeLoaded = true;
 		switching = false;
+		// Frame rendered — the load-grace clock has done its job. A loaded
+		// source is never auto-skipped afterwards.
+		clearTimers();
 	}
 
 	function manualNext() {
-		advance('skipped');
+		advance('skipped', { force: true });
 	}
 
 	function stepSeason(delta: number) {
@@ -153,15 +171,22 @@
 			try {
 				const data = JSON.parse(typeof event.data === 'string' ? event.data : '{}');
 				if (data?.event === 'onError') {
-					advance(`unavailable (${data.info ?? 'error'})`);
+					const code = Number(data?.info);
+					// Skip only confirmed-fatal errors. Anything else (unknown
+					// or recoverable codes) never bounces a possibly-working video.
+					if (YT_FATAL_ERRORS.has(code)) {
+						advance(`unavailable (${code})`);
+					}
 					return;
 				}
 				if (
 					data?.event === 'onStateChange' &&
 					(data?.info === 1 || data?.info?.playerState === 1)
 				) {
-					// Confirmed playback — stop the fallback clock.
+					// Confirmed PLAYING — this source works. Kill any pending
+					// fallback clock and lock the one-shot guard for it.
 					clearTimers();
+					skipFiredFor = sourceIndex;
 					switching = false;
 					return;
 				}
@@ -177,6 +202,14 @@
 		if (/PLAYER_ERROR|error/i.test(type)) advance('player error');
 		else if (/playing/i.test(type)) onIframeLoad();
 	}
+
+	onMount(() => {
+		// If the user clicks into the player, they are driving — never auto-
+		// skip out from under them while the frame has focus.
+		const onWindowBlur = () => clearTimers();
+		window.addEventListener('blur', onWindowBlur);
+		return () => window.removeEventListener('blur', onWindowBlur);
+	});
 
 	onDestroy(clearTimers);
 
