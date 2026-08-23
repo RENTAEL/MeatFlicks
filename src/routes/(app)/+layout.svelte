@@ -32,6 +32,17 @@
 	import UserFab from '$lib/components/UserFab.svelte';
 	import DeveloperBadge from '$lib/components/DeveloperBadge.svelte';
 
+	// Fewer ambient particles on small screens — heavy blurred layers over
+	// video cost frames on low-end phones.
+	let particleCount = $state(20);
+	onMount(() => {
+		const mq = window.matchMedia('(max-width: 768px)');
+		const apply = () => (particleCount = mq.matches ? 8 : 20);
+		apply();
+		mq.addEventListener('change', apply);
+		return () => mq.removeEventListener('change', apply);
+	});
+
 	onMount(() => {
 		void (async () => {
 			try {
@@ -101,7 +112,7 @@
 				data-sveltekit-preload-data="hover"
 			>
 				<div class="pointer-events-none fixed inset-0 z-0 overflow-hidden">
-					{#each Array.from({ length: 20 }) as _, i}
+					{#each Array.from({ length: particleCount }) as _, i}
 						<div
 							class="absolute animate-float-up"
 							style="

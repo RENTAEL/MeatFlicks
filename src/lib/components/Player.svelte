@@ -1226,6 +1226,8 @@
 					<p class="overlay-sub">Syncing to host...</p>
 				{:else if isAutoSwitching}
 					<p class="overlay-sub">Auto-switching to next provider...</p>
+				{:else}
+					<p class="overlay-sub overlay-late">Taking a while? Use the server list below.</p>
 				{/if}
 			</div>
 		{/if}
@@ -1529,6 +1531,16 @@
 	.overlay-sub {
 		color: #71717a;
 		font-size: 12px;
+	}
+	/* Appears after ~10s so a stalled provider never looks frozen. */
+	.overlay-late {
+		opacity: 0;
+		animation: overlay-late-in 0.4s ease 10s forwards;
+	}
+	@keyframes overlay-late-in {
+		to {
+			opacity: 1;
+		}
 	}
 	.error-icon {
 		width: 36px;

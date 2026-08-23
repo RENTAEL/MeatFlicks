@@ -49,7 +49,9 @@
 				aria-label={page.data.user ? 'Profile' : 'Sign in'}
 			>
 				{#if page.data.user}
-					<span class="mobile-avatar">{(page.data.user.username as string).charAt(0).toUpperCase()}</span>
+					<span class="mobile-avatar"
+						>{(page.data.user.username as string).charAt(0).toUpperCase()}</span
+					>
 				{:else}
 					{@html icons.user}
 				{/if}
@@ -107,8 +109,8 @@
 	}
 
 	.mobile-header-btn {
-		width: 40px;
-		height: 40px;
+		width: 44px;
+		height: 44px;
 		display: flex;
 		align-items: center;
 		justify-content: center;
