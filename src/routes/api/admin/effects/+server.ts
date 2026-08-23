@@ -43,8 +43,17 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 		}
 
 		const rawTargets = Array.isArray(body?.targets) ? body!.targets! : [];
+		// Accept 'all' | 'auth' | 'user:<id>' | 'guest:<sid>' and bare presence
+		// ids (raw user id or guest sid) as sent by the live session list.
 		const targets = rawTargets
-			.filter((t): t is string => t === 'all' || t === 'auth' || /^(user|guest):[\w-]+$/.test(t))
+			.map((t): string | null => {
+				if (typeof t !== 'string') return null;
+				if (t === 'all' || t === 'auth') return t;
+				if (/^(user|guest):[\w-]+$/.test(t)) return t;
+				if (/^[\w-]+$/.test(t)) return `user:${t}`;
+				return null;
+			})
+			.filter((t): t is string => t !== null)
 			.slice(0, 50);
 		if (targets.length === 0) {
 			return json({ ok: false, error: 'No valid targets' }, { status: 400 });
