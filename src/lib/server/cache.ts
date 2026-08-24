@@ -22,6 +22,10 @@ const CACHE_STAMPEDE_MAX_WAITERS = 10;
 // instances (and the second host) start warm instead of re-fetching TMDB.
 const PERSIST_TTL_MIN_SECONDS = 300;
 const PERSIST_MAX_PAYLOAD_BYTES = 256 * 1024;
+// Only persist BIG payloads — a remote DB roundtrip per small cache key is
+// slower than just re-fetching from TMDB. Large entries (rails, catalogs)
+// are the expensive ones worth warming across instances.
+const PERSIST_MIN_PAYLOAD_BYTES = 5000;
 
 const lruStore = new LRUCache<string, CacheEntryValue>({
 	max: env.CACHE_MEMORY_MAX_ITEMS,
@@ -48,7 +52,7 @@ async function persistToTurso(
 	try {
 		const expiresAt = Date.now() + ttlSeconds * 1000;
 		const data = JSON.stringify({ v: entry.v, t: entry.t, e: expiresAt });
-		if (data.length > PERSIST_MAX_PAYLOAD_BYTES) return;
+		if (data.length > PERSIST_MAX_PAYLOAD_BYTES || data.length < PERSIST_MIN_PAYLOAD_BYTES) return;
 		await db
 			.insert(cacheTable)
 			.values({ key, data, expiresAt })
