@@ -18,19 +18,18 @@ npm run dev
 1. Make your change.
 2. `npm run dev` → verify at localhost:5173 (desktop + mobile viewport).
 3. `npx svelte-check --threshold error` → must be **0 errors** (42 warnings is the baseline).
-4. Commit and push:
+4. Commit and push to the **dev** branch (never push to `main` — Vercel auto-deploys `main` to production):
 
 ```
 git add <files>
 git commit -m "feat: ..."
-git push fork main
+git push fork dev
 ```
 
 5. Deploys:
    - **Netlify**: build + deploy from the no-space build folder (see below), or connect the repo in
      app.netlify.com for automatic builds.
-   - **Vercel**: `npx vercel --prod --yes` (currently blocked for fair use — retry after resolving
-     in the Vercel dashboard).
+   - **Vercel**: `npx vercel --prod --yes` — ONLY on explicit human go-ahead. Vercel auto-deploys `main`, so push working code to `dev`, not `main`.
 
 ## Netlify deploy command (current manual flow)
 

@@ -55,13 +55,13 @@ Last verified against commit **82c3515** (== fork/main). Every item checked agai
 
 ## 4. Deployment
 
-- [x] ✅ Vercel: CLI deploys, no git integration — worked until fair-use block
+- [x] ✅ Vercel: git-connected to RENTAEL/MeatFlicks — AUTO-DEPLOYS prod on push to `main`. Push to `dev` instead; `main` is production-locked. CLI deploy `npx vercel --prod --yes` only on explicit go-ahead.
 - [x] ✅ Netlify mirror: `netlify.toml`, adapter-auto (dual-host), site **streamium-cosmic.netlify.app** LIVE
 - [x] ✅ Netlify fixes: devalue + @sveltejs/kit as prod deps, shamefully-hoist (.npmrc), Node 20, adapter-netlify 6.0.4 — 83af4cb
 - [x] ✅ Netlify env vars imported from Vercel parity set (Turso, TMDB, cache, PUBLIC_BASE_URL)
 - [x] ✅ Turso production guard: hard-fail if TURSO_DATABASE_URL missing in prod (no data forks) — 0c96e8e
 - [x] ✅ Cache headers: immutable for /_app/immutable, /sounds/*, favicons — netlify.toml
-- [x] ⚠️ **Vercel currently BLOCKED + PAUSED (fair use)** — returns 402/"Deployment Paused". Needs dashboard action. Deploys fail with the same error.
+- [x] ⚠️ **Vercel auto-deploys prod on push to `main`** — confirmed live (pushes to `main` shipped unprompted). Switched default push target to `dev` so GitHub pushes no longer ship to production. Deploy only via `npx vercel --prod --yes` (or merge `dev`→`main`) on explicit human go-ahead.
 - [x] ⚠️ **Netlify deploys currently return Forbidden** (started after ~8 rapid deploys; likely temporary abuse throttle). Last GOOD deploy live = "turso cache tier + dq chip fix". The sized-gate fix (82c3515) is pushed but NOT deployed yet.
 - [x] ✅ Deploy runbook — `LOCAL-DEV.md` + `DEPLOY-NETLIFY.md`
 
