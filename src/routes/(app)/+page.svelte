@@ -10,9 +10,10 @@
 	import { useLazyComponentOnVisible } from '$lib/utils/lazyLoad.svelte';
 	import { Button } from '$lib/components/ui/button';
 	import { ErrorState } from '$lib/components/ui';
-	import { Loader2, Quote, RefreshCw } from '@lucide/svelte';
+	import { Loader2, RefreshCw } from '@lucide/svelte';
 	import DiscoveryEngine from '$lib/components/DiscoveryEngine.svelte';
 	import ContentCalendar from '$lib/components/ContentCalendar.svelte';
+	import DailyQuoteHero from '$lib/components/home/DailyQuoteHero.svelte';
 	import { goto } from '$app/navigation';
 	import { onMount } from 'svelte';
 	import { getImageUrl, getBackdropSrcSet } from '$lib/utils/image';
@@ -255,26 +256,20 @@
 {/if}
 
 {#if flags.dqEnabled ?? true}
-	<button
-		class="dq-chip"
-		type="button"
-		onclick={openDailyQuotes}
-		disabled={dqLoading}
-		aria-label="Daily Quotes"
-		title="Daily Quotes"
-	>
-		<Quote size={14} aria-hidden="true" />
-		<span>DQ</span>
-	</button>
-{/if}
-
-{#if dqOpen && DQSection}
-	<DQSection onclose={() => (dqOpen = false)} />
+	{#if dqOpen && DQSection}
+		<DQSection onclose={() => (dqOpen = false)} />
+	{/if}
 {/if}
 
 <div class="page-transition min-h-screen text-foreground">
 	<div class="mx-auto w-full py-2 pr-2 pl-0 sm:pr-2 sm:pl-0 lg:pr-2 lg:pl-0">
 		<main class="flex min-h-[calc(100vh-2rem)] flex-col gap-12 rounded-2xl glass shadow-xl">
+			{#if flags.dqEnabled ?? true}
+				<div class="px-[5%] pt-6 pb-2 sm:px-5">
+					<DailyQuoteHero onopen={openDailyQuotes} />
+				</div>
+			{/if}
+
 			{#if homeLibraryPromise}
 				{#await homeLibraryPromise}
 					<HomePageSkeleton />

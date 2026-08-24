@@ -5,6 +5,7 @@
 	import ActiveUsersPanel from './ActiveUsersPanel.svelte';
 	import EffectsPanel from './EffectsPanel.svelte';
 	import LiveSessionStats from './LiveSessionStats.svelte';
+	import UsageMonitor from './UsageMonitor.svelte';
 	import {
 		liveSessions,
 		connectLiveSessions,
@@ -317,6 +318,11 @@
 	<!-- Live session stats (who's watching what, right now) -->
 	<div class="admin-group">
 		<LiveSessionStats />
+	</div>
+
+	<!-- Usage & performance monitor -->
+	<div class="admin-group">
+		<UsageMonitor />
 	</div>
 
 	<!-- Broadcast -->

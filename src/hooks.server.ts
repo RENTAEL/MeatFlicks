@@ -15,6 +15,7 @@ import {
 } from '$lib/server/session-crypto';
 import { isUserSessionRevoked } from '$lib/server/session-revocation';
 import { WATCH_PARTY_ENABLED } from '$lib/config/watchParty';
+import { recordRequest } from '$lib/server/usage';
 
 declare global {
 	var __envValidated: boolean;
@@ -159,7 +160,12 @@ export const handle: Handle = async ({ event, resolve }) => {
 	}
 
 	await validateSession(event);
+	const startedAt = Date.now();
 	const response = await resolve(event);
+
+	// Usage monitor: in-memory only — DB flush is batched inside the
+	// monitor itself every few minutes.
+	recordRequest(event.url.pathname, Date.now() - startedAt);
 
 	response.headers.delete('Permissions-Policy');
 	response.headers.delete('permissions-policy');

@@ -243,6 +243,19 @@ const runInitSql = async (client: Client) => {
 			"payload" TEXT,
 			"createdAt" INTEGER NOT NULL
 		)`);
+
+		await client.execute(`CREATE TABLE IF NOT EXISTS usage_stats (
+			"bucket" INTEGER NOT NULL,
+			"path" TEXT NOT NULL,
+			"count" INTEGER NOT NULL,
+			"totalMs" INTEGER NOT NULL,
+			"maxMs" INTEGER NOT NULL,
+			PRIMARY KEY ("bucket", "path")
+		)`);
+		try {
+			await client.execute('CREATE INDEX IF NOT EXISTS idx_usage_bucket ON usage_stats("bucket")');
+		} catch {}
+
 		try {
 			await client.execute(
 				'CREATE INDEX IF NOT EXISTS idx_site_commands_created ON site_commands("created_at")'

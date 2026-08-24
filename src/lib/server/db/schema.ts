@@ -178,6 +178,23 @@ export const siteCommands = sqliteTable(
 	(table) => [index('idx_site_commands_created').on(table.createdAt)]
 );
 
+/**
+ * Aggregated request metrics for the admin usage monitor. One row per
+ * (minute bucket, path) — written in small batches by the request hook,
+ * never per-request. Pruned older than 48h on flush.
+ */
+export const usageStats = sqliteTable(
+	'usage_stats',
+	{
+		bucket: integer('bucket').notNull(),
+		path: text('path').notNull(),
+		count: integer('count').notNull(),
+		totalMs: integer('totalMs').notNull(),
+		maxMs: integer('maxMs').notNull()
+	},
+	(table) => [index('idx_usage_bucket').on(table.bucket)]
+);
+
 export const watchlistFolders = sqliteTable(
 	'watchlist_folders',
 	{
