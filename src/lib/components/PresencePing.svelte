@@ -42,22 +42,42 @@
 
 	onMount(() => {
 		ping();
-		const timer = setInterval(ping, 25000);
+		const timer = setInterval(() => {
+			// Hidden tabs aren't online — skip the heartbeat entirely.
+			if (!document.hidden) ping();
+		}, 25000);
 
-		const es = new EventSource('/api/presence/stream');
-		es.addEventListener('disconnect', (event) => {
-			const data = JSON.parse((event as MessageEvent).data) as { message?: string };
-			kickMessage = data.message ?? 'You got yeeted by the dev. Reconnect when you’re ready.';
-			kicked = true;
-			clearInterval(timer);
-			es.close();
-		});
-		es.onerror = () => {
-			// EventSource auto-reconnects; transient hiccups are fine.
+		let es: EventSource | null = null;
+		const openStream = () => {
+			if (es || kicked) return;
+			es = new EventSource('/api/presence/stream');
+			es.addEventListener('disconnect', (event) => {
+				const data = JSON.parse((event as MessageEvent).data) as { message?: string };
+				kickMessage = data.message ?? 'You got yeeted by the dev. Reconnect when you’re ready.';
+				kicked = true;
+				clearInterval(timer);
+				es?.close();
+				es = null;
+			});
+			es.onerror = () => {
+				// EventSource auto-reconnects; transient hiccups are fine.
+			};
 		};
+		const closeStream = () => {
+			es?.close();
+			es = null;
+		};
+		openStream();
 
 		const onVisibility = () => {
-			if (document.visibilityState === 'visible') ping();
+			// Background tabs must drop their SSE connection — each open
+			// stream bills Active CPU for its whole lifetime on Fluid.
+			if (document.hidden) {
+				closeStream();
+			} else {
+				ping();
+				openStream();
+			}
 		};
 		const onHide = () => {
 			try {
@@ -70,7 +90,7 @@
 		window.addEventListener('pagehide', onHide);
 		return () => {
 			clearInterval(timer);
-			es.close();
+			closeStream();
 			document.removeEventListener('visibilitychange', onVisibility);
 			window.removeEventListener('pagehide', onHide);
 		};

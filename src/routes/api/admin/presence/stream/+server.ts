@@ -9,7 +9,7 @@ import { and, eq, isNull } from 'drizzle-orm';
 import { subscribeAllRooms } from '$lib/server/watch-party/events';
 import { errorHandler } from '$lib/server';
 
-const REFRESH_MS = 5000;
+const REFRESH_MS = 15000;
 const HEARTBEAT_MS = 15000;
 const MAX_LIFETIME_MS = 55000;
 

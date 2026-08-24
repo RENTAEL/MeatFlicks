@@ -5,7 +5,11 @@ import { getRoomState, getRoomTick, touchMemberActivity } from '$lib/server/watc
 import { requireUser, roomIdFromParams } from '$lib/server/watch-party/handlers';
 import { subscribeRoom } from '$lib/server/watch-party/events';
 
-const TICK_MS = 1500;
+// The SSE event bus (subscribeRoom) still pushes instantly on real room
+// events — this tick is only the cross-instance backup, so it can be lazy.
+// (Tighter ticks burned Fluid CPU: each connection bills Active CPU for its
+// full lifetime.)
+const TICK_MS = 5000;
 const HEARTBEAT_MS = 15000;
 const MAX_LIFETIME_MS = 50000;
 

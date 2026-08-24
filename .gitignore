@@ -29,3 +29,5 @@ audit-screenshots/
 
 # Database
 data/*.db
+
+data/home-library-state.json

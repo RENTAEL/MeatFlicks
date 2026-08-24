@@ -63,7 +63,7 @@ export const GET: RequestHandler = async ({ locals, request }) => {
 
 				await fetchAndSend();
 
-				const interval = setInterval(fetchAndSend, 5_000);
+				const interval = setInterval(fetchAndSend, 30_000);
 				const heartbeat = setInterval(() => {
 					if (!closed) {
 						try {
@@ -107,3 +107,4 @@ export const GET: RequestHandler = async ({ locals, request }) => {
 		return json(body, { status });
 	}
 };
+

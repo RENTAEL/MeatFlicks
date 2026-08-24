@@ -30,7 +30,11 @@
 		const sid = getSessionId();
 		if (!sid) return;
 
+		let es: EventSource | null = null;
+
 		const ping = () => {
+			// Hidden tabs aren't really "online" — no heartbeat, no stream.
+			if (document.hidden) return;
 			const path = page.url.pathname + page.url.search;
 			const title = document.title
 				.replace(/\s*[—–|-]\s*Streamium.*$/i, '')
@@ -44,21 +48,45 @@
 			}).catch(() => {});
 		};
 
+		const openStream = () => {
+			if (es || document.hidden) return;
+			es = new EventSource(`/api/presence/guest/stream?sid=${encodeURIComponent(sid)}`);
+			es.addEventListener('disconnect', (event) => {
+				const data = JSON.parse((event as MessageEvent).data) as { message?: string };
+				endMessage = data.message ?? 'Your session was ended.';
+				ended = true;
+				clearInterval(timer);
+				es?.close();
+				es = null;
+			});
+		};
+
+		const closeStream = () => {
+			es?.close();
+			es = null;
+		};
+
+		// Background tabs must drop their SSE connection — on Fluid Compute
+		// each open stream bills Active CPU for its whole lifetime, so an
+		// idle tab in the background is pure waste.
+		const onVisibility = () => {
+			if (document.hidden) {
+				closeStream();
+			} else {
+				ping();
+				openStream();
+			}
+		};
+		document.addEventListener('visibilitychange', onVisibility);
+
 		ping();
 		const timer = setInterval(ping, 25000);
-
-		const es = new EventSource(`/api/presence/guest/stream?sid=${encodeURIComponent(sid)}`);
-		es.addEventListener('disconnect', (event) => {
-			const data = JSON.parse((event as MessageEvent).data) as { message?: string };
-			endMessage = data.message ?? 'Your session was ended.';
-			ended = true;
-			clearInterval(timer);
-			es.close();
-		});
+		openStream();
 
 		return () => {
 			clearInterval(timer);
-			es.close();
+			document.removeEventListener('visibilitychange', onVisibility);
+			closeStream();
 		};
 	});
 </script>

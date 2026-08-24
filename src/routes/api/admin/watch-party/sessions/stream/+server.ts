@@ -5,7 +5,7 @@ import { listActiveSessions, type ActiveSession } from '$lib/server/watch-party/
 import { subscribeAllRooms } from '$lib/server/watch-party/events';
 import { errorHandler } from '$lib/server';
 
-const REFRESH_MS = 10000;
+const REFRESH_MS = 30000;
 const HEARTBEAT_MS = 15000;
 const MAX_LIFETIME_MS = 50000;
 
@@ -97,3 +97,4 @@ export const GET: RequestHandler = async ({ locals, request }) => {
 		return json(body, { status });
 	}
 };
+

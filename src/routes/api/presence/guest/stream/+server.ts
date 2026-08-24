@@ -3,7 +3,7 @@ import type { RequestHandler } from './$types';
 import { readDisconnectSignal, leavePresence } from '$lib/server/presence';
 
 const PING_MS = 15000;
-const SIGNAL_POLL_MS = 5000;
+const SIGNAL_POLL_MS = 10000;
 const MAX_LIFETIME_MS = 50000;
 
 export const config = { maxDuration: 60, memory: 256 };
@@ -90,3 +90,4 @@ export const GET: RequestHandler = async ({ url, request }) => {
 		return json({ ok: false }, { status: 400 });
 	}
 };
+

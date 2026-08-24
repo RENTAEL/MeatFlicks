@@ -32,10 +32,6 @@ export type PresenceSnapshotUser = PresenceUser & {
 };
 
 const STALE_MS = 70_000;
-const PRUNE_INTERVAL_MS = 20_000;
-
-const globalTimerKey = '__presencePruner';
-const globalTimers = globalThis as typeof globalThis & { [globalTimerKey]?: NodeJS.Timeout };
 
 async function prune() {
 	const cutoff = Date.now() - STALE_MS;
@@ -45,10 +41,9 @@ async function prune() {
 		// pruning is best-effort
 	}
 }
-
-if (!globalTimers[globalTimerKey]) {
-	globalTimers[globalTimerKey] = setInterval(() => void prune(), PRUNE_INTERVAL_MS);
-}
+// No module-level prune interval: an always-on timer keeps every warm
+// serverless instance doing DB work forever (Fluid bills that CPU). Pruning
+// happens lazily when the admin list is actually read (listPresence).
 
 export async function touchPresence(
 	userId: string,
