@@ -250,21 +250,22 @@
 				</button>
 			</form>
 			<a class="wp-strip-link" href="/watch-party">Start one →</a>
-			{#if flags.dqEnabled ?? true}
-				<button
-					class="dq-chip"
-					type="button"
-					onclick={openDailyQuotes}
-					disabled={dqLoading}
-					aria-label="Daily Quotes"
-					title="Daily Quotes"
-				>
-					<Quote size={14} aria-hidden="true" />
-					<span>DQ</span>
-				</button>
-			{/if}
 		</div>
 	</section>
+{/if}
+
+{#if flags.dqEnabled ?? true}
+	<button
+		class="dq-chip"
+		type="button"
+		onclick={openDailyQuotes}
+		disabled={dqLoading}
+		aria-label="Daily Quotes"
+		title="Daily Quotes"
+	>
+		<Quote size={14} aria-hidden="true" />
+		<span>DQ</span>
+	</button>
 {/if}
 
 {#if dqOpen && DQSection}

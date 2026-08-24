@@ -1,3 +1,8 @@
+import dotenv from 'dotenv';
+// Load .env before anything else so server modules validated at import time
+// (config/env) see TMDB/Turso keys during vite dev and build.
+dotenv.config();
+
 import tailwindcss from '@tailwindcss/vite';
 import { sveltekit } from '@sveltejs/kit/vite';
 import { defineConfig } from 'vite';
@@ -6,7 +11,7 @@ import path from 'path';
 export default defineConfig({
 	plugins: [tailwindcss(), sveltekit()],
 	build: {
-		cssCodeSplit: false,
+		cssCodeSplit: false
 	},
 	resolve: {
 		alias: {
