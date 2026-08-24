@@ -135,6 +135,6 @@ export function initAdBlocker() {
 	} else {
 		cleanExisting();
 	}
-	setInterval(cleanExisting, 5000);
+	setInterval(cleanExisting, 15000);
 	debug('[AdBlocker] Active');
 }
