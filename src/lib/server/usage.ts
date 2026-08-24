@@ -129,6 +129,109 @@ export type UsageSummary = {
 	generatedAt: number;
 };
 
+let liveConnections = 0;
+
+/** Register an active live-dashboard connection; returns a disposer. */
+export function registerLiveConnection(): () => void {
+	liveConnections += 1;
+	return () => {
+		liveConnections = Math.max(0, liveConnections - 1);
+	};
+}
+
+export type LiveSnapshot = {
+	generatedAt: number;
+	rpm: number;
+	rpm5: number;
+	avgMs: number;
+	slowest: { path: string; count: number; avgMs: number }[];
+	anomalies: { path: string; perMin: number; reason: string }[];
+	monitors: number;
+	cost: 'low' | 'medium' | 'high';
+};
+
+/**
+ * In-memory-only snapshot for the live dashboard. Never touches the DB and
+ * never adds per-request work — it just reads the existing request ring.
+ */
+export function getLiveSnapshot(): LiveSnapshot {
+	const now = Date.now();
+	const currentBucket = bucketOf(now);
+
+	let count = 0;
+	let totalMs = 0;
+	const perPath = new Map<string, { count: number; totalMs: number; maxMs: number }>();
+
+	const addBucket = (b: number) => {
+		const map = store.buckets.get(b);
+		if (!map) return;
+		for (const [path, e] of map) {
+			count += e.count;
+			totalMs += e.totalMs;
+			const p = perPath.get(path) ?? { count: 0, totalMs: 0, maxMs: 0 };
+			p.count += e.count;
+			p.totalMs += e.totalMs;
+			p.maxMs = Math.max(p.maxMs, e.maxMs);
+			perPath.set(path, p);
+		}
+	};
+
+	addBucket(currentBucket - BUCKET_MS); // last full minute
+	addBucket(currentBucket); // current (partial) minute for responsiveness
+
+	const avgMs = count > 0 ? Math.round(totalMs / count) : 0;
+
+	let c5 = 0;
+	for (let i = 1; i <= 5; i++) {
+		const map = store.buckets.get(currentBucket - i * BUCKET_MS);
+		if (!map) continue;
+		for (const e of map.values()) c5 += e.count;
+	}
+	const rpm5 = Math.round((c5 / 5) * 10) / 10;
+
+	const slowest = Array.from(perPath.entries())
+		.map(([path, e]) => ({
+			path,
+			count: e.count,
+			avgMs: e.count > 0 ? Math.round(e.totalMs / e.count) : 0
+		}))
+		.sort((a, b) => b.avgMs - a.avgMs || b.count - a.count)
+		.slice(0, 6);
+
+	const counts5: Record<string, number> = {};
+	for (let i = 1; i <= 5; i++) {
+		const map = store.buckets.get(currentBucket - i * BUCKET_MS);
+		if (!map) continue;
+		for (const [path, e] of map) counts5[path] = (counts5[path] ?? 0) + e.count;
+	}
+	const anomalies: LiveSnapshot['anomalies'] = [];
+	for (const [path, c] of Object.entries(counts5)) {
+		const perMin = c / 5;
+		if (perMin >= LOOP_REQS_PER_MIN) {
+			anomalies.push({
+				path,
+				perMin: Math.round(perMin * 10) / 10,
+				reason: `Averaging ${Math.round(perMin * 10) / 10} requests/min over the last 5 minutes — probable polling loop.`
+			});
+		}
+	}
+	anomalies.sort((a, b) => b.perMin - a.perMin);
+
+	const cost: LiveSnapshot['cost'] =
+		anomalies.length > 0 || count > 200 ? 'high' : count > 50 ? 'medium' : 'low';
+
+	return {
+		generatedAt: now,
+		rpm: count,
+		rpm5,
+		avgMs,
+		slowest,
+		anomalies: anomalies.slice(0, 8),
+		monitors: liveConnections,
+		cost
+	};
+}
+
 export async function getUsageSummary(): Promise<UsageSummary> {
 	void maybeFlush();
 	const now = Date.now();

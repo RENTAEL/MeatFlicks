@@ -21,16 +21,45 @@
 		generatedAt: number;
 	};
 
+	type LiveSnapshot = {
+		generatedAt: number;
+		rpm: number;
+		rpm5: number;
+		avgMs: number;
+		slowest: { path: string; count: number; avgMs: number }[];
+		anomalies: { path: string; perMin: number; reason: string }[];
+		monitors: number;
+		cost: 'low' | 'medium' | 'high';
+	};
+
 	let server: UsageSummary | null = $state(null);
 	let client = $state<ReturnType<typeof getClientActivitySnapshot> | null>(null);
+	let live = $state<LiveSnapshot | null>(null);
+	let spark = $state<number[]>([]);
+	let reduced = $state(false);
 	let loading = $state(false);
 	let open = $state(true);
 	let timer: ReturnType<typeof setInterval> | null = null;
+	let liveEs: EventSource | null = null;
 
 	onMount(() => {
 		installClientActivityMonitor();
+		reduced = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false;
 		void refresh();
-		// Dashboard refresh is deliberately lazy: 30s while visible.
+		// Live dashboard — server pushes every 20s; we don't poll.
+		try {
+			const es = new EventSource('/api/admin/performance/live');
+			es.addEventListener('metrics', (e) => {
+				try {
+					const snap = JSON.parse((e as MessageEvent).data) as LiveSnapshot;
+					live = snap;
+					spark = [...spark, snap.rpm].slice(-30);
+				} catch {}
+			});
+			es.onerror = () => {};
+			liveEs = es;
+		} catch {}
+		// 24h/aggregate view — lazy 30s refresh while visible.
 		timer = setInterval(() => {
 			if (!document.hidden) {
 				client = getClientActivitySnapshot();
@@ -39,6 +68,7 @@
 		}, 30_000);
 		return () => {
 			if (timer) clearInterval(timer);
+			if (liveEs) liveEs.close();
 		};
 	});
 
@@ -85,6 +115,61 @@
 	</button>
 
 	{#if open}
+		<!-- Live performance (server-pushed every 20s) -->
+		<div class="usage-section live">
+			<div class="usage-label">
+				Live <span class="live-dot" class:on={!!live} aria-hidden="true"></span>
+				{#if live}
+					<span class="cost cost-{live.cost}" title="Estimated serverless cost impact">
+						{live.cost}
+					</span>
+				{/if}
+			</div>
+			{#if live}
+				<div class="live-grid">
+					<div class="live-stat">
+						<span class="live-num">{live.rpm}</span>
+						<span class="live-cap">req/min</span>
+					</div>
+					<div class="live-stat">
+						<span class="live-num">{live.avgMs}ms</span>
+						<span class="live-cap">avg resp</span>
+					</div>
+					<div class="live-stat">
+						<span class="live-num">{live.monitors}</span>
+						<span class="live-cap">dashboards</span>
+					</div>
+				</div>
+				<svg class="spark" viewBox="0 0 100 28" preserveAspectRatio="none" class:reduced>
+					<polyline
+						points={spark
+							.map((v, i) => {
+								const max = Math.max(1, ...spark);
+								const x = spark.length > 1 ? (i / (spark.length - 1)) * 100 : 0;
+								const y = 26 - (v / max) * 24;
+								return `${x.toFixed(1)},${y.toFixed(1)}`;
+							})
+							.join(' ')}
+					/>
+				</svg>
+				{#if live.slowest.length}
+					<div class="live-slow">
+						<span class="live-cap">slowest now</span>
+						{#each live.slowest.slice(0, 4) as s (s.path)}
+							<span class="live-chip">{s.path} · {s.avgMs}ms</span>
+						{/each}
+					</div>
+				{/if}
+				{#if live.anomalies.length}
+					<div class="client-loop" role="alert">
+						Loop suspected: {live.anomalies.map((a) => `${a.path} ${a.perMin}/min`).join(' · ')}
+					</div>
+				{/if}
+			{:else}
+				<p class="usage-empty">Connecting to live metrics…</p>
+			{/if}
+		</div>
+
 		{#if server?.anomalies?.length}
 			<div class="anom-banner" role="alert">
 				<AlertTriangle size={13} aria-hidden="true" />
@@ -293,6 +378,101 @@
 	@keyframes usage-rotate {
 		to {
 			transform: rotate(360deg);
+		}
+	}
+
+	.live-dot {
+		display: inline-block;
+		width: 7px;
+		height: 7px;
+		border-radius: 999px;
+		background: #3f3f46;
+		margin-left: 0.35rem;
+		vertical-align: middle;
+	}
+	.live-dot.on {
+		background: #22c55e;
+		box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.18);
+	}
+	.cost {
+		margin-left: 0.5rem;
+		padding: 0.05rem 0.5rem;
+		border-radius: 999px;
+		font-size: 0.62rem;
+		font-weight: 700;
+		text-transform: uppercase;
+		letter-spacing: 0.05em;
+	}
+	.cost-low {
+		background: rgba(34, 197, 94, 0.15);
+		color: #4ade80;
+	}
+	.cost-medium {
+		background: rgba(251, 191, 36, 0.15);
+		color: #fbbf24;
+	}
+	.cost-high {
+		background: rgba(239, 68, 68, 0.18);
+		color: #f87171;
+	}
+	.live-grid {
+		display: grid;
+		grid-template-columns: repeat(3, 1fr);
+		gap: 0.4rem;
+		margin-bottom: 0.5rem;
+	}
+	.live-stat {
+		display: flex;
+		flex-direction: column;
+		align-items: flex-start;
+		padding: 0.4rem 0.55rem;
+		border-radius: 8px;
+		background: rgba(255, 255, 255, 0.04);
+	}
+	.live-num {
+		font-size: 1.15rem;
+		font-weight: 700;
+		font-variant-numeric: tabular-nums;
+		color: #f4f4f5;
+	}
+	.live-cap {
+		font-size: 0.66rem;
+		color: #71717a;
+		text-transform: uppercase;
+		letter-spacing: 0.04em;
+	}
+	.spark {
+		width: 100%;
+		height: 28px;
+		display: block;
+		margin-bottom: 0.5rem;
+	}
+	.spark polyline {
+		fill: none;
+		stroke: #818cf8;
+		stroke-width: 1.5;
+		vector-effect: non-scaling-stroke;
+		transition: all 0.3s ease;
+	}
+	.spark.reduced polyline {
+		transition: none;
+	}
+	.live-slow {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		gap: 0.3rem;
+	}
+	.live-chip {
+		padding: 0.12rem 0.5rem;
+		border-radius: 999px;
+		background: rgba(255, 255, 255, 0.05);
+		font-size: 0.68rem;
+		color: #d4d4d8;
+	}
+	@media (max-width: 540px) {
+		.live-num {
+			font-size: 1rem;
 		}
 	}
 </style>
