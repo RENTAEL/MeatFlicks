@@ -5,6 +5,7 @@ import { logger } from '$lib/server/logger';
 import { libraryRepository } from '$lib/server/repositories/library.repository';
 import { ensureHomeLibraryPrimed } from '$lib/server/services/home-library-optimizer';
 import { tmdbRateLimiter } from '$lib/server/rate-limiter';
+import { memGet, memSet } from '$lib/server/memCache';
 import type { MediaSummary } from '$lib/server/db';
 import type {
 	HomeLibrary,
@@ -101,7 +102,10 @@ const buildFallbackHomeLibrary = async (limit: number): Promise<HomeLibrary | nu
 							trailerUrl: details.trailerUrl ?? null
 						});
 					} catch {
-						logger.warn({ tmdbId: details.tmdbId }, '[library][fallback] DB write failed, using TMDB data directly');
+						logger.warn(
+							{ tmdbId: details.tmdbId },
+							'[library][fallback] DB write failed, using TMDB data directly'
+						);
 					}
 				})
 			);
@@ -289,6 +293,14 @@ export async function fetchHomeLibrary(
 		logger.error({ error }, '[library] Failed to prime home library data');
 	});
 
+	// In-memory shortcut: skip the DB cache lookup entirely on warm instances.
+	// The homepage is the most-visited route, so this removes a per-request DB
+	// round-trip for every visitor without changing the data (catalog is slow-moving).
+	if (!forceRefresh) {
+		const cached = memGet<HomeLibrary>('home-library');
+		if (cached) return structuredClone(cached);
+	}
+
 	let result: HomeLibrary;
 	try {
 		result = await withCache(
@@ -296,8 +308,11 @@ export async function fetchHomeLibrary(
 			CACHE_TTL_MEDIUM_SECONDS,
 			async () => {
 				const data = await fetchHomeLibraryFromSource();
-				const hasContent = data.trendingMovies?.length || data.trendingTv?.length
-					|| data.collections?.length || data.genres?.length;
+				const hasContent =
+					data.trendingMovies?.length ||
+					data.trendingTv?.length ||
+					data.collections?.length ||
+					data.genres?.length;
 				if (!hasContent) {
 					logger.info('[library] DB returned empty library, falling back to TMDB');
 					const fallback = await buildFallbackHomeLibrary(HOME_LIBRARY_ITEMS_LIMIT);
@@ -320,6 +335,8 @@ export async function fetchHomeLibrary(
 			logger.error({ error }, '[library] Failed to update refresh timestamp');
 		}
 	}
+
+	if (!forceRefresh) memSet('home-library', result, 5 * 60_000);
 
 	return structuredClone(result);
 }

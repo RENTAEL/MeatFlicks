@@ -3,9 +3,9 @@ import type { RequestHandler } from './$types';
 import { touchPresence, readDisconnectSignal, leavePresence } from '$lib/server/presence';
 import { errorHandler, UnauthorizedError } from '$lib/server';
 
-const PING_MS = 15000;
-const SIGNAL_POLL_MS = 10000;
-const MAX_LIFETIME_MS = 50000;
+const PING_MS = 30000;
+const SIGNAL_POLL_MS = 30000;
+const MAX_LIFETIME_MS = 30000;
 
 export const config = { maxDuration: 60, memory: 256 };
 
@@ -92,4 +92,3 @@ export const GET: RequestHandler = async ({ locals, request }) => {
 		return json(body, { status });
 	}
 };
-

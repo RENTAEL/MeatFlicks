@@ -30,8 +30,6 @@
 		const sid = getSessionId();
 		if (!sid) return;
 
-		let es: EventSource | null = null;
-
 		const ping = () => {
 			// Hidden tabs aren't really "online" — no heartbeat, no stream.
 			if (document.hidden) return;
@@ -48,45 +46,15 @@
 			}).catch(() => {});
 		};
 
-		const openStream = () => {
-			if (es || document.hidden) return;
-			es = new EventSource(`/api/presence/guest/stream?sid=${encodeURIComponent(sid)}`);
-			es.addEventListener('disconnect', (event) => {
-				const data = JSON.parse((event as MessageEvent).data) as { message?: string };
-				endMessage = data.message ?? 'Your session was ended.';
-				ended = true;
-				clearInterval(timer);
-				es?.close();
-				es = null;
-			});
-		};
-
-		const closeStream = () => {
-			es?.close();
-			es = null;
-		};
-
-		// Background tabs must drop their SSE connection — on Fluid Compute
-		// each open stream bills Active CPU for its whole lifetime, so an
-		// idle tab in the background is pure waste.
-		const onVisibility = () => {
-			if (document.hidden) {
-				closeStream();
-			} else {
-				ping();
-				openStream();
-			}
-		};
-		document.addEventListener('visibilitychange', onVisibility);
-
+		// Guests no longer hold an SSE connection — on Fluid Compute each open
+		// stream bills Active CPU for its whole lifetime, and anonymous traffic is
+		// the majority. They keep a lightweight heartbeat POST so admins still see
+		// guest activity, but no serverless function is held open per visitor.
 		ping();
-		const timer = setInterval(ping, 25000);
-		openStream();
+		const timer = setInterval(ping, 30000);
 
 		return () => {
 			clearInterval(timer);
-			document.removeEventListener('visibilitychange', onVisibility);
-			closeStream();
 		};
 	});
 </script>
