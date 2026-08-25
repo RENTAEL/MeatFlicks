@@ -43,7 +43,18 @@
 				headers: { 'Content-Type': 'application/json' },
 				body: JSON.stringify({ sessionId: sid, path, title, playing: getReportedPlayback() }),
 				keepalive: true
-			}).catch(() => {});
+			})
+				.then((r) => r.json())
+				.then((data: { ended?: boolean; message?: string }) => {
+					// Pull-based kick delivery (no SSE held open): the admin kick
+					// sets a signal the heartbeat reads and reports back here.
+					if (data?.ended) {
+						endMessage = data.message ?? 'Your session was ended by the admin.';
+						ended = true;
+						clearInterval(timer);
+					}
+				})
+				.catch(() => {});
 		};
 
 		// Guests no longer hold an SSE connection — on Fluid Compute each open
@@ -51,7 +62,7 @@
 		// the majority. They keep a lightweight heartbeat POST so admins still see
 		// guest activity, but no serverless function is held open per visitor.
 		ping();
-		const timer = setInterval(ping, 30000);
+		const timer = setInterval(ping, 60000);
 
 		return () => {
 			clearInterval(timer);
