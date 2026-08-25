@@ -41,6 +41,8 @@
 	let confirmKick = $state<string | null>(null);
 	let kicking = $state(false);
 	let kickError = $state('');
+	let kickNotice = $state<string | null>(null);
+	let kickNoticeTimer: ReturnType<typeof setTimeout> | null = null;
 
 	onMount(() => connectLiveSessions());
 
@@ -66,13 +68,21 @@
 				headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': token },
 				body: JSON.stringify({ userId })
 			});
-			const data = (await res.json()) as { ok: boolean; error?: string };
+			const data = (await res.json()) as { ok: boolean; error?: string; guest?: boolean };
 			if (!res.ok || !data.ok) {
 				kickError = data.error ?? 'Failed to end session';
 				return;
 			}
 			users = users.filter((u) => u.userId !== userId);
 			confirmKick = null;
+			// Guests are notified via a pull-based heartbeat (≤60s), not an
+			// instant SSE push — surface that so the delay isn't read as a
+			// broken button. Logged-in kicks are instant, so skip the note.
+			if (data.guest) {
+				kickNotice = 'Signal sent — guest will be notified within ~60s';
+				if (kickNoticeTimer) clearTimeout(kickNoticeTimer);
+				kickNoticeTimer = setTimeout(() => (kickNotice = null), 6000);
+			}
 		} catch {
 			kickError = 'Failed to end session';
 		} finally {
@@ -231,6 +241,9 @@
 			</ul>
 			{#if kickError}
 				<p class="apu-kick-error">{kickError}</p>
+			{/if}
+			{#if kickNotice}
+				<p class="apu-kick-notice">{kickNotice}</p>
 			{/if}
 		{/if}
 	</div>
@@ -593,6 +606,12 @@
 		margin: 0;
 		font-size: 0.75rem;
 		color: #f87171;
+	}
+
+	.apu-kick-notice {
+		margin: 0;
+		font-size: 0.75rem;
+		color: #4ade80;
 	}
 
 	.apu-spin {
