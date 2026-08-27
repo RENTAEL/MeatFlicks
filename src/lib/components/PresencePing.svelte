@@ -51,11 +51,14 @@
 	onMount(() => {
 		ping();
 		// 45s heartbeat + 90s prune window = one missed ping tolerated.
-		// No SSE: an open tab no longer keeps a serverless function (and its
-		// provisioned memory) alive on Fluid Compute.
+		// Heartbeat runs in the background too: it's a tiny POST (sub-second,
+		// negligible memory) and must NOT be visibility-gated or the server
+		// prunes the presence row after STALE_MS and the "who's online" list
+		// goes stale whenever a tab is backgrounded. Only the heavy SSE/polls
+		// are gated on visibility. No SSE is held open, so a tab costs nothing
+		// on Fluid Compute beyond the occasional heartbeat invocation.
 		const timer = setInterval(() => {
-			// Hidden tabs aren't online — skip the heartbeat entirely.
-			if (!document.hidden && !kicked) ping();
+			if (!kicked) ping();
 		}, 45000);
 
 		const onHide = () => {
