@@ -5,6 +5,10 @@ import { db } from '$lib/server/db';
 import { users } from '$lib/server/db/schema';
 import { errorHandler } from '$lib/server';
 
+// SSE that mostly idle-waits: 256MB keeps Fluid Provisioned Memory 4x lower
+// than the ~1GB default for this runtime.
+export const config = { maxDuration: 60, memory: 256 };
+
 export const GET: RequestHandler = async ({ locals, request }) => {
 	try {
 		requireAdmin(locals);

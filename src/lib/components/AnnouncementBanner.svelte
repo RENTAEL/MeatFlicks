@@ -73,7 +73,11 @@
 			}
 		};
 		void load();
-		const timer = setInterval(load, 60000);
+		const timer = setInterval(() => {
+			// Hidden tabs stop polling — the banner is invisible anyway and
+			// repeat hits are served from the CDN cache while visible.
+			if (!document.hidden) void load();
+		}, 60000);
 		return () => clearInterval(timer);
 	});
 </script>

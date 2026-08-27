@@ -31,7 +31,9 @@ export type PresenceSnapshotUser = PresenceUser & {
 	roomMemberSince: number | null;
 };
 
-const STALE_MS = 70_000;
+// 90s: tolerates one missed 45s heartbeat before the row is pruned, so the
+// admin live view doesn't flap on a single slow request.
+const STALE_MS = 90_000;
 
 async function prune() {
 	const cutoff = Date.now() - STALE_MS;

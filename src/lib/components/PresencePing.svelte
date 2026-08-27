@@ -23,13 +23,21 @@
 			try {
 				const token = await getCsrfTokenClient();
 				if (!token) return;
-				await fetch('/api/presence/heartbeat', {
+				const res = await fetch('/api/presence/heartbeat', {
 					method: 'POST',
 					headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': token },
 					body: JSON.stringify({ path, title, playing: getReportedPlayback() }),
 					credentials: 'include',
 					keepalive: true
 				});
+				if (!res.ok) return;
+				const data = (await res.json()) as { ended?: boolean; message?: string };
+				// Pull-based kick: the heartbeat response carries the admin
+				// disconnect signal, so no SSE connection is held open.
+				if (data?.ended) {
+					kickMessage = data.message ?? 'You got yeeted by the dev. Reconnect when you’re ready.';
+					kicked = true;
+				}
 			} catch {
 				// presence is best-effort
 			}
@@ -42,43 +50,14 @@
 
 	onMount(() => {
 		ping();
+		// 45s heartbeat + 90s prune window = one missed ping tolerated.
+		// No SSE: an open tab no longer keeps a serverless function (and its
+		// provisioned memory) alive on Fluid Compute.
 		const timer = setInterval(() => {
 			// Hidden tabs aren't online — skip the heartbeat entirely.
-			if (!document.hidden) ping();
-		}, 25000);
+			if (!document.hidden && !kicked) ping();
+		}, 45000);
 
-		let es: EventSource | null = null;
-		const openStream = () => {
-			if (es || kicked) return;
-			es = new EventSource('/api/presence/stream');
-			es.addEventListener('disconnect', (event) => {
-				const data = JSON.parse((event as MessageEvent).data) as { message?: string };
-				kickMessage = data.message ?? 'You got yeeted by the dev. Reconnect when you’re ready.';
-				kicked = true;
-				clearInterval(timer);
-				es?.close();
-				es = null;
-			});
-			es.onerror = () => {
-				// EventSource auto-reconnects; transient hiccups are fine.
-			};
-		};
-		const closeStream = () => {
-			es?.close();
-			es = null;
-		};
-		openStream();
-
-		const onVisibility = () => {
-			// Background tabs must drop their SSE connection — each open
-			// stream bills Active CPU for its whole lifetime on Fluid.
-			if (document.hidden) {
-				closeStream();
-			} else {
-				ping();
-				openStream();
-			}
-		};
 		const onHide = () => {
 			try {
 				navigator.sendBeacon('/api/presence/leave', new Blob(['1'], { type: 'text/plain' }));
@@ -86,12 +65,9 @@
 				// beacon not available — prune will clear us shortly
 			}
 		};
-		document.addEventListener('visibilitychange', onVisibility);
 		window.addEventListener('pagehide', onHide);
 		return () => {
 			clearInterval(timer);
-			closeStream();
-			document.removeEventListener('visibilitychange', onVisibility);
 			window.removeEventListener('pagehide', onHide);
 		};
 	});

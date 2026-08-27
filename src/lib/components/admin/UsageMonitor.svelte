@@ -42,11 +42,8 @@
 	let timer: ReturnType<typeof setInterval> | null = null;
 	let liveEs: EventSource | null = null;
 
-	onMount(() => {
-		installClientActivityMonitor();
-		reduced = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false;
-		void refresh();
-		// Live dashboard — server pushes every 20s; we don't poll.
+	function openLive() {
+		if (liveEs || document.hidden) return;
 		try {
 			const es = new EventSource('/api/admin/performance/live');
 			es.addEventListener('metrics', (e) => {
@@ -59,6 +56,26 @@
 			es.onerror = () => {};
 			liveEs = es;
 		} catch {}
+	}
+
+	function closeLive() {
+		liveEs?.close();
+		liveEs = null;
+	}
+
+	onMount(() => {
+		installClientActivityMonitor();
+		reduced = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false;
+		void refresh();
+		// Live dashboard — server pushes every 20s; we don't poll. The SSE is
+		// dropped whenever the tab is hidden so a backgrounded admin panel
+		// stops billing Provisioned Memory entirely.
+		openLive();
+		const onVisibility = () => {
+			if (document.hidden) closeLive();
+			else openLive();
+		};
+		document.addEventListener('visibilitychange', onVisibility);
 		// 24h/aggregate view — lazy 30s refresh while visible.
 		timer = setInterval(() => {
 			if (!document.hidden) {
@@ -68,7 +85,8 @@
 		}, 30_000);
 		return () => {
 			if (timer) clearInterval(timer);
-			if (liveEs) liveEs.close();
+			closeLive();
+			document.removeEventListener('visibilitychange', onVisibility);
 		};
 	});
 

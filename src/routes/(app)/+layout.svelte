@@ -77,7 +77,10 @@
 			} catch {}
 		};
 
-		const interval = setInterval(checkVersion, 60000);
+		const interval = setInterval(() => {
+			// Background tabs don't need version checks — zero cost when hidden.
+			if (!document.hidden) checkVersion();
+		}, 60000);
 		checkVersion();
 
 		return () => {
