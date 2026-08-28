@@ -11,3 +11,16 @@ export function isDesktopDevice(): boolean {
 	}
 	return true;
 }
+
+// Plain user-agent mobile detection (no libraries).
+// Covers Android, iPhone, iPod, iPad (incl. iPadOS 13+ which reports as Mac + Mobile).
+export function isMobileDevice(): boolean {
+	if (typeof navigator === 'undefined' || !navigator.userAgent) return false;
+	const ua = navigator.userAgent;
+	return (
+		/Android/i.test(ua) ||
+		/iPhone|iPod/i.test(ua) ||
+		/iPad/i.test(ua) ||
+		(/Macintosh/i.test(ua) && /Mobile/i.test(ua))
+	);
+}

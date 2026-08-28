@@ -1,13 +1,22 @@
 import { browser } from '$app/environment';
+import { isMobileDevice } from '$lib/utils/device';
 
 const VOLUME_KEY = 'streamium-player-volume';
 const MUTED_KEY = 'streamium-player-muted';
+const SERVER_PREF_KEY = 'streamium-server-pref'; // suffixed with -mobile / -desktop
 const DEFAULT_VOLUME = 100;
 
 class PlayerPreferences {
 	volume = $state(DEFAULT_VOLUME);
 	muted = $state(false);
+	serverPref = $state<string | null>(null);
 	private initialized = false;
+
+	private serverPrefKey(): string {
+		// Mobile and desktop preferences live under separate keys so a mobile
+		// default can never overwrite a desktop choice (and vice versa).
+		return `${SERVER_PREF_KEY}-${isMobileDevice() ? 'mobile' : 'desktop'}`;
+	}
 
 	init() {
 		if (this.initialized || !browser) return;
@@ -22,6 +31,7 @@ class PlayerPreferences {
 			}
 			const rawMuted = localStorage.getItem(MUTED_KEY);
 			if (rawMuted !== null) this.muted = rawMuted === '1';
+			this.serverPref = localStorage.getItem(this.serverPrefKey());
 		} catch {}
 	}
 
@@ -54,6 +64,17 @@ class PlayerPreferences {
 		if (browser) {
 			try {
 				localStorage.setItem(MUTED_KEY, this.muted ? '1' : '0');
+			} catch {}
+		}
+	}
+
+	// Persist the chosen streaming server, scoped to the current device type
+	// so mobile and desktop selections stay independent.
+	setServerPref(id: string) {
+		this.serverPref = id;
+		if (browser) {
+			try {
+				localStorage.setItem(this.serverPrefKey(), id);
 			} catch {}
 		}
 	}

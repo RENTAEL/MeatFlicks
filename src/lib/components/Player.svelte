@@ -3,6 +3,7 @@
 	import { browser } from '$app/environment';
 	import { Play } from '@lucide/svelte';
 	import { playerPreferences } from '$lib/state/stores/playerPreferences.svelte';
+	import { isMobileDevice } from '$lib/utils/device';
 	import { sendEmbedCommand, extractYoutubeId, loadYoutubeApi } from '$lib/utils/embedCommands';
 	import { soakEvent, soakUpdate } from '$lib/soak/soak';
 	import { reportPlayback } from '$lib/playback/reportPlayback';
@@ -46,7 +47,7 @@
 			| undefined,
 		onSyncState = undefined as
 			| ((state: { status: 'synced' | 'drifted' | 'syncing'; drift: number }) => void)
-			| undefined
+			| undefined,
 	}: {
 		tmdbId: number;
 		type?: 'movie' | 'tv';
@@ -100,13 +101,19 @@
 		vidsrc: { tracksPosition: false, playbackControl: 'best-effort' },
 		'2embed': { tracksPosition: false, playbackControl: 'best-effort' },
 		superembed: { tracksPosition: false, playbackControl: 'best-effort' },
-		youtube: { tracksPosition: true, playbackControl: 'full' }
+		youtube: { tracksPosition: true, playbackControl: 'full' },
 	};
 
 	let isScanning = $state(true);
 	let scanError = $state('');
 	let allProviders: ScanResult[] = $state([]);
 	let workingProviders: ScanResult[] = $derived(allProviders.filter((p) => p.status !== 'dead'));
+	// On mobile we collapse the server list down to AutoEmbed so users can't
+	// pick a broken server.
+	let mobileForceAutoEmbed = $derived(
+		isMobileDevice() && workingProviders.some((p) => p.id === 'autoembed'),
+	);
+	let visibleServerCount = $derived(mobileForceAutoEmbed ? 1 : workingProviders.length);
 	let currentIndex = $state(0);
 	let currentProvider = $derived(workingProviders[currentIndex]);
 
@@ -150,13 +157,13 @@
 		pendingVidlinkIndex = -1;
 	}
 	let canResumePosition = $derived(
-		TRACKING_CAPS[currentProvider?.id ?? '']?.tracksPosition ?? false
+		TRACKING_CAPS[currentProvider?.id ?? '']?.tracksPosition ?? false,
 	);
 	let hasFullPlaybackControl = $derived(currentProvider?.id === 'youtube');
 	let currentUrl = $derived(
 		type === 'tv' && currentProvider?.tvUrl
 			? currentProvider.tvUrl
-			: currentProvider?.movieUrl || ''
+			: currentProvider?.movieUrl || '',
 	);
 	let deadProviders = $derived(allProviders.filter((p) => p.status === 'dead'));
 	let iframeLoaded = $state(false);
@@ -181,7 +188,7 @@
 	let effectiveVolume = $derived(playerPreferences.muted ? 0 : playerPreferences.volume);
 
 	let nextUnavailable = $derived(
-		!!next && !!next.air_date && new Date(next.air_date).getTime() > Date.now()
+		!!next && !!next.air_date && new Date(next.air_date).getTime() > Date.now(),
 	);
 	let nextReady = $derived(!!next && !nextUnavailable);
 	let upNextThumb = $derived(
@@ -189,7 +196,7 @@
 			? `https://image.tmdb.org/t/p/w500${next.still_path}`
 			: backdrop
 				? `https://image.tmdb.org/t/p/w1280${backdrop}`
-				: ''
+				: '',
 	);
 
 	const AUTOPLAY_KEY = 'streamium-autoplay-next';
@@ -284,7 +291,7 @@
 			frameSrc = url.toString();
 			builtByUs = true;
 			console.info(
-				`[player] iframe src changed (build t=${Math.max(0, Math.round(req.position))} provider=${currentProvider?.id ?? 'none'})`
+				`[player] iframe src changed (build t=${Math.max(0, Math.round(req.position))} provider=${currentProvider?.id ?? 'none'})`,
 			);
 		} else if (readOnly && remoteSync && remoteAppliedSeq === -1 && !hasFullPlaybackControl) {
 			// Member joined with a host state before the first iframe ever
@@ -306,7 +313,7 @@
 			}
 			if (frameSrc !== base) {
 				console.info(
-					`[player] iframe src changed (base provider=${currentProvider?.id ?? 'none'})`
+					`[player] iframe src changed (base provider=${currentProvider?.id ?? 'none'})`,
 				);
 			}
 			frameSrc = base;
@@ -430,7 +437,7 @@
 		if (status.status !== lastSyncState.status) {
 			soakEvent(
 				'sync',
-				`${status.status}${status.status === 'drifted' ? ` drift=${status.drift}` : ''}`
+				`${status.status}${status.status === 'drifted' ? ` drift=${status.drift}` : ''}`,
 			);
 		}
 		lastSyncState = status;
@@ -459,7 +466,7 @@
 	// is how a host event is applied: exactly once per changed event.
 	function requestBuild(position: number, playing: boolean, reason = 'unspecified') {
 		console.info(
-			`[player] iframe reload reason=${reason} t=${Math.max(0, Math.round(position))} playing=${playing} provider=${currentProvider?.id ?? 'none'}`
+			`[player] iframe reload reason=${reason} t=${Math.max(0, Math.round(position))} playing=${playing} provider=${currentProvider?.id ?? 'none'}`,
 		);
 		const now = Date.now();
 		lastBuilt = {
@@ -467,7 +474,7 @@
 			position,
 			playing,
 			providerId: currentProvider?.id ?? null,
-			at: now
+			at: now,
 		};
 		hasStartedPlayback = false;
 		embedEvent = null;
@@ -479,7 +486,7 @@
 		setSyncState({ status: 'syncing', drift: 0 });
 		soakEvent(
 			'build',
-			`t=${Math.max(0, Math.round(position))} playing=${playing} provider=${currentProvider?.id ?? 'none'}`
+			`t=${Math.max(0, Math.round(position))} playing=${playing} provider=${currentProvider?.id ?? 'none'}`,
 		);
 		buildRequest = { position, playing };
 		frameBump++;
@@ -513,7 +520,7 @@
 			if (switchToProviderId(rs.provider.id)) {
 				soakEvent(
 					'apply',
-					`seq=${rs.seq} action=source-switch target=${target.toFixed(1)} playing=${rs.playing}`
+					`seq=${rs.seq} action=source-switch target=${target.toFixed(1)} playing=${rs.playing}`,
 				);
 				requestBuild(target, rs.playing, 'host-source-switch');
 			}
@@ -532,7 +539,7 @@
 				ytPlayer.seekTo(target, true);
 				soakEvent(
 					'apply',
-					`seq=${rs.seq} action=seek target=${target.toFixed(1)} gap=${(target - cur).toFixed(1)}`
+					`seq=${rs.seq} action=seek target=${target.toFixed(1)} gap=${(target - cur).toFixed(1)}`,
 				);
 			}
 			if (rs.playing !== playing) {
@@ -589,7 +596,7 @@
 						: 'position';
 			soakEvent(
 				'apply',
-				`seq=${rs.seq} action=${action} target=${target.toFixed(1)} cur=${cur.toFixed(1)} gap=${(target - cur).toFixed(1)} playing=${rs.playing}`
+				`seq=${rs.seq} action=${action} target=${target.toFixed(1)} cur=${cur.toFixed(1)} gap=${(target - cur).toFixed(1)} playing=${rs.playing}`,
 			);
 			requestBuild(target, rs.playing, `host-${action}`);
 			markSyncApplied(rs);
@@ -607,7 +614,7 @@
 				seq: rs.seq,
 				playing: rs.playing,
 				position: rs.position,
-				provider: currentProvider?.id ?? null
+				provider: currentProvider?.id ?? null,
 			};
 		} catch {
 			// instrumentation only
@@ -669,7 +676,7 @@
 				provider: currentProvider?.id ?? null,
 				iframeLoaded: true,
 				seq: latestRemote?.seq ?? 0,
-				lastAction: ''
+				lastAction: '',
 			});
 			onPlaybackChange?.({ playing, position: pos, provider: currentProviderInfo() });
 		}, 8000);
@@ -701,13 +708,13 @@
 				// handled by the prompt, not more rebuilds.
 				soakEvent(
 					'drift',
-					`check target=${target.toFixed(1)} current=${current.toFixed(1)} gap=${gap.toFixed(1)} -> correct`
+					`check target=${target.toFixed(1)} current=${current.toFixed(1)} gap=${gap.toFixed(1)} -> correct`,
 				);
 				applyHostState(rs);
 			} else {
 				soakEvent(
 					'drift',
-					`check target=${target.toFixed(1)} current=${current.toFixed(1)} gap=${gap.toFixed(1)} -> tolerated`
+					`check target=${target.toFixed(1)} current=${current.toFixed(1)} gap=${gap.toFixed(1)} -> tolerated`,
 				);
 			}
 			soakUpdate({
@@ -719,7 +726,7 @@
 				provider: currentProvider?.id ?? null,
 				iframeLoaded: true,
 				seq: rs.seq,
-				lastAction: Math.abs(gap) > SYNC_GAP_S ? 'correct' : 'tolerated'
+				lastAction: Math.abs(gap) > SYNC_GAP_S ? 'correct' : 'tolerated',
 			});
 			maybeShowTapPrompt();
 		}, 5000);
@@ -795,7 +802,7 @@
 		return new Date(iso).toLocaleDateString('en-US', {
 			month: 'short',
 			day: 'numeric',
-			year: 'numeric'
+			year: 'numeric',
 		});
 	}
 
@@ -897,7 +904,7 @@
 			onPlaybackChange?.({
 				playing: !playing,
 				position: ytPlayer.getCurrentTime?.() ?? elapsedSeconds,
-				provider: currentProviderInfo()
+				provider: currentProviderInfo(),
 			});
 		} else {
 			playing = !playing;
@@ -1043,8 +1050,8 @@
 						},
 						onError: () => {
 							onIframeError();
-						}
-					}
+						},
+					},
 				});
 			})
 			.catch(() => {
@@ -1078,8 +1085,8 @@
 					name: 'YouTube',
 					movieUrl: preResolvedSource,
 					tvUrl: null,
-					status: 'working'
-				}
+					status: 'working',
+				},
 			];
 			currentIndex = 0;
 			isScanning = false;
@@ -1103,7 +1110,7 @@
 				tmdbId: tmdbId.toString(),
 				type: type,
 				season: season.toString(),
-				episode: episode.toString()
+				episode: episode.toString(),
 			});
 			if (imdbId) params.set('imdbId', imdbId);
 			const res = await fetch(`/api/providers/scan?${params}`);
@@ -1117,7 +1124,20 @@
 				return;
 			}
 
-			currentIndex = 0;
+			// Default server selection.
+			playerPreferences.init();
+			if (isMobileDevice() && !readOnly) {
+				// Mobile: prefer AutoEmbed and collapse the rest so users can't
+				// pick a broken server. This never touches the desktop preference.
+				const autoEmbedIdx = workingProviders.findIndex((p) => p.id === 'autoembed');
+				currentIndex = autoEmbedIdx !== -1 ? autoEmbedIdx : 0;
+			} else {
+				// Desktop: honor a saved preference, else keep existing behavior
+				// (first working server).
+				const savedId = playerPreferences.serverPref;
+				const savedIdx = savedId ? workingProviders.findIndex((p) => p.id === savedId) : -1;
+				currentIndex = savedIdx !== -1 ? savedIdx : 0;
+			}
 			startAutoSwitch();
 		} catch (e: any) {
 			scanError = e.message || 'Scan failed';
@@ -1142,7 +1162,7 @@
 			},
 			// 9s — mobile networks routinely take longer than 4s to load an
 			// embed; switching too early churns providers and kills playback.
-			9000
+			9000,
 		);
 	}
 
@@ -1157,7 +1177,7 @@
 		stopAutoSwitch();
 		soakEvent(
 			'provider',
-			`switch->${workingProviders[index]?.id ?? index} iframeLoaded=${iframeLoaded}`
+			`switch->${workingProviders[index]?.id ?? index} iframeLoaded=${iframeLoaded}`,
 		);
 		iframeLoaded = false;
 		hasError = false;
@@ -1188,7 +1208,7 @@
 		return {
 			destroy() {
 				console.warn('[player] iframe destroyed');
-			}
+			},
 		};
 	}
 
@@ -1200,7 +1220,7 @@
 		lastFrameLoadAt = Date.now();
 		soakEvent(
 			'iframe',
-			`loaded provider=${currentProvider?.id ?? 'none'} builtFromReload=${builtByUs}`
+			`loaded provider=${currentProvider?.id ?? 'none'} builtFromReload=${builtByUs}`,
 		);
 		soakUpdate({ iframeLoaded: true });
 		stopAutoSwitch();
@@ -1236,11 +1256,11 @@
 		// "randomly stops at 10-11s".
 		const hadPlayback = hasStartedPlayback;
 		console.warn(
-			`[player] iframe error provider=${currentProvider?.id ?? 'none'} hadPlayback=${hadPlayback} — verifying against embed silence`
+			`[player] iframe error provider=${currentProvider?.id ?? 'none'} hadPlayback=${hadPlayback} — verifying against embed silence`,
 		);
 		soakEvent(
 			'iframe-error',
-			`provider=${currentProvider?.id ?? 'none'} hadPlayback=${hadPlayback}`
+			`provider=${currentProvider?.id ?? 'none'} hadPlayback=${hadPlayback}`,
 		);
 		loadedProviders.delete(currentProvider?.id || '');
 		if (hadPlayback) {
@@ -1480,9 +1500,7 @@
 		</div>
 		<div class="provider-bar-right">
 			{#if workingProviders.length > 0}
-				<span class="count"
-					>{workingProviders.length} server{workingProviders.length !== 1 ? 's' : ''}</span
-				>
+				<span class="count">{visibleServerCount} server{visibleServerCount !== 1 ? 's' : ''}</span>
 				{#if next}
 					<button
 						class="next-btn"
@@ -1543,8 +1561,15 @@
 					>&times;</button
 				>
 			</div>
+			{#if isMobileDevice()}
+				<p
+					style="margin:0;padding:8px 14px;font-size:12px;color:#a1a1aa;background:#0c0c0e;border-bottom:1px solid #1f1f23;"
+				>
+					Tip: open in a private tab to block ads.
+				</p>
+			{/if}
 			<div class="server-list-body">
-				{#each allProviders as p, i}
+				{#each mobileForceAutoEmbed ? allProviders.filter((x) => x.id === 'autoembed') : allProviders as p, i}
 					{@const isWorking = p.status !== 'dead'}
 					{@const isLoaded = loadedProviders.has(p.id)}
 					{@const isCurrent = workingProviders.indexOf(p) === currentIndex && isWorking}
@@ -1553,6 +1578,7 @@
 							onclick={() => {
 								const idx = workingProviders.indexOf(p);
 								if (idx >= 0) {
+									playerPreferences.setServerPref(p.id);
 									showServerList = false;
 									if (!maybeWarnVidlink(idx)) switchTo(idx);
 								}
@@ -1577,7 +1603,7 @@
 					{/if}
 				{/each}
 
-				{#if deadProviders.length > 0}
+				{#if deadProviders.length > 0 && !mobileForceAutoEmbed}
 					<div class="dead-section">
 						<button
 							onclick={(e) => {
