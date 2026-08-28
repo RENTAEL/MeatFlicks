@@ -91,9 +91,14 @@
 	let userList = $state<UserEntry[]>([]);
 	let userError = $state<string | null>(null);
 
-	// Real-time user list - reconnect when admin status changes
+	// Real-time user list. Only connect while the switcher UI is actually
+	// visible (desktop panel open, or mobile menu open). This is already
+	// admin-only — isAdmin is false for regular users, so they never open a
+	// connection. Connecting only when needed avoids an SSE sitting open on
+	// every page and the console error spam from the endpoint's ~55s
+	// server-side timeout + EventSource auto-reconnect.
 	$effect(() => {
-		if (!isAdmin) return;
+		if (!isAdmin || (!open && !$menuOpen)) return;
 		const es = new EventSource('/api/admin/users/stream');
 		es.addEventListener('users', (event) => {
 			const data = JSON.parse((event as MessageEvent).data) as {
@@ -103,9 +108,10 @@
 			};
 			userList = data.users;
 		});
-		es.addEventListener('error', (event) => {
+		es.addEventListener('error', () => {
 			userError = 'Failed to load user list';
-			console.error('[PreviewSwitcher] user stream error:', event);
+			// EventSource fires 'error' on normal close/reconnect too; only surface it in dev.
+			if (import.meta.env.DEV) console.warn('[PreviewSwitcher] user stream error (reconnecting)');
 		});
 		es.onopen = () => (connected = true);
 		es.onerror = () => {

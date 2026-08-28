@@ -135,6 +135,10 @@ export function initAdBlocker() {
 	} else {
 		cleanExisting();
 	}
-	setInterval(cleanExisting, 15000);
+	// Only poll on production. In dev / a Vercel Sandbox this 15s interval is
+	// pure waste (client CPU + egress), so skip it outside prod builds.
+	if (import.meta.env.PROD) {
+		setInterval(cleanExisting, 15000);
+	}
 	debug('[AdBlocker] Active');
 }

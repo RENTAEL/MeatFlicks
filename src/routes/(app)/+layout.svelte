@@ -29,6 +29,7 @@
 	import UblockPopup from '$lib/components/UblockPopup.svelte';
 	import AdblockerIntroPopup from '$lib/components/AdblockerIntroPopup.svelte';
 	import MobileBrowserPopup from '$lib/components/MobileBrowserPopup.svelte';
+	import PrivateTabModal from '$lib/components/PrivateTabModal.svelte';
 	import UserFab from '$lib/components/UserFab.svelte';
 	import DeveloperBadge from '$lib/components/DeveloperBadge.svelte';
 
@@ -62,31 +63,38 @@
 		})();
 		const cleanup = setupCloudSync();
 
-		const checkVersion = async () => {
-			try {
-				const res = await fetch('/_app/version.json', { cache: 'no-cache' });
-				if (res.ok) {
-					const { version } = await res.json();
-					const current = localStorage.getItem('app-version');
-					if (current && current !== version) {
-						localStorage.removeItem('app-version');
-						window.location.reload();
+		// Version check: detect a new deployment and reload. Runs once on load
+		// and whenever the tab becomes visible again (e.g. after a deploy) —
+		// no continuous polling. Skipped in dev, where /_app/version.json
+		// doesn't exist (avoids a 404 in the console on every tick).
+		if (!import.meta.env.DEV) {
+			const checkVersion = async () => {
+				try {
+					const res = await fetch('/_app/version.json', { cache: 'no-cache' });
+					if (res.ok) {
+						const { version } = await res.json();
+						const current = localStorage.getItem('app-version');
+						if (current && current !== version) {
+							localStorage.removeItem('app-version');
+							window.location.reload();
+						}
+						localStorage.setItem('app-version', version);
 					}
-					localStorage.setItem('app-version', version);
-				}
-			} catch {}
-		};
+				} catch {}
+			};
 
-		const interval = setInterval(() => {
-			// Background tabs don't need version checks — zero cost when hidden.
-			if (!document.hidden) checkVersion();
-		}, 60000);
-		checkVersion();
+			checkVersion();
+			const onVisible = () => {
+				if (!document.hidden) checkVersion();
+			};
+			document.addEventListener('visibilitychange', onVisible);
+			return () => {
+				document.removeEventListener('visibilitychange', onVisible);
+				cleanup();
+			};
+		}
 
-		return () => {
-			clearInterval(interval);
-			cleanup();
-		};
+		return () => cleanup();
 	});
 </script>
 
@@ -177,6 +185,8 @@
 <AdblockerIntroPopup isLoggedIn={!!$page.data?.user} />
 
 <MobileBrowserPopup />
+
+<PrivateTabModal />
 
 <PreviewPopout />
 

@@ -19,8 +19,13 @@ export default defineConfig({
 		}
 	},
 	server: {
+		// Bind to all interfaces + fixed port so a Vercel Sandbox (or any remote
+		// dev host) can route traffic to the dev server.
+		host: true,
+		port: 3000,
 		watch: {
-			ignored: ['data/**', 'drizzle/**']
+			// Skip churn on generated/ignored dirs to keep the dev server lean.
+			ignored: ['data/**', 'drizzle/**', 'node_modules/**', '.git/**', '.svelte-kit/**']
 		}
 	},
 	ssr: {
