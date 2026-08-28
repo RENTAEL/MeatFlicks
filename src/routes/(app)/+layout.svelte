@@ -428,7 +428,7 @@
 	.menu-backdrop {
 		position: fixed;
 		inset: 0;
-		z-index: 80;
+		z-index: 101;
 		background: rgba(0, 0, 0, 0.6);
 		backdrop-filter: blur(2px);
 		-webkit-backdrop-filter: blur(2px);
@@ -441,7 +441,7 @@
 		bottom: 0;
 		width: 280px;
 		max-width: 85vw;
-		z-index: 81;
+		z-index: 102;
 		background: #0c0c0e;
 		border-right: 1px solid rgba(255, 255, 255, 0.06);
 		display: flex;
