@@ -27,12 +27,6 @@
 	let scanError = $state('');
 	let allProviders: ScanResult[] = $state([]);
 	let workingProviders: ScanResult[] = $derived(allProviders.filter((p) => p.status !== 'dead'));
-	// On mobile we collapse the server list down to AutoEmbed so users can't
-	// pick a broken server.
-	let mobileForceAutoEmbed = $derived(
-		isMobileDevice() && workingProviders.some((p) => p.id === 'autoembed'),
-	);
-	let visibleServerCount = $derived(mobileForceAutoEmbed ? 1 : workingProviders.length);
 	let currentIndex = $state(0);
 	let currentProvider = $derived(workingProviders[currentIndex]);
 	let currentUrl = $derived(currentProvider?.tvUrl || currentProvider?.movieUrl || '');
@@ -62,6 +56,13 @@
 			if (!res.ok) throw new Error('Scan failed');
 			const data = await res.json();
 			allProviders = data.all || [];
+
+			// On mobile, float AutoEmbed to the top so it's the default server,
+			// while keeping every other provider selectable.
+			if (isMobileDevice()) {
+				const ae = allProviders.find((p) => p.id === 'autoembed');
+				if (ae) allProviders = [ae, ...allProviders.filter((p) => p.id !== 'autoembed')];
+			}
 
 			if (workingProviders.length === 0) {
 				scanError = 'No working providers found';
@@ -228,7 +229,9 @@
 		</div>
 		<div class="provider-bar-right">
 			{#if workingProviders.length > 0}
-				<span class="count">{visibleServerCount} server{visibleServerCount !== 1 ? 's' : ''}</span>
+				<span class="count"
+					>{workingProviders.length} server{workingProviders.length !== 1 ? 's' : ''}</span
+				>
 				<button
 					onclick={() => (showServerList = !showServerList)}
 					class="switch-btn"
@@ -267,7 +270,7 @@
 				</p>
 			{/if}
 			<div class="server-list-body">
-				{#each mobileForceAutoEmbed ? allProviders.filter((x) => x.id === 'autoembed') : allProviders as p, i}
+				{#each allProviders as p, i}
 					{@const isWorking = p.status !== 'dead'}
 					{@const isLoaded = loadedProviders.has(p.id)}
 					{@const isCurrent = workingProviders.indexOf(p) === currentIndex && isWorking}
@@ -301,7 +304,7 @@
 					{/if}
 				{/each}
 
-				{#if deadProviders.length > 0 && !mobileForceAutoEmbed}
+				{#if deadProviders.length > 0}
 					<div class="dead-section">
 						<button
 							onclick={(e) => {
