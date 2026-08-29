@@ -306,9 +306,9 @@
 
 	.sheet-btn-primary {
 		flex: 1;
-		background: var(--gradient-brand);
+		background: #991b1b;
 		color: white;
-		box-shadow: 0 4px 20px var(--accent-glow);
+		box-shadow: 0 4px 20px rgba(153, 27, 27, 0.45);
 	}
 
 	.sheet-btn-primary:active {

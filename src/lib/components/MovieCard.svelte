@@ -130,13 +130,13 @@
 		width: 48px;
 		height: 48px;
 		border-radius: 50%;
-		background: var(--gradient-brand);
+		background: #991b1b;
 		display: flex;
 		align-items: center;
 		justify-content: center;
 		font-size: 1.2rem;
 		color: white;
-		box-shadow: var(--shadow-glow);
+		box-shadow: 0 6px 20px rgba(153, 27, 27, 0.45);
 		transition: transform var(--transition-spring);
 	}
 
