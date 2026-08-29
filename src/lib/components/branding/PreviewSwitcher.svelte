@@ -4,7 +4,7 @@
 	import { fly, fade } from 'svelte/transition';
 	import { authStore } from '$lib/state/stores/authStore.svelte.ts';
 	import { menuOpen } from '$lib/stores/menu';
-	import { getBranding, isAdminUser } from '$lib/utils/branding';
+	import { getBranding } from '$lib/utils/branding';
 	import type { BrandingType, PreviewBranding } from '$lib/utils/branding';
 	import { previewStore } from '$lib/state/stores/previewStore.svelte.ts';
 	import { impersonationStore } from '$lib/state/stores/impersonationStore.svelte.ts';
@@ -14,12 +14,10 @@
 
 	const sessionUser = $derived(page.data.user ?? null);
 	const firebaseUser = $derived(authStore.state.user);
-	const isAdmin = $derived(
-		isAdminUser(firebaseUser) ||
-			(sessionUser
-				? isAdminUser({ displayName: sessionUser.username, email: sessionUser.email })
-				: false)
-	);
+	// Admin check uses the authoritative server-provided role (page.data.user.role),
+	// not the fragile username/email heuristic. This ensures the eye is visible only
+	// to the real admin session and never to the account being viewed (e.g. Sune).
+	const isAdmin = $derived(sessionUser?.role === 'ADMIN');
 
 	const preview = $derived(previewStore.current);
 	const impersonated = $derived(impersonationStore.current);
