@@ -62,6 +62,7 @@ function createThemeStore() {
 		if (brandPreview === 'sofia') return SOFIA_THEME;
 		if (brandPreview === 'demon_slayer') return DEMON_SLAYER_THEME;
 		if (brandPreview === 'midnight_neon') return MIDNIGHT_NEON_THEME;
+		if (brandPreview === 'sune') return SUNE_THEME;
 		return choice ?? brandDefault;
 	};
 

@@ -63,6 +63,8 @@
 			themeStore.setBrandTheme('demon_slayer', true);
 		} else if (branding === 'midnight_neon' || previewBranding === 'midnight_neon') {
 			themeStore.setBrandTheme('midnight_neon', true);
+		} else if (branding === 'sune' || previewBranding === 'sune') {
+			themeStore.setBrandTheme('sune', true);
 		} else {
 			themeStore.setBrandTheme(branding);
 		}
