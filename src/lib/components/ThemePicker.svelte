@@ -2,10 +2,12 @@
   import { themeStore } from '$lib/stores/theme';
   import { themes, type ThemeId } from '$lib/themes';
 
-  const allThemes = Object.entries(themes).map(([id, t]) => ({
-    id: id as ThemeId,
-    ...t,
-  }));
+  const allThemes = Object.entries(themes)
+    .filter(([, t]) => !t.hidden)
+    .map(([id, t]) => ({
+      id: id as ThemeId,
+      ...t,
+    }));
 
   let previewTheme = $state<ThemeId | null>(null);
 

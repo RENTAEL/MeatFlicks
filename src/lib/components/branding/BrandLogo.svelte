@@ -9,6 +9,7 @@
 	import MidnightLogo from './MidnightLogo.svelte';
 	import SofiaLogo from './SofiaLogo.svelte';
 	import DemonSlayerEye from './DemonSlayerEye.svelte';
+	import SuneRoseLogo from './SuneRoseLogo.svelte';
 	import { isUser2, getRandomFunFact } from '$lib/experiments/user2';
 
 	let { size = 'md', class: className = '' }: { size?: 'sm' | 'md' | 'lg'; class?: string } =
@@ -123,6 +124,17 @@
 		<MidnightLogo {size} />
 		<span class="logo-text logo-text-neon">user2</span>
 	</a>
+{:else if branding === 'sune'}
+	<a
+		href="/"
+		class="logo {className}"
+		title="Sune"
+		aria-label="Sune Home"
+		onclick={handleLogoClick}
+	>
+		<SuneRoseLogo {size} />
+		<span class="logo-text logo-text-sune">Sune</span>
+	</a>
 {:else}
 	<a
 		href="/"
@@ -203,6 +215,15 @@
 		background-clip: text;
 		letter-spacing: -0.03em;
 		text-shadow: 0 0 12px rgba(255, 59, 48, 0.35);
+	}
+
+	.logo-text-sune {
+		background: linear-gradient(90deg, #e7c663, #d4af37, #b3243a);
+		-webkit-background-clip: text;
+		-webkit-text-fill-color: transparent;
+		background-clip: text;
+		letter-spacing: 0.01em;
+		text-shadow: 0 0 14px rgba(212, 175, 55, 0.28);
 	}
 
 	.logo-neon {

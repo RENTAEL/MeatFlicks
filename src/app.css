@@ -1252,8 +1252,9 @@ textarea {
 
 /* ═══════════════════════════════════════════
    SUNE — dark regal / "Rose Court" immersive skin
-   Applies only within [data-theme='sune'] (Sune's profile subtree).
-   Scoped on purpose: it must NOT restyle the whole app.
+   Applies app-wide whenever the active account is Sune (Sune signed in, or an
+   admin viewing as Sune). data-theme="sune" is set on <html> by the theme store
+   for the Sune brand only — other accounts are never affected.
    ═══════════════════════════════════════════ */
 [data-theme='sune'] {
 	/* Recast the shared accent tokens in gold + burgundy for the Sune subtree */

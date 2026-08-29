@@ -8,6 +8,7 @@ import {
 	SOFIA_THEME,
 	DEMON_SLAYER_THEME,
 	MIDNIGHT_NEON_THEME,
+	SUNE_THEME,
 	shade,
 	alpha,
 	type ThemeColors,
@@ -111,6 +112,7 @@ function createThemeStore() {
 			if (brand === 'sofia') nextDefault = SOFIA_THEME;
 			else if (brand === 'demon_slayer') nextDefault = DEMON_SLAYER_THEME;
 			else if (brand === 'midnight_neon') nextDefault = MIDNIGHT_NEON_THEME;
+			else if (brand === 'sune') nextDefault = SUNE_THEME;
 			if (nextPreview === brandPreview && nextDefault === brandDefault) return;
 			brandPreview = nextPreview;
 			brandDefault = nextDefault;

@@ -10,6 +10,7 @@
 	import { impersonationStore } from '$lib/state/stores/impersonationStore.svelte.ts';
 	import DemonSlayerEye from '$lib/components/branding/DemonSlayerEye.svelte';
 	import SuneTheme from '$lib/components/branding/SuneTheme.svelte';
+	import SuneRoseLogo from '$lib/components/branding/SuneRoseLogo.svelte';
 	import { page as pageState } from '$app/state';
 	import { isUser2 } from '$lib/experiments/user2';
 	import TimeSinceJoined from '$lib/experiments/user2/TimeSinceJoined.svelte';
@@ -109,17 +110,18 @@
 	}
 </script>
 
-<SEOHead title="Profile — Streamium" description="Manage your Streamium profile" noindex />
+<SEOHead title={isSune ? 'Sune' : 'Profile — Streamium'} description="Manage your Streamium profile" noindex />
 
 <svelte:head>
-	<title>Profile | Streamium</title>
+	{#if isSune}<title>Sune</title>{:else}<title>Profile | Streamium</title>{/if}
 	<meta
 		name="description"
 		content="Manage your Streamium account, preferences, and viewing stats."
 	/>
 	<meta property="og:title" content="Profile — Streamium" />
 	<meta property="og:type" content="website" />
-	{#if isSune}
+		{#if isSune}
+		<link rel="icon" href="/personal/sune-rose.svg" />
 		<link rel="preconnect" href="https://fonts.googleapis.com" />
 		<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="" />
 		<link
@@ -156,7 +158,7 @@
 				<DemonSlayerEye size="lg" />
 			</div>
 		{:else if isSune}
-			<img class="avatar-sune" src="/personal/sune-roses.jpg" alt={profile.username} />
+			<div class="avatar-sune"><SuneRoseLogo size="lg" /></div>
 		{:else}
 			<div class="avatar-circle">{profile.username.charAt(0).toUpperCase()}</div>
 		{/if}
@@ -622,13 +624,22 @@
 		width: 84px;
 		height: 84px;
 		border-radius: 50%;
-		object-fit: cover;
-		object-position: center 30%;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		padding: 14px;
+		box-sizing: border-box;
+		background: radial-gradient(circle at 35% 30%, #2a1620 0%, #140d12 100%);
 		border: 2px solid rgba(212, 175, 55, 0.55);
 		box-shadow:
 			0 0 14px rgba(212, 175, 55, 0.35),
 			0 0 28px rgba(139, 21, 42, 0.18);
 		flex-shrink: 0;
+	}
+
+	.avatar-sune :global(svg) {
+		width: 100%;
+		height: 100%;
 	}
 
 	.profile-info {

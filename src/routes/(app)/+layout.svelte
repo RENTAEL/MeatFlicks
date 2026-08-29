@@ -126,6 +126,11 @@
 	<div class="demon-slayer-bg-overlay"></div>
 </div>
 
+<!-- Sune custom background for the Rose Court — gated to sune theme -->
+<div class="sune-bg" class:ambient-frozen={videoLive} aria-hidden="true">
+	<div class="sune-bg-overlay"></div>
+</div>
+
 <ModeWatcher defaultMode="dark" themeColors={{ dark: '#0a0a1a', light: '#0a0a1a' }} />
 <ThemeContext>
 	<WatchlistContext>
@@ -414,6 +419,85 @@
 		box-shadow:
 			0 8px 24px rgba(0, 0, 0, 0.38),
 			0 0 0 1px rgba(255, 26, 26, 0.07);
+	}
+
+	/* Sune — Rose Court full-bleed background, only when data-theme='sune' (Sune account) */
+	.sune-bg {
+		position: fixed;
+		inset: 0;
+		z-index: -1;
+		pointer-events: none;
+		background-image: url('/personal/sune-roses.jpg');
+		background-size: cover;
+		background-position: center 42%;
+		background-repeat: no-repeat;
+		image-rendering: -webkit-optimize-contrast;
+		image-rendering: high-quality;
+		opacity: 0;
+		transition: opacity 0.6s ease;
+		will-change: opacity;
+		filter: brightness(0.92) saturate(1.04) contrast(1.02);
+	}
+
+	:global([data-theme='sune']) .sune-bg {
+		opacity: 1;
+	}
+
+	.sune-bg-overlay {
+		position: absolute;
+		inset: 0;
+		background:
+			radial-gradient(
+				ellipse 96% 82% at 50% 36%,
+				rgba(255, 255, 255, 0) 0%,
+				rgba(255, 255, 255, 0) 52%,
+				rgba(8, 6, 9, 0.28) 78%,
+				rgba(8, 6, 9, 0.72) 100%
+			),
+			linear-gradient(
+				180deg,
+				rgba(8, 6, 9, 0.28) 0%,
+				rgba(8, 6, 9, 0.14) 28%,
+				rgba(8, 6, 9, 0.46) 68%,
+				rgba(8, 6, 9, 0.84) 100%
+			),
+			radial-gradient(ellipse 92% 54% at 50% 6%, rgba(212, 175, 55, 0.06) 0%, transparent 60%),
+			radial-gradient(ellipse 70% 44% at 86% 94%, rgba(142, 29, 46, 0.08) 0%, transparent 58%);
+	}
+
+	:global([data-theme='sune'] .glass),
+	:global([data-theme='sune'] .bg-card) {
+		background: rgba(20, 13, 18, 0.8) !important;
+		backdrop-filter: blur(12px) saturate(1.05);
+		-webkit-backdrop-filter: blur(12px) saturate(1.05);
+		border-color: rgba(212, 175, 55, 0.18) !important;
+		box-shadow:
+			0 8px 24px rgba(0, 0, 0, 0.4),
+			0 0 0 1px rgba(212, 175, 55, 0.08);
+	}
+
+	:global([data-theme='sune']) .header {
+		border-bottom-color: rgba(212, 175, 55, 0.2) !important;
+		box-shadow: 0 0 24px rgba(212, 175, 55, 0.05);
+	}
+
+	@media (max-width: 768px) {
+		.sune-bg {
+			background-position: center 30%;
+			filter: brightness(0.96) saturate(1.05) contrast(1.02);
+		}
+		.sune-bg-overlay {
+			background:
+				radial-gradient(
+					ellipse 120% 70% at 50% 26%,
+					rgba(255, 255, 255, 0) 0%,
+					rgba(255, 255, 255, 0) 46%,
+					rgba(8, 6, 9, 0.34) 76%,
+					rgba(8, 6, 9, 0.82) 100%
+				),
+				linear-gradient(180deg, rgba(8, 6, 9, 0.32) 0%, rgba(8, 6, 9, 0.6) 100%),
+				radial-gradient(ellipse 90% 40% at 50% 4%, rgba(212, 175, 55, 0.07) 0%, transparent 60%);
+		}
 	}
 
 	@media (max-width: 768px) {

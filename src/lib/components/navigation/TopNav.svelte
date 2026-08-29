@@ -8,6 +8,7 @@
 	import ThemeToggle from '$lib/themes/ThemeToggle.svelte';
 	import BrandLogo from '$lib/components/branding/BrandLogo.svelte';
 	import PreviewSwitcher from '$lib/components/branding/PreviewSwitcher.svelte';
+	import SuneViewAsEye from '$lib/components/branding/SuneViewAsEye.svelte';
 	import { getScrollY, addScrollListener } from '$lib/utils/scrollPosition';
 	import { WATCH_PARTY_ENABLED } from '$lib/config/watchParty';
 
@@ -83,6 +84,7 @@
 						<div class="avatar-sm">{(page.data.user.username || '?').charAt(0).toUpperCase()}</div>
 						<span class="username-label">{page.data.user.username}</span>
 					</a>
+					<SuneViewAsEye />
 					<PreviewSwitcher variant="desktop" />
 					{#if WATCH_PARTY_ENABLED}
 						<a href="/watch-party" class="wp-btn">

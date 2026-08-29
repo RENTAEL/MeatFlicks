@@ -15,7 +15,9 @@
 		<p class="sune-eyebrow">✦ The Rose Court ✦</p>
 		<h1 class="sune-title">{tagline}</h1>
 		<p class="sune-sub">{sub}</p>
-		<p class="sune-greeting">Welcome, {username}. The throne room is yours tonight.</p>
+		<p class="sune-greeting">
+			Welcome, {username.charAt(0).toUpperCase() + username.slice(1)}. The throne room is yours tonight.
+		</p>
 	</div>
 	<div class="sune-motif" aria-hidden="true">❦</div>
 </div>
@@ -37,12 +39,12 @@
 		position: absolute;
 		inset: 0;
 		background-image:
-			linear-gradient(180deg, rgba(8, 6, 9, 0.42) 0%, rgba(8, 6, 9, 0.74) 58%, rgba(8, 6, 9, 0.94) 100%),
-			linear-gradient(115deg, rgba(94, 14, 30, 0.55) 0%, rgba(8, 6, 9, 0.25) 55%, rgba(8, 6, 9, 0.1) 100%),
+			linear-gradient(180deg, rgba(8, 6, 9, 0.34) 0%, rgba(8, 6, 9, 0.64) 58%, rgba(8, 6, 9, 0.9) 100%),
+			linear-gradient(115deg, rgba(94, 14, 30, 0.5) 0%, rgba(8, 6, 9, 0.22) 55%, rgba(8, 6, 9, 0.08) 100%),
 			radial-gradient(ellipse 80% 60% at 82% 0%, rgba(212, 175, 55, 0.14) 0%, transparent 60%),
 			url('/personal/sune-roses.jpg');
 		background-size: cover;
-		background-position: center 38%;
+		background-position: center 42%;
 	}
 
 	.sune-banner-inner {

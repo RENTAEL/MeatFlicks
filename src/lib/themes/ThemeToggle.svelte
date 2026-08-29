@@ -5,7 +5,7 @@
   let currentTheme = $derived(themes[$themeStore]);
 
   function getNextTheme(current: ThemeId): ThemeId {
-    const keys = Object.keys(themes) as ThemeId[];
+    const keys = (Object.keys(themes) as ThemeId[]).filter((k) => !themes[k].hidden);
     const idx = keys.indexOf(current);
     return keys[(idx + 1) % keys.length];
   }

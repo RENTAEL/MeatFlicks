@@ -23,6 +23,7 @@ export interface ThemeColors {
 	success: string;
 	danger: string;
 	warning: string;
+	hidden?: boolean;
 }
 
 export type ThemeId =
@@ -36,7 +37,8 @@ export type ThemeId =
 	| 'lavender'
 	| 'sofia'
 	| 'demon_slayer'
-	| 'midnight_neon';
+	| 'midnight_neon'
+	| 'sune';
 
 /** The theme that carries the Sofia the First series look (cocolemon's brand default). */
 export const SOFIA_THEME: ThemeId = 'sofia';
@@ -46,6 +48,9 @@ export const DEMON_SLAYER_THEME: ThemeId = 'demon_slayer';
 
 /** Midnight Neon — experimental dark with neon purple/cyan for user2. */
 export const MIDNIGHT_NEON_THEME: ThemeId = 'midnight_neon';
+
+/** Sune — dark regal "Rose Court" theme (gold + burgundy) for the Sune account. */
+export const SUNE_THEME: ThemeId = 'sune';
 
 export const themes: Record<ThemeId, ThemeColors> = {
 	dark: {
@@ -336,9 +341,39 @@ export const themes: Record<ThemeId, ThemeColors> = {
 		shadowMd: '0 4px 20px rgba(168, 85, 247, 0.16)',
 		shadowLg: '0 10px 36px rgba(0, 0, 0, 0.68)',
 		success: '#06b6d4',
-		danger: '#f43f5e',
-		warning: '#fACC15'
-	}
+    danger: '#f43f5e',
+    warning: '#fACC15'
+  },
+  sune: {
+    // Sune — "Rose Court": deep near-black burgundy base, gold + crimson accents.
+    // Brand-only: hidden from the public theme picker (see ThemePicker / ThemeToggle)
+    // so it can't be forced on accounts that aren't Sune.
+    name: 'sune',
+    label: 'Sune',
+    emoji: '🌹',
+    isDark: true,
+    hidden: true,
+    bg: '#140d12',
+    bgCard: '#1f1419',
+    bgElevated: '#2a1a20',
+    bgInput: '#1a1116',
+    textPrimary: '#f6edf0',
+    textSecondary: '#c9b3bc',
+    textTertiary: '#8a6f7a',
+    accent: '#d4af37',
+    accentHover: '#e7c663',
+    accentGlow: 'rgba(212, 175, 55, 0.28)',
+    gradientBrand: 'linear-gradient(135deg, #8e1d2e 0%, #b3243a 45%, #d4af37 100%)',
+    gradientBrandHorizontal: 'linear-gradient(90deg, #8e1d2e, #d4af37)',
+    border: 'rgba(212, 175, 55, 0.16)',
+    borderStrong: 'rgba(212, 175, 55, 0.32)',
+    shadowSm: '0 2px 8px rgba(0, 0, 0, 0.35)',
+    shadowMd: '0 4px 16px rgba(0, 0, 0, 0.45)',
+    shadowLg: '0 8px 32px rgba(0, 0, 0, 0.5)',
+    success: '#4ade80',
+    danger: '#f87171',
+    warning: '#fbbf24'
+  }
 };
 
 export const DEFAULT_THEME: ThemeId = 'dark';
