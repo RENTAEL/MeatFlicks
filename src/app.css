@@ -1290,6 +1290,20 @@ textarea {
 	transform: translateY(-1px);
 }
 
+/* Sune: force every play CTA to use the brand burgundy→gold gradient so the theme reads cohesively */
+[data-theme='sune'] .play-icon,
+[data-theme='sune'] .hero-btn-primary,
+[data-theme='sune'] .sheet-btn-primary,
+[data-theme='sune'] .progress-play-btn,
+[data-theme='sune'] .queue-play-btn,
+[data-theme='sune'] .upnext-play,
+[data-theme='sune'] .episode-play-overlay {
+	background: linear-gradient(135deg, #8e1d2e 0%, #b3243a 48%, #d4af37 100%) !important;
+	color: #fbf6ee !important;
+	border-color: transparent !important;
+	box-shadow: 0 2px 16px rgba(212, 175, 55, 0.2) !important;
+}
+
 [data-theme='sune'] .card-cosmic:hover,
 [data-theme='sune'] .card-cosmic-hover:hover,
 [data-theme='sune'] .media-card:hover {
