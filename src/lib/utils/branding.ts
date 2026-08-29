@@ -1,4 +1,10 @@
-export type BrandingType = 'midnight' | 'sofia' | 'custom' | 'demon_slayer' | 'midnight_neon';
+export type BrandingType =
+	| 'midnight'
+	| 'sofia'
+	| 'custom'
+	| 'demon_slayer'
+	| 'midnight_neon'
+	| 'sune';
 export type PreviewBranding = BrandingType | 'streamium';
 
 const BRANDING: Record<string, { type: BrandingType }> = {
@@ -6,7 +12,8 @@ const BRANDING: Record<string, { type: BrandingType }> = {
 	cocolemon: { type: 'sofia' },
 	user: { type: 'custom' },
 	aftermidnight: { type: 'demon_slayer' },
-	user2: { type: 'midnight_neon' }
+	user2: { type: 'midnight_neon' },
+	sune: { type: 'sune' }
 };
 
 const ADMIN_USERNAME = 'user';

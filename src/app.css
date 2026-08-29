@@ -1249,6 +1249,71 @@ textarea {
 	color: #ff3b30;
 	text-shadow: 0 0 12px rgba(255, 42, 18, 0.32);
 }
+
+/* ═══════════════════════════════════════════
+   SUNE — dark regal / "Rose Court" immersive skin
+   Applies only within [data-theme='sune'] (Sune's profile subtree).
+   Scoped on purpose: it must NOT restyle the whole app.
+   ═══════════════════════════════════════════ */
+[data-theme='sune'] {
+	/* Recast the shared accent tokens in gold + burgundy for the Sune subtree */
+	--sune-gold: #d4af37;
+	--sune-burgundy: #8e1d2e;
+	--accent-stream: #d4af37;
+	--accent-hover: #e7c663;
+	--accent-glow: rgba(212, 175, 55, 0.28);
+	--accent-soft: rgba(212, 175, 55, 0.12);
+	--gradient-brand: linear-gradient(135deg, #8e1d2e 0%, #b3243a 45%, #d4af37 100%);
+	--gradient-brand-horizontal: linear-gradient(90deg, #8e1d2e, #d4af37);
+	--border-stream: rgba(212, 175, 55, 0.16);
+	--border-strong: rgba(212, 175, 55, 0.32);
+}
+
+[data-theme='sune'] h1,
+[data-theme='sune'] h2,
+[data-theme='sune'] h3 {
+	font-family: 'Playfair Display', 'Cormorant Garamond', Georgia, 'Times New Roman', serif;
+	letter-spacing: 0.01em;
+}
+
+[data-theme='sune'] .btn-primary,
+[data-theme='sune'] .btn-play {
+	background: linear-gradient(135deg, #8e1d2e 0%, #b3243a 48%, #d4af37 100%);
+	color: #fbf6ee;
+	box-shadow: 0 2px 16px rgba(212, 175, 55, 0.2);
+}
+
+[data-theme='sune'] .btn-primary:hover,
+[data-theme='sune'] .btn-play:hover {
+	box-shadow: 0 4px 24px rgba(212, 175, 55, 0.32);
+	transform: translateY(-1px);
+}
+
+[data-theme='sune'] .card-cosmic:hover,
+[data-theme='sune'] .card-cosmic-hover:hover,
+[data-theme='sune'] .media-card:hover {
+	border-color: rgba(212, 175, 55, 0.32);
+	box-shadow:
+		0 0 0 1px rgba(212, 175, 55, 0.14),
+		0 6px 24px rgba(0, 0, 0, 0.55),
+		0 0 28px rgba(212, 175, 55, 0.14);
+}
+
+[data-theme='sune'] .stat-number {
+	color: #e7c663;
+	text-shadow: 0 0 12px rgba(212, 175, 55, 0.3);
+}
+
+[data-theme='sune'] .tab-btn.active {
+	color: #e7c663;
+	border-bottom-color: #d4af37;
+}
+
+[data-theme='sune'] .section-view-all,
+[data-theme='sune'] .view-all,
+[data-theme='sune'] .empty-link {
+	color: #e7c663;
+}
 /* ═══════════════════════════════════════════
     CROSS-BROWSER MOBILE DESIGN SYSTEM
     ═══════════════════════════════════════════ */

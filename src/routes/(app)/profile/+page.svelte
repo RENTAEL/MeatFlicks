@@ -9,6 +9,7 @@
 	import { getBranding } from '$lib/utils/branding';
 	import { impersonationStore } from '$lib/state/stores/impersonationStore.svelte.ts';
 	import DemonSlayerEye from '$lib/components/branding/DemonSlayerEye.svelte';
+	import SuneTheme from '$lib/components/branding/SuneTheme.svelte';
 	import { page as pageState } from '$app/state';
 	import { isUser2 } from '$lib/experiments/user2';
 	import TimeSinceJoined from '$lib/experiments/user2/TimeSinceJoined.svelte';
@@ -34,6 +35,12 @@
 			displayName: effectiveProfile.username,
 			email: effectiveProfile.email ?? null
 		}) === 'demon_slayer'
+	);
+	const isSune = $derived(
+		getBranding({
+			displayName: effectiveProfile.username,
+			email: effectiveProfile.email ?? null
+		}) === 'sune'
 	);
 	const isUser2Profile = $derived(
 		isUser2(effectiveProfile as any) || isUser2(pageState.data.user as any)
@@ -112,9 +119,17 @@
 	/>
 	<meta property="og:title" content="Profile — Streamium" />
 	<meta property="og:type" content="website" />
+	{#if isSune}
+		<link rel="preconnect" href="https://fonts.googleapis.com" />
+		<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="" />
+		<link
+			href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600;700;800&family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&display=swap"
+			rel="stylesheet"
+		/>
+	{/if}
 </svelte:head>
 
-<div class="profile-page">
+<div class="profile-page" data-theme={isSune ? 'sune' : undefined}>
 	{#if isDemonSlayer}
 		<div class="demon-slayer-banner">
 			<div class="demon-slayer-greeting">
@@ -132,11 +147,16 @@
 			<div class="demon-slayer-motif" aria-hidden="true">◈</div>
 		</div>
 	{/if}
-	<div class="profile-header glass" class:demon-slayer-header={isDemonSlayer}>
+	{#if isSune}
+		<SuneTheme username={effectiveProfile.username} />
+	{/if}
+	<div class="profile-header glass" class:demon-slayer-header={isDemonSlayer} class:sune-header={isSune}>
 		{#if isDemonSlayer}
 			<div class="avatar-demon">
 				<DemonSlayerEye size="lg" />
 			</div>
+		{:else if isSune}
+			<img class="avatar-sune" src="/personal/sune-roses.jpg" alt={profile.username} />
 		{:else}
 			<div class="avatar-circle">{profile.username.charAt(0).toUpperCase()}</div>
 		{/if}
@@ -517,6 +537,16 @@
 			0 0 24px rgba(255, 42, 18, 0.06);
 	}
 
+	.sune-header {
+		position: relative;
+		overflow: hidden;
+		border: 1px solid rgba(212, 175, 55, 0.28) !important;
+		box-shadow:
+			0 0 0 1px rgba(212, 175, 55, 0.08),
+			0 8px 28px rgba(0, 0, 0, 0.4),
+			0 0 24px rgba(212, 175, 55, 0.06);
+	}
+
 	.demon-slayer-header::before {
 		content: '';
 		position: absolute;
@@ -585,6 +615,19 @@
 		font-size: 2rem;
 		font-weight: var(--font-weight-bold);
 		color: white;
+		flex-shrink: 0;
+	}
+
+	.avatar-sune {
+		width: 84px;
+		height: 84px;
+		border-radius: 50%;
+		object-fit: cover;
+		object-position: center 30%;
+		border: 2px solid rgba(212, 175, 55, 0.55);
+		box-shadow:
+			0 0 14px rgba(212, 175, 55, 0.35),
+			0 0 28px rgba(139, 21, 42, 0.18);
 		flex-shrink: 0;
 	}
 
