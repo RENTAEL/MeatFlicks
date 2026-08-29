@@ -12,7 +12,7 @@
 
 import { db } from './db';
 import { presence } from './db/schema';
-import { eq, lt, sql } from 'drizzle-orm';
+import { eq, lt, sql, or, and, like, gt } from 'drizzle-orm';
 
 export type PresenceUser = {
 	userId: string;
@@ -31,14 +31,27 @@ export type PresenceSnapshotUser = PresenceUser & {
 	roomMemberSince: number | null;
 };
 
-// 90s: tolerates one missed 45s heartbeat before the row is pruned, so the
-// admin live view doesn't flap on a single slow request.
+// Logged-in presence: 90s tolerates one missed 45s heartbeat before prune.
 const STALE_MS = 90_000;
+// Guest presence: heartbeat is 120s, so tolerate ~2 missed beats (240s) to
+// avoid pruning a still-active guest mid-interval (flickers the admin list and
+// can drop a pending kick signal). Guest-kick lag ~4 min max.
+const GUEST_STALE_MS = 240_000;
+const GUEST_LIKE = 'guest:%';
 
 async function prune() {
 	const cutoff = Date.now() - STALE_MS;
+	const guestCutoff = Date.now() - GUEST_STALE_MS;
 	try {
-		await db.delete(presence).where(lt(presence.lastSeenAt, cutoff)).run();
+		await db
+			.delete(presence)
+			.where(
+				or(
+					and(like(presence.userId, GUEST_LIKE), lt(presence.lastSeenAt, guestCutoff)),
+					lt(presence.lastSeenAt, cutoff)
+				)
+			)
+			.run();
 	} catch {
 		// pruning is best-effort
 	}
@@ -115,6 +128,7 @@ export async function readDisconnectSignal(userId: string): Promise<number | nul
 export async function listPresence(): Promise<PresenceUser[]> {
 	await prune();
 	const cutoff = Date.now() - STALE_MS;
+	const guestCutoff = Date.now() - GUEST_STALE_MS;
 	const rows = await db
 		.select({
 			userId: presence.userId,
@@ -126,7 +140,12 @@ export async function listPresence(): Promise<PresenceUser[]> {
 			playing: presence.playing
 		})
 		.from(presence)
-		.where(sql`${presence.lastSeenAt} > ${cutoff}`)
+		.where(
+			or(
+				and(like(presence.userId, GUEST_LIKE), gt(presence.lastSeenAt, guestCutoff)),
+				gt(presence.lastSeenAt, cutoff)
+			)
+		)
 		.all();
 	return rows
 		.map((r) => ({ ...r, playing: r.playing === null || r.playing === undefined ? null : !!r.playing }))

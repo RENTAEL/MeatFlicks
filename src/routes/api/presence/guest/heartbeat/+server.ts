@@ -8,7 +8,7 @@ const GUEST_PREFIX = 'guest:';
  * Anonymous presence heartbeat. The browser generates a random session id
  * (stored in sessionStorage) so admin can see — and end — guest sessions
  * alongside logged-in ones. Rows live in the same presence registry and are
- * pruned automatically after 70s of silence.
+ * pruned automatically after ~4 min of silence (240s), matching the 120s heartbeat × 2 missed-beat tolerance.
  */
 export const POST: RequestHandler = async ({ request }) => {
 	try {

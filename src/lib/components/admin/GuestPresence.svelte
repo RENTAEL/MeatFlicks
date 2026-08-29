@@ -62,7 +62,10 @@
 		// the majority. They keep a lightweight heartbeat POST so admins still see
 		// guest activity, but no serverless function is held open per visitor.
 		ping();
-		const timer = setInterval(ping, 60000);
+		// 120s guest heartbeat (was 60s). Guest-kick lag = interval × server
+		// missed-beat TTL (2) → ~4 min max, up from ~2 min. Presence-only;
+		// streaming is unaffected.
+		const timer = setInterval(ping, 120000);
 
 		return () => {
 			clearInterval(timer);
