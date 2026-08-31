@@ -1,11 +1,9 @@
 <script lang="ts">
 	import { page } from '$app/state';
 	import { onMount } from 'svelte';
-	import { fly, fade } from 'svelte/transition';
-	import { authStore } from '$lib/state/stores/authStore.svelte.ts';
+	import { fly } from 'svelte/transition';
 	import { menuOpen } from '$lib/stores/menu';
 	import { getBranding } from '$lib/utils/branding';
-	import type { BrandingType, PreviewBranding } from '$lib/utils/branding';
 	import { previewStore } from '$lib/state/stores/previewStore.svelte.ts';
 	import { impersonationStore } from '$lib/state/stores/impersonationStore.svelte.ts';
 	import { watchlist } from '$lib/state/stores/watchlistStore.svelte.ts';
@@ -13,29 +11,14 @@
 	let { variant = 'desktop' }: { variant?: 'desktop' | 'mobile' } = $props();
 
 	const sessionUser = $derived(page.data.user ?? null);
-	const firebaseUser = $derived(authStore.state.user);
-	// Admin check uses the authoritative server-provided role (page.data.user.role),
-	// not the fragile username/email heuristic. This ensures the eye is visible only
-	// to the real admin session and never to the account being viewed (e.g. Sune).
+	// Authoritative admin check — real session user only, never impersonated
 	const isAdmin = $derived(sessionUser?.role === 'ADMIN');
 
-	const preview = $derived(previewStore.current);
 	const impersonated = $derived(impersonationStore.current);
-	const actual = $derived(
-		getBranding(firebaseUser) ??
-			(sessionUser
-				? getBranding({ displayName: sessionUser.username, email: sessionUser.email })
-				: null)
-	);
-	const effective = $derived(
-		impersonated
-			? getBranding({ displayName: impersonated.username, email: impersonated.email })
-			: preview === 'streamium'
-				? null
-				: (preview ?? actual)
+	const isViewingAsSune = $derived(
+		!!impersonated && getBranding({ displayName: impersonated.username, email: impersonated.email }) === 'sune'
 	);
 
-	// Real-time user list for impersonation
 	interface UserEntry {
 		id: string;
 		username: string;
@@ -44,111 +27,108 @@
 		createdAt: number;
 	}
 
-	const options: { label: string; value: PreviewBranding | null; hint?: string }[] = [
-		{ label: 'Midnight', value: 'midnight', hint: 'ghostbunny_779' },
-		{ label: 'Sofia', value: 'sofia', hint: 'cocolemon' },
-		{ label: 'user (custom)', value: 'custom', hint: 'user' },
-		{ label: 'Streamium', value: 'streamium', hint: 'default' }
-	];
-
-	function isActive(value: PreviewBranding | null): boolean {
-		if (impersonated) return false;
-		return effective === value;
-	}
-
-	function isUserActive(userId: string): boolean {
-		return impersonated?.id === userId;
-	}
-
-	function pick(value: PreviewBranding | null) {
-		impersonationStore.clear();
-		previewStore.set(value);
-		open = false;
-		if (variant === 'mobile') menuOpen.set(false);
-	}
-
-	function impersonate(user: UserEntry) {
-		previewStore.set(null);
-		impersonationStore.impersonate({ id: user.id, username: user.username, email: user.email });
-		open = false;
-		if (variant === 'mobile') menuOpen.set(false);
-		// Refresh watchlist to show impersonated user's data (empty for new users like aftermidnight)
-		void watchlist.syncFromServer();
-	}
-
-	function clearImpersonation() {
-		impersonationStore.clear();
-		previewStore.set(null);
-		open = false;
-		if (variant === 'mobile') menuOpen.set(false);
-		void watchlist.syncFromServer();
-	}
-
 	let open = $state(false);
-	let connected = $state(false);
+	let panelEl: HTMLElement | null = $state(null);
+	let btnEl: HTMLElement | null = $state(null);
 	let userList = $state<UserEntry[]>([]);
-	let userError = $state<string | null>(null);
 
-	// Real-time user list. Only connect while the switcher UI is actually
-	// visible (desktop panel open, or mobile menu open). This is already
-	// admin-only — isAdmin is false for regular users, so they never open a
-	// connection. Connecting only when needed avoids an SSE sitting open on
-	// every page and the console error spam from the endpoint's ~55s
-	// server-side timeout + EventSource auto-reconnect.
+	const suneUser = $derived<UserEntry | null>(
+		userList.find((u) => getBranding({ displayName: u.username, email: u.email }) === 'sune') ?? null
+	);
+
+	const adminLabel = $derived(sessionUser?.username ?? 'Admin');
+
+	function previewSune() {
+		// Prefer real Sune record from DB so id/email are accurate; fall back to synthetic
+		const target: UserEntry | null = suneUser;
+		if (target) {
+			previewStore.set(null);
+			impersonationStore.impersonate({ id: target.id, username: target.username, email: target.email });
+		} else {
+			previewStore.set(null);
+			impersonationStore.impersonate({ id: 'sune', username: 'sune', email: null });
+		}
+		open = false;
+		if (variant === 'mobile') menuOpen.set(false);
+		void watchlist.syncFromServer();
+	}
+
+	function exitPreview() {
+		impersonationStore.clear();
+		previewStore.set(null);
+		open = false;
+		if (variant === 'mobile') menuOpen.set(false);
+		void watchlist.syncFromServer();
+	}
+
+	// Load Sune user via SSE when panel opens (or when admin and menu open for mobile)
 	$effect(() => {
 		if (!isAdmin || (!open && !$menuOpen)) return;
 		const es = new EventSource('/api/admin/users/stream');
 		es.addEventListener('users', (event) => {
-			const data = JSON.parse((event as MessageEvent).data) as {
-				users: UserEntry[];
-				count: number;
-				at: number;
-			};
-			userList = data.users;
+			try {
+				const data = JSON.parse((event as MessageEvent).data) as { users: UserEntry[] };
+				userList = data.users;
+			} catch {}
 		});
 		es.addEventListener('error', () => {
-			userError = 'Failed to load user list';
-			// EventSource fires 'error' on normal close/reconnect too; only surface it in dev.
-			if (import.meta.env.DEV) console.warn('[PreviewSwitcher] user stream error (reconnecting)');
+			if (import.meta.env.DEV) console.warn('[PreviewSwitcher] user stream error');
 		});
-		es.onopen = () => (connected = true);
-		es.onerror = () => {
-			connected = false;
-		};
 		return () => es.close();
 	});
 
-	// Close handlers for desktop variant
+	// Outside click + Escape for desktop
 	onMount(() => {
 		if (variant !== 'desktop') return;
-		const close = () => {
+		const onDocClick = (e: MouseEvent) => {
+			if (!open) return;
+			const target = e.target as Node;
+			if (panelEl?.contains(target) || btnEl?.contains(target)) return;
 			open = false;
 		};
 		const onKey = (e: KeyboardEvent) => {
-			if (e.key === 'Escape') close();
+			if (e.key === 'Escape' && open) {
+				e.preventDefault();
+				open = false;
+				btnEl?.focus();
+			}
 		};
-		window.addEventListener('click', close);
+		window.addEventListener('click', onDocClick);
 		window.addEventListener('keydown', onKey);
 		return () => {
-			window.removeEventListener('click', close);
+			window.removeEventListener('click', onDocClick);
 			window.removeEventListener('keydown', onKey);
 		};
 	});
+
+	function onBtnKeydown(e: KeyboardEvent) {
+		if (e.key === 'Enter' || e.key === ' ') {
+			e.preventDefault();
+			open = !open;
+		} else if (e.key === 'Escape' && open) {
+			e.preventDefault();
+			open = false;
+		}
+	}
 </script>
 
 {#if isAdmin}
 	{#if variant === 'desktop'}
 		<div class="preview-root">
 			<button
+				bind:this={btnEl}
 				type="button"
 				class="preview-btn"
-				class:active={open || preview !== null || !!impersonated}
-				aria-label="Preview as user"
+				class:active={open || isViewingAsSune}
+				class:impersonating={isViewingAsSune}
+				aria-label={isViewingAsSune ? 'Previewing as Sune — open preview menu' : 'Preview as Sune'}
 				aria-expanded={open}
+				aria-haspopup="menu"
 				onclick={(e) => {
 					e.stopPropagation();
 					open = !open;
 				}}
+				onkeydown={onBtnKeydown}
 			>
 				<svg
 					width="18"
@@ -159,124 +139,69 @@
 					stroke-width="2"
 					stroke-linecap="round"
 					stroke-linejoin="round"
+					aria-hidden="true"
 				>
 					<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
 					<circle cx="12" cy="12" r="3" />
 				</svg>
+				{#if isViewingAsSune}
+					<span class="preview-dot" aria-hidden="true"></span>
+				{/if}
 			</button>
 
 			{#if open}
 				<div
+					bind:this={panelEl}
 					class="preview-panel"
 					role="menu"
-					aria-label="Preview as user"
-					tabindex="-1"
-					transition:fly={{ y: 8, duration: 120 }}
+					aria-label="Preview Sune"
+					transition:fly={{ y: 8, duration: 160 }}
 				>
-					<div class="preview-panel-title">Preview as user</div>
-					{#each options as option (option.value)}
-						<button
-							type="button"
-							class="preview-option"
-							class:selected={isActive(option.value)}
-							role="menuitem"
-							onclick={() => pick(option.value)}
-						>
-							<span class="preview-option-label">{option.label}</span>
-							{#if option.hint}
-								<span class="preview-option-hint">{option.hint}</span>
-							{/if}
-							{#if isActive(option.value)}
-								<span class="preview-check" aria-hidden="true">✓</span>
-							{/if}
+					{#if isViewingAsSune}
+						<div class="preview-banner" role="status" aria-live="polite">
+							<span class="preview-banner-icon" aria-hidden="true">❦</span>
+							<div class="preview-banner-text">
+								<strong>Viewing as Sune</strong>
+								<span>Rose Court theme active</span>
+							</div>
+						</div>
+						<p class="preview-desc">You are seeing Sune’s personalized experience. Exit to return to your admin view.</p>
+						<button type="button" class="preview-action preview-exit" role="menuitem" onclick={exitPreview}>
+							Exit preview
 						</button>
-					{/each}
-					<div class="preview-divider"></div>
-					{#if userList.length > 0}
-						<div class="preview-panel-title">View as User</div>
-						{#each userList as user (user.id)}
-							<button
-								type="button"
-								class="preview-option"
-								class:selected={isUserActive(user.id)}
-								role="menuitem"
-								onclick={() => impersonate(user)}
-							>
-								<span class="preview-option-label">{user.username}</span>
-								<span class="preview-option-hint">{user.email || 'no email'}</span>
-								{#if isUserActive(user.id)}
-									<span class="preview-check" aria-hidden="true">✓</span>
-								{/if}
-							</button>
-						{/each}
 					{:else}
-						<div class="preview-empty">No users found</div>
+						<div class="preview-header">Preview</div>
+						<p class="preview-current">
+							Viewing as <strong>{adminLabel}</strong>
+							<span class="preview-role">Admin</span>
+						</p>
+						<p class="preview-desc">Preview Sune’s dark-regal Rose Court theme as Sune sees it.</p>
+						<button type="button" class="preview-action preview-enter" role="menuitem" onclick={previewSune}>
+							<span class="preview-action-icon" aria-hidden="true">🌹</span>
+							Preview Sune’s view
+						</button>
 					{/if}
-					<div class="preview-divider"></div>
-					<button
-						type="button"
-						class="preview-option"
-						class:selected={preview === null && !impersonated}
-						disabled={preview === null && !impersonated}
-						role="menuitem"
-						onclick={clearImpersonation}
-					>
-						<span class="preview-option-label">Back to me</span>
-						{#if preview === null && !impersonated}
-							<span class="preview-check" aria-hidden="true">✓</span>
-						{/if}
-					</button>
 				</div>
 			{/if}
 		</div>
 	{:else}
+		<!-- Mobile variant — inside drawer -->
 		<div class="preview-mobile">
-			<div class="preview-mobile-title">Preview as user</div>
-			{#each options as option (option.value)}
-				<button
-					type="button"
-					class="menu-item preview-mobile-option"
-					class:selected={isActive(option.value)}
-					onclick={() => pick(option.value)}
-				>
-					<span class="preview-option-label">{option.label}</span>
-					<span class="preview-option-hint">{option.hint}</span>
-					{#if isActive(option.value)}
-						<span class="preview-check" aria-hidden="true">✓</span>
-					{/if}
+			{#if isViewingAsSune}
+				<div class="preview-mobile-banner">
+					<span aria-hidden="true">❦</span>
+					<strong>Viewing as Sune</strong>
+				</div>
+				<p class="preview-mobile-desc">Rose Court theme active.</p>
+				<button type="button" class="menu-item preview-mobile-action preview-exit" onclick={exitPreview}>
+					Exit preview
 				</button>
-			{/each}
-			<div class="preview-divider"></div>
-			{#if userList.length > 0}
-				<div class="preview-mobile-title">View as User</div>
-				{#each userList as user (user.id)}
-					<button
-						type="button"
-						class="menu-item preview-mobile-option"
-						class:selected={isUserActive(user.id)}
-						onclick={() => impersonate(user)}
-					>
-						<span class="preview-option-label">{user.username}</span>
-						<span class="preview-option-hint">{user.email || 'no email'}</span>
-						{#if isUserActive(user.id)}
-							<span class="preview-check" aria-hidden="true">✓</span>
-						{/if}
-					</button>
-				{/each}
+			{:else}
+				<p class="preview-mobile-current">Viewing as <strong>{adminLabel}</strong></p>
+				<button type="button" class="menu-item preview-mobile-action preview-enter" onclick={previewSune}>
+					<span aria-hidden="true">🌹</span> Preview Sune’s view
+				</button>
 			{/if}
-			<div class="preview-divider"></div>
-			<button
-				type="button"
-				class="menu-item preview-mobile-option"
-				class:selected={preview === null && !impersonated}
-				disabled={preview === null && !impersonated}
-				onclick={clearImpersonation}
-			>
-				<span class="preview-option-label">Back to me</span>
-				{#if preview === null && !impersonated}
-					<span class="preview-check" aria-hidden="true">✓</span>
-				{/if}
-			</button>
 		</div>
 	{/if}
 {/if}
@@ -287,6 +212,7 @@
 	}
 
 	.preview-btn {
+		position: relative;
 		width: 40px;
 		height: 40px;
 		display: flex;
@@ -295,110 +221,243 @@
 		border-radius: var(--radius-full);
 		color: var(--text-secondary);
 		background: transparent;
-		border: none;
-		transition: all var(--transition-fast);
+		border: 1px solid transparent;
+		transition:
+			color var(--transition-fast),
+			background var(--transition-fast),
+			border-color var(--transition-fast),
+			box-shadow var(--transition-fast);
 	}
 
 	.preview-btn:hover {
 		color: var(--text-primary);
 		background: var(--bg-card);
+		border-color: var(--border-stream);
 	}
 
 	.preview-btn.active {
-		color: var(--accent-color, #818cf8);
-		background: var(--bg-card);
+		color: #e7c663;
+		background: rgba(212, 175, 55, 0.1);
+		border-color: rgba(212, 175, 55, 0.28);
+		box-shadow: 0 0 14px rgba(212, 175, 55, 0.18);
+	}
+
+	.preview-btn.impersonating {
+		color: #e7c663;
+		background: linear-gradient(135deg, rgba(142, 29, 46, 0.18), rgba(212, 175, 55, 0.12));
+		border-color: rgba(212, 175, 55, 0.32);
+		animation: suneEyeGlow 2.8s ease-in-out infinite alternate;
+	}
+
+	.preview-dot {
+		position: absolute;
+		top: 6px;
+		right: 6px;
+		width: 7px;
+		height: 7px;
+		border-radius: 50%;
+		background: #d4af37;
+		box-shadow: 0 0 6px rgba(212, 175, 55, 0.9);
+		border: 1px solid #140d12;
+	}
+
+	@keyframes suneEyeGlow {
+		0% {
+			box-shadow: 0 0 0 rgba(212, 175, 55, 0);
+		}
+		100% {
+			box-shadow: 0 0 14px rgba(212, 175, 55, 0.22);
+		}
 	}
 
 	.preview-panel {
 		position: absolute;
-		top: calc(100% + 8px);
+		top: calc(100% + 10px);
 		right: 0;
 		z-index: 120;
-		min-width: 210px;
-		padding: 0.4rem;
-		border-radius: var(--radius-lg);
-		background: var(--bg-card);
-		border: 1px solid var(--border-stream);
-		box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
+		width: 300px;
+		padding: 1rem;
+		border-radius: 16px;
+		background: #140d12;
+		border: 1px solid rgba(212, 175, 55, 0.22);
+		box-shadow:
+			0 16px 40px rgba(0, 0, 0, 0.55),
+			0 0 32px rgba(142, 29, 46, 0.14),
+			inset 0 1px 0 rgba(212, 175, 55, 0.08);
 	}
 
-	.preview-panel-title,
-	.preview-mobile-title {
+	.preview-header {
 		font-size: 0.7rem;
-		font-weight: var(--font-weight-semibold);
-		letter-spacing: 0.08em;
+		font-weight: 700;
+		letter-spacing: 0.1em;
 		text-transform: uppercase;
-		color: var(--text-secondary);
-		padding: 0.4rem 0.6rem;
+		color: #e7c663;
+		margin-bottom: 0.5rem;
 	}
 
-	.preview-option {
+	.preview-current {
+		margin: 0;
+		font-size: 0.9rem;
+		color: #f6edf0;
+		line-height: 1.4;
+	}
+
+	.preview-current strong {
+		color: #f6edf0;
+	}
+
+	.preview-role {
+		margin-left: 0.4rem;
+		padding: 0.1rem 0.4rem;
+		border-radius: 999px;
+		background: rgba(212, 175, 55, 0.12);
+		border: 1px solid rgba(212, 175, 55, 0.2);
+		font-size: 0.68rem;
+		text-transform: uppercase;
+		letter-spacing: 0.06em;
+		color: #e7c663;
+	}
+
+	.preview-banner {
+		display: flex;
+		align-items: center;
+		gap: 0.7rem;
+		padding: 0.75rem 0.85rem;
+		border-radius: 12px;
+		background: linear-gradient(135deg, rgba(142, 29, 46, 0.9), rgba(142, 29, 46, 0.7) 55%, rgba(212, 175, 55, 0.18));
+		border: 1px solid rgba(212, 175, 55, 0.28);
+		margin-bottom: 0.7rem;
+	}
+
+	.preview-banner-icon {
+		font-size: 1.4rem;
+		color: #e7c663;
+		text-shadow: 0 0 10px rgba(212, 175, 55, 0.5);
+	}
+
+	.preview-banner-text {
+		display: flex;
+		flex-direction: column;
+		line-height: 1.15;
+	}
+
+	.preview-banner-text strong {
+		font-size: 0.95rem;
+		color: #fbf6ee;
+	}
+
+	.preview-banner-text span {
+		font-size: 0.75rem;
+		color: rgba(251, 246, 238, 0.78);
+	}
+
+	.preview-desc {
+		margin: 0 0 0.9rem;
+		font-size: 0.82rem;
+		line-height: 1.45;
+		color: #c9b3bc;
+	}
+
+	.preview-action {
 		width: 100%;
-		display: flex;
+		display: inline-flex;
 		align-items: center;
+		justify-content: center;
 		gap: 0.5rem;
-		padding: 0.45rem 0.6rem;
-		border-radius: var(--radius-md);
-		font-size: 0.85rem;
-		color: var(--text-primary);
-		background: transparent;
-		border: none;
-		text-align: left;
-		transition: all var(--transition-fast);
+		padding: 0.65rem 1rem;
+		border-radius: 12px;
+		font-size: 0.9rem;
+		font-weight: 700;
+		border: 1px solid transparent;
+		cursor: pointer;
+		transition:
+			transform var(--transition-fast),
+			box-shadow var(--transition-fast),
+			background var(--transition-fast),
+			border-color var(--transition-fast);
 	}
 
-	.preview-option:hover:not(:disabled) {
-		background: var(--accent-soft);
+	.preview-action:active {
+		transform: scale(0.99);
 	}
 
-	.preview-option:disabled {
-		opacity: 0.5;
+	.preview-enter {
+		background: linear-gradient(135deg, #8e1d2e 0%, #b3243a 45%, #d4af37 100%);
+		color: #fbf6ee;
+		box-shadow: 0 4px 16px rgba(212, 175, 55, 0.22);
 	}
 
-	.preview-option.selected {
-		color: var(--accent-color, #818cf8);
-		font-weight: var(--font-weight-semibold);
+	.preview-enter:hover {
+		box-shadow: 0 6px 22px rgba(212, 175, 55, 0.3);
+		transform: translateY(-1px);
 	}
 
-	.preview-option-label {
-		flex: 1;
+	.preview-exit {
+		background: #1f1419;
+		color: #f6edf0;
+		border-color: rgba(212, 175, 55, 0.22);
 	}
 
-	.preview-option-hint {
-		font-size: 0.72rem;
-		color: var(--text-secondary);
+	.preview-exit:hover {
+		background: #2a1a20;
+		border-color: rgba(212, 175, 55, 0.32);
+		box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
 	}
 
-	.preview-check {
-		color: var(--accent-color, #818cf8);
-		font-size: 0.8rem;
+	.preview-action-icon {
+		font-size: 1rem;
 	}
 
-	.preview-divider {
-		height: 1px;
-		margin: 0.3rem 0;
-		background: var(--border-stream);
-	}
-
+	/* Mobile variant */
 	.preview-mobile {
-		margin-top: 0.25rem;
+		padding: 0.5rem 0;
 	}
 
-	.preview-mobile-option {
+	.preview-mobile-banner {
 		display: flex;
 		align-items: center;
 		gap: 0.5rem;
+		padding: 0.6rem 0.75rem;
+		border-radius: 12px;
+		background: linear-gradient(135deg, rgba(142, 29, 46, 0.9), rgba(212, 175, 55, 0.18));
+		border: 1px solid rgba(212, 175, 55, 0.22);
+		color: #fbf6ee;
+		font-size: 0.9rem;
+		font-weight: 700;
+		margin-bottom: 0.5rem;
 	}
 
-	.preview-mobile-option.selected {
-		color: var(--accent-color, #818cf8);
-		font-weight: var(--font-weight-semibold);
+	.preview-mobile-current {
+		margin: 0 0 0.5rem;
+		padding: 0 0.5rem;
+		font-size: 0.85rem;
+		color: #c9b3bc;
 	}
 
-	.preview-empty {
-		padding: 0.45rem 0.6rem;
-		font-size: 0.8rem;
-		color: var(--text-tertiary);
-		font-style: italic;
+	.preview-mobile-current strong {
+		color: #f6edf0;
+	}
+
+	.preview-mobile-desc {
+		margin: 0 0 0.6rem;
+		padding: 0 0.5rem;
+		font-size: 0.78rem;
+		color: #8a6f7a;
+	}
+
+	.preview-mobile-action {
+		width: 100%;
+		justify-content: center;
+		border-radius: 12px;
+		font-weight: 700;
+	}
+
+	@media (prefers-reduced-motion: reduce) {
+		.preview-btn.impersonating {
+			animation: none !important;
+		}
+		.preview-panel {
+			transition: none !important;
+		}
 	}
 </style>
