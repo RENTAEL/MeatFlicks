@@ -32,65 +32,15 @@
 	let btnEl: HTMLElement | null = $state(null);
 	let userList = $state<UserEntry[]>([]);
 
-	const suneUser = $derived<UserEntry | null>(
-		userList.find((u) => getBranding({ displayName: u.username, email: u.email }) === 'sune') ?? null
-	);
-
 	const adminLabel = $derived(sessionUser?.username ?? 'Admin');
-
-	const preview = $derived(previewStore.current);
-	const actual = $derived(
-		sessionUser ? getBranding({ displayName: sessionUser.username, email: sessionUser.email }) : null
-	);
-	const effective = $derived(
-		impersonated
-			? getBranding({ displayName: impersonated.username, email: impersonated.email })
-			: preview === 'streamium'
-				? null
-				: (preview ?? actual)
-	);
-
-	const options: { label: string; value: import('$lib/utils/branding').PreviewBranding | null; hint?: string }[] = [
-		{ label: 'Midnight', value: 'midnight', hint: 'ghostbunny_779' },
-		{ label: 'Sofia', value: 'sofia', hint: 'cocolemon' },
-		{ label: 'user (custom)', value: 'custom', hint: 'user' },
-		{ label: 'Streamium', value: 'streamium', hint: 'default' }
-	];
-
-	function isActive(value: import('$lib/utils/branding').PreviewBranding | null): boolean {
-		if (impersonated) return false;
-		return effective === value;
-	}
 
 	function isUserActive(userId: string): boolean {
 		return impersonated?.id === userId;
 	}
 
-	function pick(value: import('$lib/utils/branding').PreviewBranding | null) {
-		impersonationStore.clear();
-		previewStore.set(value);
-		open = false;
-		if (variant === 'mobile') menuOpen.set(false);
-	}
-
 	function impersonate(user: UserEntry) {
 		previewStore.set(null);
 		impersonationStore.impersonate({ id: user.id, username: user.username, email: user.email });
-		open = false;
-		if (variant === 'mobile') menuOpen.set(false);
-		void watchlist.syncFromServer();
-	}
-
-	function previewSune() {
-		// Prefer real Sune record from DB so id/email are accurate; fall back to synthetic
-		const target: UserEntry | null = suneUser;
-		if (target) {
-			previewStore.set(null);
-			impersonationStore.impersonate({ id: target.id, username: target.username, email: target.email });
-		} else {
-			previewStore.set(null);
-			impersonationStore.impersonate({ id: 'sune', username: 'sune', email: null });
-		}
 		open = false;
 		if (variant === 'mobile') menuOpen.set(false);
 		void watchlist.syncFromServer();
@@ -162,9 +112,9 @@
 				bind:this={btnEl}
 				type="button"
 				class="preview-btn"
-				class:active={open || isViewingAsSune}
-				class:impersonating={isViewingAsSune}
-				aria-label={isViewingAsSune ? 'Previewing as Sune — open preview menu' : 'Preview as Sune'}
+				class:active={open || !!impersonated}
+				class:impersonating={!!impersonated}
+				aria-label={impersonated ? `Previewing as ${impersonated.username} — open preview menu` : 'Preview as user'}
 				aria-expanded={open}
 				aria-haspopup="menu"
 				onclick={(e) => {
@@ -187,7 +137,7 @@
 					<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
 					<circle cx="12" cy="12" r="3" />
 				</svg>
-				{#if isViewingAsSune}
+				{#if impersonated}
 					<span class="preview-dot" aria-hidden="true"></span>
 				{/if}
 			</button>
@@ -197,69 +147,33 @@
 					bind:this={panelEl}
 					class="preview-panel"
 					role="menu"
-					aria-label="Preview"
+					aria-label="Preview users"
 					transition:fly={{ y: 8, duration: 160 }}
 				>
-					{#if isViewingAsSune}
+					{#if impersonated}
 						<div class="preview-banner" role="status" aria-live="polite">
-							<span class="preview-banner-icon" aria-hidden="true">❦</span>
-							<div class="preview-banner-text">
-								<strong>Viewing as Sune</strong>
-								<span>Rose Court theme active</span>
-							</div>
-						</div>
-						<p class="preview-desc">You are seeing Sune’s personalized experience. Exit to return to your admin view.</p>
-						<button type="button" class="preview-action preview-exit" role="menuitem" onclick={exitPreview}>
-							Exit preview
-						</button>
-					{:else if impersonated}
-						<div class="preview-banner" role="status" aria-live="polite">
-							<span class="preview-banner-icon" aria-hidden="true">👁️</span>
+							<span class="preview-banner-icon" aria-hidden="true">{isViewingAsSune ? '❦' : '👁️'}</span>
 							<div class="preview-banner-text">
 								<strong>Viewing as {impersonated.username}</strong>
-								<span>{impersonated.email ?? 'impersonated view'}</span>
+								<span>{isViewingAsSune ? 'Rose Court theme active' : (impersonated.email ?? 'impersonated view')}</span>
 							</div>
 						</div>
-						<p class="preview-desc">You are impersonating another user. Exit to return to your admin view.</p>
+						<p class="preview-desc">You are impersonating this user. Click another user to switch, or exit to return to your admin view.</p>
 						<button type="button" class="preview-action preview-exit" role="menuitem" onclick={exitPreview}>
 							Exit preview
 						</button>
+						<div class="preview-divider"></div>
 					{:else}
-						<div class="preview-header">Preview</div>
+						<div class="preview-header">Preview as user</div>
 						<p class="preview-current">
 							Viewing as <strong>{adminLabel}</strong>
 							<span class="preview-role">Admin</span>
 						</p>
-						<p class="preview-desc">Preview Sune’s dark-regal Rose Court theme as Sune sees it.</p>
-						<button type="button" class="preview-action preview-enter" role="menuitem" onclick={previewSune}>
-							<span class="preview-action-icon" aria-hidden="true">🌹</span>
-							Preview Sune’s view
-						</button>
+						<p class="preview-desc">Select any user below to view the site as them — one by one.</p>
 					{/if}
 
-					<div class="preview-divider"></div>
-					<div class="preview-panel-title">Brand previews</div>
-					{#each options as option (option.value)}
-						<button
-							type="button"
-							class="preview-option"
-							class:selected={isActive(option.value)}
-							role="menuitem"
-							onclick={() => pick(option.value)}
-						>
-							<span class="preview-option-label">{option.label}</span>
-							{#if option.hint}
-								<span class="preview-option-hint">{option.hint}</span>
-							{/if}
-							{#if isActive(option.value)}
-								<span class="preview-check" aria-hidden="true">✓</span>
-							{/if}
-						</button>
-					{/each}
-
-					<div class="preview-divider"></div>
 					{#if userList.length > 0}
-						<div class="preview-panel-title">View as User</div>
+						<div class="preview-panel-title">All users</div>
 						<div class="preview-user-list">
 							{#each userList as user (user.id)}
 								<button
@@ -285,13 +199,12 @@
 					<button
 						type="button"
 						class="preview-option"
-						class:selected={!impersonated && preview === null}
-						disabled={!impersonated && preview === null}
+						disabled={!impersonated}
 						role="menuitem"
 						onclick={exitPreview}
 					>
 						<span class="preview-option-label">Back to me</span>
-						{#if !impersonated && preview === null}
+						{#if !impersonated}
 							<span class="preview-check" aria-hidden="true">✓</span>
 						{/if}
 					</button>
@@ -301,21 +214,47 @@
 	{:else}
 		<!-- Mobile variant — inside drawer -->
 		<div class="preview-mobile">
-			{#if isViewingAsSune}
+			{#if impersonated}
 				<div class="preview-mobile-banner">
-					<span aria-hidden="true">❦</span>
-					<strong>Viewing as Sune</strong>
+					<span aria-hidden="true">{isViewingAsSune ? '❦' : '👁️'}</span>
+					<strong>Viewing as {impersonated.username}</strong>
 				</div>
-				<p class="preview-mobile-desc">Rose Court theme active.</p>
+				<p class="preview-mobile-desc">{isViewingAsSune ? 'Rose Court theme active.' : 'Impersonated view.'}</p>
 				<button type="button" class="menu-item preview-mobile-action preview-exit" onclick={exitPreview}>
 					Exit preview
 				</button>
+				<div class="preview-divider"></div>
 			{:else}
 				<p class="preview-mobile-current">Viewing as <strong>{adminLabel}</strong></p>
-				<button type="button" class="menu-item preview-mobile-action preview-enter" onclick={previewSune}>
-					<span aria-hidden="true">🌹</span> Preview Sune’s view
-				</button>
 			{/if}
+			{#if userList.length > 0}
+				<div class="preview-mobile-title">All users</div>
+				{#each userList as user (user.id)}
+					<button
+						type="button"
+						class="menu-item preview-mobile-option"
+						class:selected={isUserActive(user.id)}
+						onclick={() => impersonate(user)}
+					>
+						<span class="preview-option-label">{user.username}</span>
+						<span class="preview-option-hint">{user.email || 'no email'}</span>
+						{#if isUserActive(user.id)}
+							<span class="preview-check" aria-hidden="true">✓</span>
+						{/if}
+					</button>
+				{/each}
+			{:else}
+				<div class="preview-empty">Loading users…</div>
+			{/if}
+			<div class="preview-divider"></div>
+			<button
+				type="button"
+				class="menu-item preview-mobile-option"
+				disabled={!impersonated}
+				onclick={exitPreview}
+			>
+				<span class="preview-option-label">Back to me</span>
+			</button>
 		</div>
 	{/if}
 {/if}
