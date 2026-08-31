@@ -9,11 +9,15 @@ import {
 	DEMON_SLAYER_THEME,
 	MIDNIGHT_NEON_THEME,
 	SUNE_THEME,
+	STEEL_THEME,
+	AMBER_THEME,
+	GRAPHITE_THEME,
 	shade,
 	alpha,
 	type ThemeColors,
 	type ThemeId
 } from '$lib/themes';
+import { getThemeForUser } from '$lib/themes/perUserThemes';
 import type { BrandingType } from '$lib/utils/branding';
 
 /**
@@ -63,6 +67,11 @@ function createThemeStore() {
 		if (brandPreview === 'demon_slayer') return DEMON_SLAYER_THEME;
 		if (brandPreview === 'midnight_neon') return MIDNIGHT_NEON_THEME;
 		if (brandPreview === 'sune') return SUNE_THEME;
+		if (brandPreview === 'midnight') return STEEL_THEME;
+		if (brandPreview === 'custom') return GRAPHITE_THEME;
+		// per-user generated themes are stored as brandPreview being the username hash id
+		// e.g. peruser_abc123 — check if it's a known theme
+		if (brandPreview && themes[brandPreview as ThemeId]) return brandPreview as ThemeId;
 		return choice ?? brandDefault;
 	};
 
@@ -114,9 +123,30 @@ function createThemeStore() {
 			else if (brand === 'demon_slayer') nextDefault = DEMON_SLAYER_THEME;
 			else if (brand === 'midnight_neon') nextDefault = MIDNIGHT_NEON_THEME;
 			else if (brand === 'sune') nextDefault = SUNE_THEME;
+			else if (brand === 'midnight') nextDefault = STEEL_THEME;
+			else if (brand === 'custom') nextDefault = GRAPHITE_THEME;
 			if (nextPreview === brandPreview && nextDefault === brandDefault) return;
 			brandPreview = nextPreview;
 			brandDefault = nextDefault;
+			set(effectiveId());
+		},
+		setUserTheme: (username: string | null, preview = false) => {
+			if (!username) {
+				// No user — fallback to default
+				if (preview) brandPreview = null;
+				else brandDefault = DEFAULT_THEME;
+				set(effectiveId());
+				return;
+			}
+			const themeId = getThemeForUser(username);
+			if (!themeId) return;
+			if (preview) {
+				if (brandPreview === themeId) return;
+				brandPreview = themeId as BrandingType;
+			} else {
+				if (brandDefault === themeId) return;
+				brandDefault = themeId;
+			}
 			set(effectiveId());
 		},
 		resetBrandTheme: () => {

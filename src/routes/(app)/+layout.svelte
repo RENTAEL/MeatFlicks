@@ -139,6 +139,8 @@
 	<div class="midnight-bg" aria-hidden="true"><div class="midnight-bg-overlay"></div></div>
 	<div class="midnight-neon-bg" aria-hidden="true"><div class="midnight-neon-bg-overlay"></div></div>
 	<div class="custom-bg" aria-hidden="true"><div class="custom-bg-overlay"></div></div>
+	<div class="amber-bg" aria-hidden="true"><div class="amber-bg-overlay"></div></div>
+	<div class="peruser-bg" aria-hidden="true"><div class="peruser-bg-overlay"></div></div>
 
 <ModeWatcher defaultMode="dark" themeColors={{ dark: '#0a0a1a', light: '#0a0a1a' }} />
 <ThemeContext>
@@ -647,6 +649,57 @@
 		background:
 			radial-gradient(ellipse 96% 82% at 50% 36%, transparent 52%, rgba(10, 10, 15, 0.28) 78%, rgba(10, 10, 15, 0.72) 100%),
 			linear-gradient(180deg, rgba(10, 10, 15, 0.14) 0%, transparent 40%, rgba(10, 10, 15, 0.5) 100%);
+	}
+
+	/* Amber — warm ember */
+	.amber-bg {
+		position: fixed;
+		inset: 0;
+		z-index: -1;
+		pointer-events: none;
+		opacity: 0;
+		transition: opacity 0.6s ease;
+		will-change: opacity;
+		background:
+			radial-gradient(ellipse 90% 60% at 20% 20%, rgba(245, 158, 11, 0.14) 0%, transparent 60%),
+			radial-gradient(ellipse 70% 50% at 80% 80%, rgba(234, 88, 12, 0.08) 0%, transparent 60%),
+			linear-gradient(180deg, #1a1408 0%, #241a0c 60%, #0a0a0f 100%);
+	}
+	.amber-bg-overlay {
+		position: absolute;
+		inset: 0;
+		background:
+			radial-gradient(ellipse 96% 82% at 50% 36%, transparent 52%, rgba(26, 20, 8, 0.28) 78%, rgba(10, 10, 15, 0.72) 100%),
+			linear-gradient(180deg, rgba(26, 20, 8, 0.18) 0%, transparent 40%, rgba(10, 10, 15, 0.5) 100%);
+	}
+	:global([data-theme='amber']) .amber-bg,
+	:global([data-branding='amber']) .amber-bg {
+		opacity: 1;
+	}
+
+	/* Per-user generated — uses theme accent via CSS variables */
+	.peruser-bg {
+		position: fixed;
+		inset: 0;
+		z-index: -1;
+		pointer-events: none;
+		opacity: 0;
+		transition: opacity 0.6s ease;
+		will-change: opacity;
+		background:
+			radial-gradient(ellipse 90% 60% at 20% 20%, var(--accent-glow) 0%, transparent 60%),
+			linear-gradient(180deg, var(--bg) 0%, var(--bg-card) 100%);
+	}
+	.peruser-bg-overlay {
+		position: absolute;
+		inset: 0;
+		background:
+			radial-gradient(ellipse 96% 82% at 50% 36%, transparent 52%, rgba(0, 0, 0, 0.28) 78%, rgba(0, 0, 0, 0.72) 100%),
+			linear-gradient(180deg, rgba(0, 0, 0, 0.14) 0%, transparent 40%, rgba(0, 0, 0, 0.5) 100%);
+	}
+	:global([data-peruser-theme^='peruser_']) .peruser-bg,
+	:global([data-theme^='peruser_']) .peruser-bg {
+		opacity: 1;
 	}
 
 	@media (max-width: 768px) {

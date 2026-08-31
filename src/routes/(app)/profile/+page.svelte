@@ -13,6 +13,7 @@
 	import SuneRoseLogo from '$lib/components/branding/SuneRoseLogo.svelte';
 	import { page as pageState } from '$app/state';
 	import { isUser2 } from '$lib/experiments/user2';
+	import { getThemeForUser } from '$lib/themes/perUserThemes';
 	import TimeSinceJoined from '$lib/experiments/user2/TimeSinceJoined.svelte';
 	import StreakBadge from '$lib/experiments/user2/StreakBadge.svelte';
 	import RotatingTagline from '$lib/experiments/user2/RotatingTagline.svelte';
@@ -66,6 +67,15 @@
 			displayName: effectiveProfile.username,
 			email: effectiveProfile.email ?? null
 		}) === 'custom'
+	);
+	const isPerUserPremium = $derived(
+		!!getThemeForUser(effectiveProfile.username) &&
+			!['sune', 'sofia', 'demon_slayer', 'midnight_neon', 'midnight', 'custom'].includes(
+				getBranding({
+					displayName: effectiveProfile.username,
+					email: effectiveProfile.email ?? null
+				}) ?? ''
+			)
 	);
 	const isUser2Profile = $derived(
 		isUser2(effectiveProfile as any) || isUser2(pageState.data.user as any)
@@ -220,6 +230,17 @@
 			<div class="custom-motif" aria-hidden="true">✦</div>
 		</div>
 	{/if}
+	{#if isPerUserPremium}
+		<div class="peruser-banner">
+			<div class="peruser-banner-overlay" aria-hidden="true"></div>
+			<div class="peruser-banner-inner">
+				<p class="peruser-eyebrow">✦ Premium ✦</p>
+				<h1 class="peruser-title">Welcome, {effectiveProfile.username}</h1>
+				<p class="peruser-sub">Your personal space, uniquely yours.</p>
+			</div>
+			<div class="peruser-motif" aria-hidden="true">✦</div>
+		</div>
+	{/if}
 	<div
 		class="profile-header glass"
 		class:demon-slayer-header={isDemonSlayer}
@@ -228,6 +249,7 @@
 		class:midnight-header={isMidnightBrand}
 		class:midnight-neon-header={isMidnightNeonBrand}
 		class:custom-header={isCustomBrand}
+		class:peruser-header={isPerUserPremium}
 	>
 		{#if isDemonSlayer}
 			<div class="avatar-demon">
@@ -733,6 +755,71 @@
 		font-size: 2.8rem;
 		opacity: 0.08;
 		pointer-events: none;
+	}
+
+	.peruser-banner {
+		position: relative;
+		overflow: hidden;
+		margin-bottom: 1.5rem;
+		padding: 1.15rem 1.35rem;
+		border-radius: var(--radius-lg);
+		background:
+			radial-gradient(ellipse 80% 100% at 0% 0%, var(--accent-glow) 0%, transparent 55%),
+			linear-gradient(135deg, var(--accent-soft), transparent);
+		border: 1px solid var(--border-stream);
+		box-shadow:
+			0 4px 20px rgba(0, 0, 0, 0.35),
+			0 0 28px var(--accent-glow);
+	}
+
+	.peruser-banner-inner {
+		position: relative;
+		z-index: 1;
+		max-width: 620px;
+	}
+
+	.peruser-eyebrow {
+		margin: 0 0 0.35rem;
+		font-size: 0.7rem;
+		letter-spacing: 0.28em;
+		text-transform: uppercase;
+		font-weight: 700;
+		color: var(--accent-stream);
+	}
+
+	.peruser-title {
+		margin: 0;
+		font-size: 1.35rem;
+		font-weight: 800;
+		line-height: 1.15;
+		letter-spacing: -0.01em;
+		color: var(--text-primary);
+		font-family: 'Playfair Display', Georgia, serif;
+	}
+
+	.peruser-sub {
+		margin: 0.4rem 0 0;
+		font-size: 0.9rem;
+		color: var(--text-secondary);
+		max-width: 46ch;
+	}
+
+	.peruser-motif {
+		position: absolute;
+		top: 50%;
+		right: 1.2rem;
+		transform: translateY(-50%);
+		font-size: 2.8rem;
+		opacity: 0.08;
+		pointer-events: none;
+		color: var(--accent-stream);
+	}
+
+	.peruser-header {
+		position: relative;
+		overflow: hidden;
+		border: 1px solid var(--border-stream) !important;
+		box-shadow: 0 0 0 1px var(--border-stream), 0 8px 28px rgba(0, 0, 0, 0.35);
 	}
 
 	.sofia-header {

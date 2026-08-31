@@ -1452,6 +1452,41 @@ textarea {
 	}
 }
 
+/* Per-user premium — every user gets Sune-level polish, distinct accent */
+[data-theme='steel'] h1,
+[data-theme='steel'] h2,
+[data-theme='steel'] h3,
+[data-theme='amber'] h1,
+[data-theme='amber'] h2,
+[data-theme='amber'] h3,
+[data-theme='graphite'] h1,
+[data-theme='graphite'] h2,
+[data-theme='graphite'] h3,
+[data-peruser-theme^='peruser_'] h1,
+[data-peruser-theme^='peruser_'] h2,
+[data-peruser-theme^='peruser_'] h3 {
+	font-family: 'Playfair Display', Georgia, serif;
+	letter-spacing: -0.01em;
+}
+
+[data-theme='steel'] .card-cosmic:hover,
+[data-theme='amber'] .card-cosmic:hover,
+[data-theme='graphite'] .card-cosmic:hover,
+[data-peruser-theme^='peruser_'] .card-cosmic:hover {
+	transform: translateY(-3px);
+}
+
+[data-theme='steel'] ::-webkit-scrollbar-thumb {
+	background: linear-gradient(180deg, rgba(107, 138, 173, 0.5), rgba(168, 192, 216, 0.45));
+}
+[data-theme='amber'] ::-webkit-scrollbar-thumb {
+	background: linear-gradient(180deg, rgba(245, 158, 11, 0.5), rgba(253, 230, 138, 0.45));
+}
+[data-theme='graphite'] ::-webkit-scrollbar-thumb,
+[data-peruser-theme^='peruser_'] ::-webkit-scrollbar-thumb {
+	background: linear-gradient(180deg, var(--accent), var(--accent-hover));
+}
+
 /* Sune accent variants — persisted to localStorage, hidden from other users */
 [data-theme='sune'][data-sune-accent='rose-gold'],
 [data-branding='sune'][data-sune-accent='rose-gold'] {

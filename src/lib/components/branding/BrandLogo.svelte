@@ -5,6 +5,7 @@
 	import { themeStore } from '$lib/stores/theme';
 	import { previewStore } from '$lib/state/stores/previewStore.svelte.ts';
 	import { impersonationStore } from '$lib/state/stores/impersonationStore.svelte.ts';
+	import { getThemeForUser } from '$lib/themes/perUserThemes';
 	import CustomLogo from './CustomLogo.svelte';
 	import MidnightLogo from './MidnightLogo.svelte';
 	import SofiaLogo from './SofiaLogo.svelte';
@@ -56,8 +57,16 @@
 	);
 
 	$effect(() => {
-		// Brand themes: Sofia, Demon Slayer and Midnight Neon carry their palettes
-		if (previewBranding === 'sofia') {
+		// Per-user theme takes precedence — every user gets a distinct premium look
+		// Sune stays as reference, other users get their own accent/background
+		const effectiveUsername = impersonated?.username ?? sessionUser?.username ?? firebaseUser?.displayName ?? null;
+		const perUserTheme = getThemeForUser(effectiveUsername);
+		const isPerUserPreview = !!impersonated && !!perUserTheme;
+
+		if (isPerUserPreview) {
+			// Impersonating any user — show that user's premium theme
+			themeStore.setUserTheme(impersonated!.username, true);
+		} else if (previewBranding === 'sofia') {
 			themeStore.setBrandTheme('sofia', true);
 		} else if (branding === 'demon_slayer' || previewBranding === 'demon_slayer') {
 			themeStore.setBrandTheme('demon_slayer', true);
@@ -65,16 +74,22 @@
 			themeStore.setBrandTheme('midnight_neon', true);
 		} else if (branding === 'sune' || previewBranding === 'sune') {
 			themeStore.setBrandTheme('sune', true);
+		} else if (perUserTheme && perUserTheme !== 'dark') {
+			// Actual user has a per-user premium theme (steel/amber/graphite/generated)
+			themeStore.setUserTheme(effectiveUsername, false);
 		} else {
 			themeStore.setBrandTheme(branding);
 		}
 		// Premium: set data-branding for immersive backgrounds (all brands get equal polish)
 		// Sune's view is the template, but each brand gets its own premium treatment.
 		const activeBranding = previewBranding && previewBranding !== 'streamium' ? previewBranding : branding;
+		const activePerUser = perUserTheme;
 		if (typeof document !== 'undefined') {
 			const el = document.documentElement;
 			if (activeBranding) el.setAttribute('data-branding', activeBranding);
 			else el.removeAttribute('data-branding');
+			if (activePerUser) el.setAttribute('data-peruser-theme', activePerUser);
+			else el.removeAttribute('data-peruser-theme');
 			// Also reflect effective theme for Sune parity: any impersonation shows premium
 			if (impersonated) el.setAttribute('data-premium', 'true');
 			else el.removeAttribute('data-premium');

@@ -38,7 +38,10 @@ export type ThemeId =
 	| 'sofia'
 	| 'demon_slayer'
 	| 'midnight_neon'
-	| 'sune';
+	| 'sune'
+	| 'steel'
+	| 'amber'
+	| 'graphite';
 
 /** The theme that carries the Sofia the First series look (cocolemon's brand default). */
 export const SOFIA_THEME: ThemeId = 'sofia';
@@ -51,6 +54,15 @@ export const MIDNIGHT_NEON_THEME: ThemeId = 'midnight_neon';
 
 /** Sune — dark regal "Rose Court" theme (gold + burgundy) for the Sune account. */
 export const SUNE_THEME: ThemeId = 'sune';
+
+/** Steel — cool midnight-blue / steel for ghostbunny_779 */
+export const STEEL_THEME: ThemeId = 'steel';
+
+/** Amber — warm amber / ember for the next user */
+export const AMBER_THEME: ThemeId = 'amber';
+
+/** Graphite — clean monochrome / graphite for user */
+export const GRAPHITE_THEME: ThemeId = 'graphite';
 
 export const themes: Record<ThemeId, ThemeColors> = {
 	dark: {
@@ -367,6 +379,90 @@ export const themes: Record<ThemeId, ThemeColors> = {
     gradientBrandHorizontal: 'linear-gradient(90deg, #8e1d2e, #d4af37)',
     border: 'rgba(212, 175, 55, 0.16)',
     borderStrong: 'rgba(212, 175, 55, 0.32)',
+    shadowSm: '0 2px 8px rgba(0, 0, 0, 0.35)',
+    shadowMd: '0 4px 16px rgba(0, 0, 0, 0.45)',
+    shadowLg: '0 8px 32px rgba(0, 0, 0, 0.5)',
+    success: '#4ade80',
+    danger: '#f87171',
+    warning: '#fbbf24'
+  },
+  steel: {
+    // Steel — cool midnight-blue / steel for ghostbunny_779
+    name: 'steel',
+    label: 'Steel',
+    emoji: '⚙️',
+    isDark: true,
+    hidden: true,
+    bg: '#0c111d',
+    bgCard: '#141c2a',
+    bgElevated: '#1b263a',
+    bgInput: '#101828',
+    textPrimary: '#e6eef8',
+    textSecondary: '#8aa0c0',
+    textTertiary: '#5a7290',
+    accent: '#6b8aad',
+    accentHover: '#8aa8c8',
+    accentGlow: 'rgba(107, 138, 173, 0.28)',
+    gradientBrand: 'linear-gradient(135deg, #3a5a7f 0%, #6b8aad 50%, #a8c0d8 100%)',
+    gradientBrandHorizontal: 'linear-gradient(90deg, #3a5a7f, #a8c0d8)',
+    border: 'rgba(107, 138, 173, 0.14)',
+    borderStrong: 'rgba(107, 138, 173, 0.26)',
+    shadowSm: '0 2px 8px rgba(0, 0, 0, 0.35)',
+    shadowMd: '0 4px 16px rgba(0, 0, 0, 0.45)',
+    shadowLg: '0 8px 32px rgba(0, 0, 0, 0.5)',
+    success: '#4ade80',
+    danger: '#f87171',
+    warning: '#fbbf24'
+  },
+  amber: {
+    // Amber — warm amber / ember
+    name: 'amber',
+    label: 'Amber',
+    emoji: '🔥',
+    isDark: true,
+    hidden: true,
+    bg: '#1a1408',
+    bgCard: '#241a0c',
+    bgElevated: '#2e2110',
+    bgInput: '#1e160a',
+    textPrimary: '#fdf0d5',
+    textSecondary: '#c9a86a',
+    textTertiary: '#8a6a3a',
+    accent: '#f59e0b',
+    accentHover: '#fbbf24',
+    accentGlow: 'rgba(245, 158, 11, 0.28)',
+    gradientBrand: 'linear-gradient(135deg, #b45309 0%, #f59e0b 50%, #fde68a 100%)',
+    gradientBrandHorizontal: 'linear-gradient(90deg, #b45309, #fde68a)',
+    border: 'rgba(245, 158, 11, 0.14)',
+    borderStrong: 'rgba(245, 158, 11, 0.26)',
+    shadowSm: '0 2px 8px rgba(0, 0, 0, 0.35)',
+    shadowMd: '0 4px 16px rgba(0, 0, 0, 0.45)',
+    shadowLg: '0 8px 32px rgba(0, 0, 0, 0.5)',
+    success: '#4ade80',
+    danger: '#f87171',
+    warning: '#f59e0b'
+  },
+  graphite: {
+    // Graphite — clean monochrome / graphite for user
+    name: 'graphite',
+    label: 'Graphite',
+    emoji: '⬛',
+    isDark: true,
+    hidden: true,
+    bg: '#0f0f0f',
+    bgCard: '#1a1a1a',
+    bgElevated: '#242424',
+    bgInput: '#141414',
+    textPrimary: '#f5f5f5',
+    textSecondary: '#a3a3a3',
+    textTertiary: '#737373',
+    accent: '#a1a1aa',
+    accentHover: '#d4d4d8',
+    accentGlow: 'rgba(161, 161, 170, 0.18)',
+    gradientBrand: 'linear-gradient(135deg, #52525b 0%, #a1a1aa 50%, #e4e4e7 100%)',
+    gradientBrandHorizontal: 'linear-gradient(90deg, #52525b, #e4e4e7)',
+    border: 'rgba(161, 161, 170, 0.1)',
+    borderStrong: 'rgba(161, 161, 170, 0.18)',
     shadowSm: '0 2px 8px rgba(0, 0, 0, 0.35)',
     shadowMd: '0 4px 16px rgba(0, 0, 0, 0.45)',
     shadowLg: '0 8px 32px rgba(0, 0, 0, 0.5)',

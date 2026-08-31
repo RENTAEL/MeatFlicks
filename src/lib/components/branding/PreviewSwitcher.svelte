@@ -7,6 +7,8 @@
 	import { previewStore } from '$lib/state/stores/previewStore.svelte.ts';
 	import { impersonationStore } from '$lib/state/stores/impersonationStore.svelte.ts';
 	import { watchlist } from '$lib/state/stores/watchlistStore.svelte.ts';
+	import { getSwatchForUser } from '$lib/themes/perUserThemes';
+	import { themes } from '$lib/themes';
 
 	let { variant = 'desktop' }: { variant?: 'desktop' | 'mobile' } = $props();
 
@@ -176,6 +178,7 @@
 						<div class="preview-panel-title">All users</div>
 						<div class="preview-user-list">
 							{#each userList as user (user.id)}
+								{@const swatch = getSwatchForUser(user.username)}
 								<button
 									type="button"
 									class="preview-option"
@@ -183,6 +186,13 @@
 									role="menuitem"
 									onclick={() => impersonate(user)}
 								>
+									<span
+										class="preview-swatch"
+										style={swatch
+											? `background: ${swatch.accent}; box-shadow: 0 0 6px ${swatch.accent}66;`
+											: ''}
+										aria-hidden="true"
+									></span>
 									<span class="preview-option-label">{user.username}</span>
 									<span class="preview-option-hint">{user.email || 'no email'}</span>
 									{#if isUserActive(user.id)}
@@ -230,12 +240,20 @@
 			{#if userList.length > 0}
 				<div class="preview-mobile-title">All users</div>
 				{#each userList as user (user.id)}
+					{@const swatch = getSwatchForUser(user.username)}
 					<button
 						type="button"
 						class="menu-item preview-mobile-option"
 						class:selected={isUserActive(user.id)}
 						onclick={() => impersonate(user)}
 					>
+						<span
+							class="preview-swatch"
+							style={swatch
+								? `background: ${swatch.accent}; box-shadow: 0 0 6px ${swatch.accent}66;`
+								: ''}
+							aria-hidden="true"
+						></span>
 						<span class="preview-option-label">{user.username}</span>
 						<span class="preview-option-hint">{user.email || 'no email'}</span>
 						{#if isUserActive(user.id)}
@@ -503,6 +521,30 @@
 		justify-content: center;
 		border-radius: 12px;
 		font-weight: 700;
+	}
+
+	.preview-swatch {
+		width: 10px;
+		height: 10px;
+		border-radius: 50%;
+		flex-shrink: 0;
+		border: 1px solid rgba(255, 255, 255, 0.15);
+		box-shadow: 0 0 4px rgba(0, 0, 0, 0.2);
+	}
+
+	.preview-user-list {
+		max-height: 260px;
+		overflow-y: auto;
+		scrollbar-width: thin;
+		scrollbar-color: rgba(212, 175, 55, 0.22) transparent;
+	}
+
+	.preview-user-list::-webkit-scrollbar {
+		width: 6px;
+	}
+	.preview-user-list::-webkit-scrollbar-thumb {
+		background: rgba(212, 175, 55, 0.22);
+		border-radius: 999px;
 	}
 
 	@media (prefers-reduced-motion: reduce) {
