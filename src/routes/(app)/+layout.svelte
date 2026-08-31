@@ -32,6 +32,7 @@
 	import PrivateTabModal from '$lib/components/PrivateTabModal.svelte';
 	import UserFab from '$lib/components/UserFab.svelte';
 	import DeveloperBadge from '$lib/components/DeveloperBadge.svelte';
+	import SuneLoading from '$lib/components/branding/SuneLoading.svelte';
 
 	// Fewer ambient particles on small screens — heavy blurred layers over
 	// video cost frames on low-end phones.
@@ -39,6 +40,7 @@
 	// Ambient animations freeze entirely while a video is playing so the
 	// decoder never competes for frames.
 	let videoLive = $state(false);
+	let suneLoading = $state(true);
 	onMount(() => {
 		const mq = window.matchMedia('(max-width: 768px)');
 		const apply = () => (particleCount = mq.matches ? 8 : 20);
@@ -48,10 +50,28 @@
 			videoLive = Boolean((e as CustomEvent).detail?.playing);
 		};
 		window.addEventListener('streamium-playback', onPlayback);
+		const t = setTimeout(() => (suneLoading = false), 900);
 		return () => {
 			mq.removeEventListener('change', apply);
 			window.removeEventListener('streamium-playback', onPlayback);
+			clearTimeout(t);
 		};
+	});
+
+	const suneLoadingVisible = $derived.by(() => {
+		if (!suneLoading) return false;
+		if (typeof document !== 'undefined' && document.documentElement.getAttribute('data-branding') === 'sune') return true;
+		// Also check effective user directly as fallback
+		const u = $page.data?.user;
+		if (!u) return false;
+		const imp = typeof localStorage !== 'undefined' ? localStorage.getItem('impersonated_user') : null;
+		if (imp) {
+			try {
+				const p = JSON.parse(imp);
+				if (p?.username?.toLowerCase() === 'sune') return true;
+			} catch {}
+		}
+		return u.username?.toLowerCase() === 'sune';
 	});
 
 	onMount(() => {
@@ -104,6 +124,12 @@
 		name="description"
 		content="Movies, TV series, and Afrikaans content — ad-free, buffer-free, hassle-free."
 	/>
+	<link rel="preconnect" href="https://fonts.googleapis.com" />
+	<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="" />
+	<link
+		href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600;700;800&family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&display=swap"
+		rel="stylesheet"
+	/>
 </svelte:head>
 
 {#if $page.data?.user}
@@ -141,6 +167,10 @@
 	<div class="custom-bg" aria-hidden="true"><div class="custom-bg-overlay"></div></div>
 	<div class="amber-bg" aria-hidden="true"><div class="amber-bg-overlay"></div></div>
 	<div class="peruser-bg" aria-hidden="true"><div class="peruser-bg-overlay"></div></div>
+
+	{#if suneLoadingVisible}
+		<SuneLoading progress={100} />
+	{/if}
 
 <ModeWatcher defaultMode="dark" themeColors={{ dark: '#0a0a1a', light: '#0a0a1a' }} />
 <ThemeContext>

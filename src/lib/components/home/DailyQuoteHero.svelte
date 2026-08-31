@@ -14,6 +14,9 @@ import {
 	import ShareButton from '$lib/components/utils/ShareButton.svelte';
 	import { buildQuoteShareUrl } from '$lib/utils/quoteShare';
 	import { getFallbackQuote } from '$lib/quotes/fallbackQuotes';
+	import { getBranding } from '$lib/utils/branding';
+	import { impersonationStore } from '$lib/state/stores/impersonationStore.svelte.ts';
+	import { Copy, Check as CheckCopy } from '@lucide/svelte';
 
 	let { onopen }: { onopen: () => void } = $props();
 
@@ -23,6 +26,13 @@ import {
 	let loadError = $state(false);
 	let saveState = $state<'idle' | 'saving' | 'saved' | 'error'>('idle');
 	let savedCount = $state(0);
+	let copied = $state(false);
+	let copyTimeout: ReturnType<typeof setTimeout> | null = null;
+
+	const effectiveUserForQuote = $derived(impersonationStore.current ?? page.data.user);
+	const isSuneQuote = $derived(
+		!!effectiveUserForQuote && getBranding({ displayName: effectiveUserForQuote.username, email: effectiveUserForQuote.email ?? null }) === 'sune'
+	);
 
 	const shareUrl = $derived(
 		quote ? new URL(buildQuoteShareUrl(quote), page.url.origin).toString() : ''
@@ -49,6 +59,36 @@ import {
 		preferences.setPreference('quoteCategory', next);
 		category = next;
 		void load(next);
+	}
+
+	async function copyQuote() {
+		if (!quote) return;
+		const text = `"${quote.quote}" — ${quote.author}`;
+		try {
+			await navigator.clipboard.writeText(text);
+			copied = true;
+			if (copyTimeout) clearTimeout(copyTimeout);
+			copyTimeout = setTimeout(() => (copied = false), 1800);
+		} catch {
+			// fallback: try execCommand
+			try {
+				const ta = document.createElement('textarea');
+				ta.value = text;
+				document.body.appendChild(ta);
+				ta.select();
+				document.execCommand('copy');
+				ta.remove();
+				copied = true;
+				if (copyTimeout) clearTimeout(copyTimeout);
+				copyTimeout = setTimeout(() => (copied = false), 1800);
+			} catch {}
+		}
+	}
+
+	function refreshQuote() {
+		// Respect daily cache: shuffle to a new category (each category cached per day)
+		// so we get a fresh curated quote without breaking the daily stability
+		shuffle();
 	}
 
 	async function saveQuote() {
@@ -95,8 +135,11 @@ import {
 	});
 </script>
 
-<section class="dq-hero" aria-label="Daily quote">
+<section class="dq-hero" class:sune-quote={isSuneQuote} aria-label="Daily quote">
 	<div class="dq-glow" aria-hidden="true"></div>
+	{#if isSuneQuote}
+		<div class="dq-rose-motif" aria-hidden="true">❦</div>
+	{/if}
 	<QuoteIcon class="dq-mark" size={84} aria-hidden="true" strokeWidth={1.5} />
 
 	<div class="dq-content">
@@ -169,6 +212,32 @@ import {
 					>
 						<Shuffle size={15} aria-hidden="true" />
 					</button>
+					<button
+						type="button"
+						class="dq-btn dq-ghost"
+						onclick={copyQuote}
+						aria-label="Copy quote to clipboard"
+					>
+						{#if copied}
+							<CheckCopy size={15} aria-hidden="true" />
+							Copied
+						{:else}
+							<Copy size={15} aria-hidden="true" />
+							Copy
+						{/if}
+					</button>
+					{#if isSuneQuote}
+						<button
+							type="button"
+							class="dq-btn dq-ghost"
+							onclick={refreshQuote}
+							aria-label="New quote (respects daily cache)"
+							title="New quote — respects daily cache"
+						>
+							<Sparkles size={15} aria-hidden="true" />
+							New quote
+						</button>
+					{/if}
 				</div>
 			</footer>
 		{/if}
@@ -364,6 +433,34 @@ import {
 		color: var(--text-secondary, #a1a1aa);
 		font-size: 1rem;
 		margin: 0.5rem 0 0;
+	}
+
+	.sune-quote {
+		border-color: rgba(212, 175, 55, 0.22) !important;
+		background:
+			radial-gradient(ellipse 90% 60% at 10% 20%, rgba(212, 175, 55, 0.08) 0%, transparent 60%),
+			linear-gradient(180deg, rgba(142, 29, 46, 0.06), transparent) !important;
+		box-shadow:
+			0 8px 32px rgba(0, 0, 0, 0.45),
+			0 0 24px rgba(212, 175, 55, 0.08) !important;
+	}
+
+	.sune-quote .dq-text {
+		font-family: 'Playfair Display', Georgia, serif;
+		letter-spacing: -0.01em;
+		text-shadow: 0 0 12px rgba(212, 175, 55, 0.1);
+	}
+
+	.dq-rose-motif {
+		position: absolute;
+		top: 50%;
+		right: 1.2rem;
+		transform: translateY(-50%);
+		font-size: 3.2rem;
+		color: #d4af37;
+		opacity: 0.07;
+		pointer-events: none;
+		z-index: 0;
 	}
 
 	@keyframes dq-shimmer {

@@ -18,6 +18,10 @@
 	import { onMount } from 'svelte';
 	import { getImageUrl, getBackdropSrcSet } from '$lib/utils/image';
 	import { getScrollY, addScrollListener } from '$lib/utils/scrollPosition';
+	import SunePetals from '$lib/components/branding/SunePetals.svelte';
+	import { getBranding } from '$lib/utils/branding';
+	import { impersonationStore } from '$lib/state/stores/impersonationStore.svelte.ts';
+	import { page as pageState } from '$app/state';
 
 	const WP_CODE_RE = /^[ABCDEFGHJKMNPQRSTUVWXYZ23456789]{6}$/;
 	let wpCode = $state('');
@@ -154,6 +158,18 @@
 	$effect(() => {
 		return addScrollListener(onHeroScroll);
 	});
+
+	const effectiveUserForHome = $derived(impersonationStore.current ?? pageState.data.user);
+	const isSuneHome = $derived(
+		!!effectiveUserForHome &&
+			getBranding({ displayName: effectiveUserForHome.username, email: effectiveUserForHome.email ?? null }) === 'sune'
+	);
+	const homeHour = new Date().getHours();
+	const homeGreeting =
+		homeHour < 12 ? 'Good morning' : homeHour < 17 ? 'Good afternoon' : homeHour < 21 ? 'Good evening' : 'Good night';
+	const homeDisplayName = $derived(
+		effectiveUserForHome ? effectiveUserForHome.username.charAt(0).toUpperCase() + effectiveUserForHome.username.slice(1) : 'Sune'
+	);
 </script>
 
 <SEOHead
@@ -201,14 +217,25 @@
 		{/await}
 		<div class="hero-gradient"></div>
 		<div class="hero-scrim"></div>
+		{#if isSuneHome}
+			<SunePetals count={10} enabled={true} />
+		{/if}
 	</div>
 
 	<div class="hero-content container" id="hero-content">
-		<span class="hero-badge">✦ New & Trending</span>
-		<h1 id="hero-title" class="hero-title">Stream Without<br />Limits</h1>
-		<p class="hero-subtitle">
+		{#if isSuneHome}
+			<span class="hero-badge" style="background: rgba(142,29,46,0.18); color: #e7c663; border-color: rgba(212,175,55,0.22);">✦ Rose Court ✦</span>
+			<h1 id="hero-title" class="hero-title" style="font-family: 'Playfair Display', Georgia, serif; letter-spacing: -0.02em; text-shadow: 0 2px 18px rgba(0,0,0,0.6), 0 0 26px rgba(0,0,0,0.35);">{homeGreeting}, {homeDisplayName}</h1>
+			<p class="hero-subtitle" style="font-family: 'Cormorant Garamond', Georgia, serif; font-style: italic; color: #d9c4b6;">
+				Where shadows bloom — your personal Rose Court awaits.
+			</p>
+		{:else}
+			<span class="hero-badge">✦ New & Trending</span>
+			<h1 id="hero-title" class="hero-title">Stream Without<br />Limits</h1>
+			<p class="hero-subtitle">
 			Movies, TV series, and Afrikaans content — ad-free, buffer-free, hassle-free.
-		</p>
+			</p>
+		{/if}
 		<div class="hero-actions">
 			<a href="/movies" class="hero-btn hero-btn-primary" data-sveltekit-preload-data="hover">
 				▶ Browse Movies
