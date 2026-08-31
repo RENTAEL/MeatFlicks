@@ -126,10 +126,19 @@
 	<div class="demon-slayer-bg-overlay"></div>
 </div>
 
-<!-- Sune custom background for the Rose Court — gated to sune theme -->
-<div class="sune-bg" class:ambient-frozen={videoLive} aria-hidden="true">
-	<div class="sune-bg-overlay"></div>
-</div>
+	<!-- Sune custom background for the Rose Court — gated to sune theme -->
+	<div class="sune-bg" class:ambient-frozen={videoLive} aria-hidden="true">
+		<div class="sune-bg-image" aria-hidden="true"></div>
+		<div class="sune-bg-vignette" aria-hidden="true"></div>
+		<div class="sune-bg-gradient" aria-hidden="true"></div>
+		<div class="sune-bg-overlay"></div>
+	</div>
+
+	<!-- Premium immersive backgrounds — each brand gets Sune-level polish, gated by data-branding -->
+	<div class="sofia-bg" aria-hidden="true"><div class="sofia-bg-overlay"></div></div>
+	<div class="midnight-bg" aria-hidden="true"><div class="midnight-bg-overlay"></div></div>
+	<div class="midnight-neon-bg" aria-hidden="true"><div class="midnight-neon-bg-overlay"></div></div>
+	<div class="custom-bg" aria-hidden="true"><div class="custom-bg-overlay"></div></div>
 
 <ModeWatcher defaultMode="dark" themeColors={{ dark: '#0a0a1a', light: '#0a0a1a' }} />
 <ThemeContext>
@@ -427,19 +436,98 @@
 		inset: 0;
 		z-index: -1;
 		pointer-events: none;
+		opacity: 0;
+		transition: opacity 0.6s ease;
+		will-change: opacity;
+		overflow: hidden;
+	}
+
+	:global([data-theme='sune']) .sune-bg,
+	:global([data-branding='sune']) .sune-bg {
+		opacity: 1;
+	}
+
+	.sune-bg-image {
+		position: absolute;
+		inset: -4%;
 		background-image: url('/personal/sune-roses.jpg');
 		background-size: cover;
 		background-position: center 42%;
 		background-repeat: no-repeat;
 		image-rendering: -webkit-optimize-contrast;
 		image-rendering: high-quality;
+		filter: brightness(0.92) saturate(1.04) contrast(1.02);
+		will-change: transform;
+		animation: suneKenBurns 48s ease-in-out infinite alternate;
+	}
+
+	.sune-bg-vignette {
+		position: absolute;
+		inset: 0;
+		background: radial-gradient(ellipse 92% 78% at 50% 36%, transparent 52%, rgba(8, 6, 9, 0.18) 78%, rgba(8, 6, 9, 0.72) 100%);
+		pointer-events: none;
+	}
+
+	.sune-bg-gradient {
+		position: absolute;
+		inset: 0;
+		background: linear-gradient(180deg, rgba(142, 29, 46, 0.14) 0%, rgba(142, 29, 46, 0.06) 38%, transparent 58%, rgba(8, 6, 9, 0.55) 100%);
+		opacity: 0.9;
+		mix-blend-mode: soft-light;
+		animation: suneGradientShift 22s ease-in-out infinite alternate;
+		will-change: opacity, transform;
+		pointer-events: none;
+	}
+
+	@keyframes suneKenBurns {
+		0% {
+			transform: scale(1) translate(0, 0);
+		}
+		100% {
+			transform: scale(1.08) translate(-1.2%, 0.8%);
+		}
+	}
+
+	@keyframes suneGradientShift {
+		0% {
+			opacity: 0.75;
+			transform: translateY(0);
+		}
+		50% {
+			opacity: 0.9;
+		}
+		100% {
+			opacity: 0.85;
+			transform: translateY(-1.5%);
+		}
+	}
+
+	@media (prefers-reduced-motion: reduce) {
+		.sune-bg-image,
+		.sune-bg-gradient {
+			animation: none !important;
+		}
+	}
+
+	/* Premium — every brand gets Sune-level polish, gated by data-branding */
+	.sofia-bg,
+	.midnight-bg,
+	.midnight-neon-bg,
+	.custom-bg {
+		position: fixed;
+		inset: 0;
+		z-index: -1;
+		pointer-events: none;
 		opacity: 0;
 		transition: opacity 0.6s ease;
 		will-change: opacity;
-		filter: brightness(0.92) saturate(1.04) contrast(1.02);
 	}
 
-	:global([data-theme='sune']) .sune-bg {
+	:global([data-branding='sofia']) .sofia-bg,
+	:global([data-branding='midnight']) .midnight-bg,
+	:global([data-branding='midnight_neon']) .midnight-neon-bg,
+	:global([data-branding='custom']) .custom-bg,
+	:global([data-branding='demon_slayer']) .demon-slayer-bg {
 		opacity: 1;
 	}
 
@@ -498,6 +586,67 @@
 				linear-gradient(180deg, rgba(8, 6, 9, 0.32) 0%, rgba(8, 6, 9, 0.6) 100%),
 				radial-gradient(ellipse 90% 40% at 50% 4%, rgba(212, 175, 55, 0.07) 0%, transparent 60%);
 		}
+	}
+
+	/* Sofia — Enchancia: royal plum + amulet violet + crown gold */
+	.sofia-bg {
+		background:
+			radial-gradient(ellipse 90% 60% at 20% 20%, rgba(200, 168, 255, 0.14) 0%, transparent 60%),
+			radial-gradient(ellipse 70% 50% at 80% 80%, rgba(252, 211, 77, 0.08) 0%, transparent 60%),
+			linear-gradient(180deg, #150c22 0%, #1e1233 60%, #0a0a0f 100%);
+	}
+	.sofia-bg-overlay {
+		position: absolute;
+		inset: 0;
+		background:
+			radial-gradient(ellipse 96% 82% at 50% 36%, transparent 52%, rgba(21, 12, 34, 0.28) 78%, rgba(10, 10, 18, 0.72) 100%),
+			linear-gradient(180deg, rgba(21, 12, 34, 0.18) 0%, transparent 40%, rgba(10, 10, 18, 0.5) 100%),
+			radial-gradient(ellipse 92% 54% at 50% 6%, rgba(200, 168, 255, 0.07) 0%, transparent 60%);
+	}
+
+	/* Midnight — deep starfield */
+	.midnight-bg {
+		background:
+			radial-gradient(ellipse 80% 60% at 50% 30%, rgba(124, 92, 252, 0.08) 0%, transparent 60%),
+			linear-gradient(180deg, #070711 0%, #0a0a12 60%, #050508 100%);
+	}
+	.midnight-bg-overlay {
+		position: absolute;
+		inset: 0;
+		background:
+			radial-gradient(ellipse 96% 82% at 50% 36%, transparent 52%, rgba(5, 5, 12, 0.28) 78%, rgba(5, 5, 12, 0.72) 100%),
+			linear-gradient(180deg, rgba(5, 5, 12, 0.14) 0%, transparent 40%, rgba(5, 5, 12, 0.5) 100%);
+	}
+
+	/* Midnight Neon — city neon */
+	.midnight-neon-bg {
+		background:
+			radial-gradient(ellipse 90% 60% at 20% 30%, rgba(168, 85, 247, 0.14) 0%, transparent 60%),
+			radial-gradient(ellipse 70% 50% at 80% 70%, rgba(6, 182, 212, 0.1) 0%, transparent 60%),
+			linear-gradient(180deg, #070711 0%, #0f0a1a 60%, #050508 100%);
+	}
+	.midnight-neon-bg-overlay {
+		position: absolute;
+		inset: 0;
+		background:
+			radial-gradient(ellipse 96% 82% at 50% 36%, transparent 52%, rgba(7, 7, 17, 0.28) 78%, rgba(7, 7, 17, 0.72) 100%),
+			linear-gradient(180deg, rgba(7, 7, 17, 0.14) 0%, transparent 40%, rgba(7, 7, 17, 0.5) 100%),
+			radial-gradient(ellipse 92% 54% at 80% 20%, rgba(168, 85, 247, 0.06) 0%, transparent 60%),
+			radial-gradient(ellipse 70% 44% at 20% 80%, rgba(6, 182, 212, 0.06) 0%, transparent 58%);
+	}
+
+	/* Custom — refined neutral */
+	.custom-bg {
+		background:
+			radial-gradient(ellipse 80% 60% at 50% 20%, rgba(212, 175, 55, 0.06) 0%, transparent 60%),
+			linear-gradient(180deg, #0a0a0f 0%, #111118 100%);
+	}
+	.custom-bg-overlay {
+		position: absolute;
+		inset: 0;
+		background:
+			radial-gradient(ellipse 96% 82% at 50% 36%, transparent 52%, rgba(10, 10, 15, 0.28) 78%, rgba(10, 10, 15, 0.72) 100%),
+			linear-gradient(180deg, rgba(10, 10, 15, 0.14) 0%, transparent 40%, rgba(10, 10, 15, 0.5) 100%);
 	}
 
 	@media (max-width: 768px) {

@@ -2,6 +2,12 @@
 @import 'tw-animate-css';
 @import '$lib/css/safe-area.css';
 @import '@fontsource-variable/inter';
+/* Premium serif for Sune Rose Court — loaded locally, font-display swap, no render-blocking */
+@import '@fontsource/playfair-display/latin-400.css';
+@import '@fontsource/playfair-display/latin-700.css';
+@import '@fontsource/cormorant-garamond/latin-400.css';
+@import '@fontsource/cormorant-garamond/latin-500.css';
+@import '@fontsource/cormorant-garamond/latin-400-italic.css';
 
 @custom-variant dark (&:is(.dark *));
 
@@ -1329,6 +1335,160 @@ textarea {
 [data-theme='sune'] .empty-link {
 	color: #e7c663;
 }
+
+/* Premium — each brand gets Sune-level typography and micro-interactions */
+[data-branding='sofia'] h1,
+[data-branding='sofia'] h2,
+[data-branding='sofia'] h3 {
+	font-family: 'Playfair Display', Georgia, serif;
+	letter-spacing: -0.01em;
+}
+[data-branding='midnight'] h1,
+[data-branding='midnight'] h2,
+[data-branding='midnight'] h3,
+[data-branding='midnight_neon'] h1,
+[data-branding='midnight_neon'] h2,
+[data-branding='midnight_neon'] h3,
+[data-branding='custom'] h1,
+[data-branding='custom'] h2,
+[data-branding='custom'] h3 {
+	font-family: 'Playfair Display', Georgia, serif;
+	letter-spacing: -0.01em;
+}
+
+/* Sune — premium typography polish */
+[data-theme='sune'] .sune-title,
+[data-branding='sune'] .sune-title {
+	letter-spacing: -0.015em;
+	text-shadow:
+		0 2px 18px rgba(0, 0, 0, 0.6),
+		0 0 26px rgba(0, 0, 0, 0.35),
+		0 0 14px rgba(212, 175, 55, 0.12);
+}
+
+/* Sune logo — signature glow + pulse on hover */
+[data-theme='sune'] .sune-rose,
+[data-branding='sune'] .sune-rose {
+	filter: drop-shadow(0 0 6px rgba(212, 175, 55, 0.28));
+	transition:
+		filter 0.35s ease,
+		transform 0.35s ease;
+}
+[data-theme='sune'] .sune-rose:hover,
+[data-branding='sune'] .sune-rose:hover {
+	filter: drop-shadow(0 0 14px rgba(212, 175, 55, 0.45)) drop-shadow(0 0 28px rgba(142, 29, 46, 0.18));
+	transform: scale(1.04);
+}
+@media (prefers-reduced-motion: no-preference) {
+	[data-theme='sune'] .sune-rose {
+		animation: suneRoseBreath 8s ease-in-out infinite alternate;
+	}
+	@keyframes suneRoseBreath {
+		0% {
+			filter: drop-shadow(0 0 6px rgba(212, 175, 55, 0.28));
+		}
+		100% {
+			filter: drop-shadow(0 0 10px rgba(212, 175, 55, 0.38)) drop-shadow(0 0 22px rgba(142, 29, 46, 0.12));
+		}
+	}
+}
+
+/* Micro-interactions — burgundy-tinted, intentional */
+[data-theme='sune'] .card-cosmic,
+[data-theme='sune'] .card-cosmic-hover,
+[data-theme='sune'] .media-card,
+[data-branding='sune'] .card-cosmic,
+[data-branding='sune'] .card-cosmic-hover,
+[data-branding='sune'] .media-card {
+	transition:
+		transform 0.32s cubic-bezier(0.22, 1, 0.36, 1),
+		box-shadow 0.32s ease,
+		border-color 0.32s ease;
+}
+[data-theme='sune'] .media-card:hover,
+[data-branding='sune'] .media-card:hover {
+	transform: translateY(-3px);
+}
+
+/* Custom scrollbar — theme-aware */
+[data-theme='sune'] ::-webkit-scrollbar-thumb,
+[data-branding='sune'] ::-webkit-scrollbar-thumb {
+	background: linear-gradient(180deg, rgba(142, 29, 46, 0.5), rgba(212, 175, 55, 0.45));
+	border-radius: 999px;
+}
+[data-theme='sune'],
+[data-branding='sune'] {
+	scrollbar-width: thin;
+	scrollbar-color: rgba(212, 175, 55, 0.45) transparent;
+}
+
+/* Focus ring — refined burgundy */
+[data-theme='sune'] :focus-visible,
+[data-branding='sune'] :focus-visible {
+	outline: 2px solid rgba(212, 175, 55, 0.9);
+	outline-offset: 2px;
+	box-shadow: 0 0 0 4px rgba(212, 175, 55, 0.14);
+}
+
+/* Sofia, Midnight, Neon, Custom — matching micro-interactions */
+[data-branding='sofia'] .card-cosmic:hover,
+[data-branding='midnight'] .card-cosmic:hover,
+[data-branding='midnight_neon'] .card-cosmic:hover,
+[data-branding='custom'] .card-cosmic:hover {
+	transform: translateY(-3px);
+}
+
+/* Page transitions — subtle fade/slide, SvelteKit view transitions or wrapper */
+.page-transition {
+	animation: sunePageIn 0.42s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+@keyframes sunePageIn {
+	from {
+		opacity: 0;
+		transform: translateY(6px);
+	}
+	to {
+		opacity: 1;
+		transform: translateY(0);
+	}
+}
+@media (prefers-reduced-motion: reduce) {
+	.page-transition {
+		animation: none !important;
+	}
+}
+
+/* Sune accent variants — persisted to localStorage, hidden from other users */
+[data-theme='sune'][data-sune-accent='rose-gold'],
+[data-branding='sune'][data-sune-accent='rose-gold'] {
+	--sune-burgundy: #8e1d2e;
+	--sune-gold: #d4af37;
+	--accent-stream: #d4af37;
+	--accent-hover: #e7c663;
+	--gradient-brand: linear-gradient(135deg, #8e1d2e 0%, #b3243a 45%, #d4af37 100%);
+	--gradient-brand-horizontal: linear-gradient(90deg, #8e1d2e, #d4af37);
+}
+
+[data-theme='sune'][data-sune-accent='midnight-rose'],
+[data-branding='sune'][data-sune-accent='midnight-rose'] {
+	--sune-burgundy: #5a0f1e;
+	--sune-gold: #c9a86a;
+	--accent-stream: #a07a2a;
+	--accent-hover: #c9a86a;
+	--gradient-brand: linear-gradient(135deg, #5a0f1e 0%, #7a1626 45%, #c9a86a 100%);
+	--gradient-brand-horizontal: linear-gradient(90deg, #5a0f1e, #c9a86a);
+}
+
+[data-theme='sune'][data-sune-accent='crimson'],
+[data-branding='sune'][data-sune-accent='crimson'] {
+	--sune-burgundy: #a51d33;
+	--sune-gold: #e7c663;
+	--accent-stream: #b3243a;
+	--accent-hover: #e7c663;
+	--gradient-brand: linear-gradient(135deg, #a51d33 0%, #c0392b 45%, #e7c663 100%);
+	--gradient-brand-horizontal: linear-gradient(90deg, #a51d33, #e7c663);
+}
+
 /* ═══════════════════════════════════════════
     CROSS-BROWSER MOBILE DESIGN SYSTEM
     ═══════════════════════════════════════════ */

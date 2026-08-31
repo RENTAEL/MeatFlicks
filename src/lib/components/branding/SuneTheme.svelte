@@ -2,24 +2,36 @@
 	// Sune — dark regal "Rose Court" hero banner.
 	// Scoped to Sune's profile page; the rose image is the visual anchor with a
 	// dark gradient overlay so text stays readable.
+	import SuneAccentSwitcher from './SuneAccentSwitcher.svelte';
+	import SunePetals from './SunePetals.svelte';
+
 	let {
 		username,
 		tagline = 'Where shadows bloom',
 		sub = 'A court of thorns — and light, unfolding quietly in the dark.'
 	}: { username: string; tagline?: string; sub?: string } = $props();
+
+	const hour = new Date().getHours();
+	const timeGreeting =
+		hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : hour < 21 ? 'Good evening' : 'Good night';
+	const displayName = username.charAt(0).toUpperCase() + username.slice(1);
 </script>
 
 <div class="sune-banner">
 	<div class="sune-banner-overlay" aria-hidden="true"></div>
+	<SunePetals count={8} enabled={true} />
 	<div class="sune-banner-inner">
 		<p class="sune-eyebrow">✦ The Rose Court ✦</p>
 		<h1 class="sune-title">{tagline}</h1>
 		<p class="sune-sub">{sub}</p>
 		<p class="sune-greeting">
-			Welcome, {username.charAt(0).toUpperCase() + username.slice(1)}. The throne room is yours tonight.
+			{timeGreeting}, {displayName}. The throne room is yours tonight.
 		</p>
 	</div>
 	<div class="sune-motif" aria-hidden="true">❦</div>
+	<div class="sune-accent-wrap">
+		<SuneAccentSwitcher />
+	</div>
 </div>
 
 <style>
@@ -101,6 +113,12 @@
 		opacity: 0.1;
 		pointer-events: none;
 		z-index: 1;
+	}
+
+	.sune-accent-wrap {
+		position: relative;
+		z-index: 1;
+		margin-top: 1.1rem;
 	}
 
 	@media (max-width: 600px) {

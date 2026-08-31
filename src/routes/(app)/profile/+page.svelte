@@ -43,6 +43,30 @@
 			email: effectiveProfile.email ?? null
 		}) === 'sune'
 	);
+	const isSofia = $derived(
+		getBranding({
+			displayName: effectiveProfile.username,
+			email: effectiveProfile.email ?? null
+		}) === 'sofia'
+	);
+	const isMidnightBrand = $derived(
+		getBranding({
+			displayName: effectiveProfile.username,
+			email: effectiveProfile.email ?? null
+		}) === 'midnight'
+	);
+	const isMidnightNeonBrand = $derived(
+		getBranding({
+			displayName: effectiveProfile.username,
+			email: effectiveProfile.email ?? null
+		}) === 'midnight_neon'
+	);
+	const isCustomBrand = $derived(
+		getBranding({
+			displayName: effectiveProfile.username,
+			email: effectiveProfile.email ?? null
+		}) === 'custom'
+	);
 	const isUser2Profile = $derived(
 		isUser2(effectiveProfile as any) || isUser2(pageState.data.user as any)
 	);
@@ -152,7 +176,59 @@
 	{#if isSune}
 		<SuneTheme username={effectiveProfile.username} />
 	{/if}
-	<div class="profile-header glass" class:demon-slayer-header={isDemonSlayer} class:sune-header={isSune}>
+	{#if isSofia}
+		<div class="sofia-banner">
+			<div class="sofia-banner-overlay" aria-hidden="true"></div>
+			<div class="sofia-banner-inner">
+				<p class="sofia-eyebrow">✦ Enchancia ✦</p>
+				<h1 class="sofia-title">Welcome to Enchancia, {effectiveProfile.username}</h1>
+				<p class="sofia-sub">Where the amulet glows and every day is an adventure.</p>
+			</div>
+			<div class="sofia-motif" aria-hidden="true">👑</div>
+		</div>
+	{/if}
+	{#if isMidnightBrand}
+		<div class="midnight-banner">
+			<div class="midnight-banner-overlay" aria-hidden="true"></div>
+			<div class="midnight-banner-inner">
+				<p class="midnight-eyebrow">✦ Midnight ✦</p>
+				<h1 class="midnight-title">Good evening, {effectiveProfile.username}</h1>
+				<p class="midnight-sub">The night is yours — quiet, clear, and endless.</p>
+			</div>
+			<div class="midnight-motif" aria-hidden="true">☾</div>
+		</div>
+	{/if}
+	{#if isMidnightNeonBrand}
+		<div class="midnight-neon-banner">
+			<div class="midnight-neon-banner-overlay" aria-hidden="true"></div>
+			<div class="midnight-neon-banner-inner">
+				<p class="midnight-neon-eyebrow">✦ Midnight Neon ✦</p>
+				<h1 class="midnight-neon-title">Neon nights, {effectiveProfile.username}</h1>
+				<p class="midnight-neon-sub">The city never sleeps — and neither do you.</p>
+			</div>
+			<div class="midnight-neon-motif" aria-hidden="true">🌃</div>
+		</div>
+	{/if}
+	{#if isCustomBrand}
+		<div class="custom-banner">
+			<div class="custom-banner-overlay" aria-hidden="true"></div>
+			<div class="custom-banner-inner">
+				<p class="custom-eyebrow">✦ Streamium ✦</p>
+				<h1 class="custom-title">Welcome back, {effectiveProfile.username}</h1>
+				<p class="custom-sub">Your personal collection, curated just for you.</p>
+			</div>
+			<div class="custom-motif" aria-hidden="true">✦</div>
+		</div>
+	{/if}
+	<div
+		class="profile-header glass"
+		class:demon-slayer-header={isDemonSlayer}
+		class:sune-header={isSune}
+		class:sofia-header={isSofia}
+		class:midnight-header={isMidnightBrand}
+		class:midnight-neon-header={isMidnightNeonBrand}
+		class:custom-header={isCustomBrand}
+	>
 		{#if isDemonSlayer}
 			<div class="avatar-demon">
 				<DemonSlayerEye size="lg" />
@@ -547,6 +623,145 @@
 			0 0 0 1px rgba(212, 175, 55, 0.08),
 			0 8px 28px rgba(0, 0, 0, 0.4),
 			0 0 24px rgba(212, 175, 55, 0.06);
+	}
+
+	.sofia-banner,
+	.midnight-banner,
+	.midnight-neon-banner,
+	.custom-banner {
+		position: relative;
+		overflow: hidden;
+		margin-bottom: 1.5rem;
+		padding: 1.15rem 1.35rem;
+		border-radius: var(--radius-lg);
+		box-shadow:
+			0 4px 20px rgba(0, 0, 0, 0.35),
+			0 0 28px rgba(0, 0, 0, 0.1);
+	}
+
+	.sofia-banner {
+		background:
+			radial-gradient(ellipse 80% 100% at 0% 0%, rgba(200, 168, 255, 0.14) 0%, transparent 55%),
+			radial-gradient(ellipse 70% 80% at 100% 100%, rgba(252, 211, 77, 0.1) 0%, transparent 50%),
+			linear-gradient(135deg, rgba(200, 168, 255, 0.12), rgba(252, 211, 77, 0.08));
+		border: 1px solid rgba(200, 168, 255, 0.22);
+	}
+
+	.midnight-banner {
+		background:
+			radial-gradient(ellipse 80% 100% at 0% 0%, rgba(124, 92, 252, 0.12) 0%, transparent 55%),
+			radial-gradient(ellipse 70% 80% at 100% 100%, rgba(148, 163, 184, 0.08) 0%, transparent 50%),
+			linear-gradient(135deg, rgba(124, 92, 252, 0.08), rgba(10, 10, 18, 0.12));
+		border: 1px solid rgba(124, 92, 252, 0.18);
+	}
+
+	.midnight-neon-banner {
+		background:
+			radial-gradient(ellipse 80% 100% at 0% 0%, rgba(168, 85, 247, 0.14) 0%, transparent 55%),
+			radial-gradient(ellipse 70% 80% at 100% 100%, rgba(6, 182, 212, 0.1) 0%, transparent 50%),
+			linear-gradient(135deg, rgba(168, 85, 247, 0.12), rgba(6, 182, 212, 0.08));
+		border: 1px solid rgba(168, 85, 247, 0.22);
+	}
+
+	.custom-banner {
+		background:
+			radial-gradient(ellipse 80% 100% at 0% 0%, rgba(212, 175, 55, 0.1) 0%, transparent 55%),
+			linear-gradient(135deg, rgba(212, 175, 55, 0.06), rgba(10, 10, 15, 0.08));
+		border: 1px solid rgba(255, 255, 255, 0.08);
+	}
+
+	.sofia-banner-inner,
+	.midnight-banner-inner,
+	.midnight-neon-banner-inner,
+	.custom-banner-inner {
+		position: relative;
+		z-index: 1;
+		max-width: 620px;
+	}
+
+	.sofia-eyebrow,
+	.midnight-eyebrow,
+	.midnight-neon-eyebrow,
+	.custom-eyebrow {
+		margin: 0 0 0.35rem;
+		font-size: 0.7rem;
+		letter-spacing: 0.28em;
+		text-transform: uppercase;
+		font-weight: 700;
+	}
+
+	.sofia-eyebrow { color: #c8a8ff; }
+	.midnight-eyebrow { color: #a5b4fc; }
+	.midnight-neon-eyebrow { color: #c084fc; }
+	.custom-eyebrow { color: #e7c663; }
+
+	.sofia-title,
+	.midnight-title,
+	.midnight-neon-title,
+	.custom-title {
+		margin: 0;
+		font-size: 1.35rem;
+		font-weight: 800;
+		line-height: 1.15;
+		letter-spacing: -0.01em;
+		color: var(--text-primary);
+	}
+
+	.sofia-title { font-family: 'Playfair Display', Georgia, serif; color: #f6edff; }
+	.midnight-title { color: #e8e8ff; }
+	.midnight-neon-title { background: linear-gradient(90deg, #a855f7, #06b6d4); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+	.custom-title { color: #f1f1f7; }
+
+	.sofia-sub,
+	.midnight-sub,
+	.midnight-neon-sub,
+	.custom-sub {
+		margin: 0.4rem 0 0;
+		font-size: 0.9rem;
+		color: var(--text-secondary);
+		max-width: 46ch;
+	}
+
+	.sofia-motif,
+	.midnight-motif,
+	.midnight-neon-motif,
+	.custom-motif {
+		position: absolute;
+		top: 50%;
+		right: 1.2rem;
+		transform: translateY(-50%);
+		font-size: 2.8rem;
+		opacity: 0.08;
+		pointer-events: none;
+	}
+
+	.sofia-header {
+		position: relative;
+		overflow: hidden;
+		border: 1px solid rgba(200, 168, 255, 0.22) !important;
+		box-shadow:
+			0 0 0 1px rgba(200, 168, 255, 0.08),
+			0 8px 28px rgba(0, 0, 0, 0.35);
+	}
+
+	.midnight-header {
+		position: relative;
+		overflow: hidden;
+		border: 1px solid rgba(124, 92, 252, 0.18) !important;
+		box-shadow: 0 0 0 1px rgba(124, 92, 252, 0.08), 0 8px 28px rgba(0, 0, 0, 0.35);
+	}
+
+	.midnight-neon-header {
+		position: relative;
+		overflow: hidden;
+		border: 1px solid rgba(168, 85, 247, 0.22) !important;
+		box-shadow: 0 0 0 1px rgba(168, 85, 247, 0.08), 0 8px 28px rgba(0, 0, 0, 0.35), 0 0 24px rgba(6, 182, 212, 0.06);
+	}
+
+	.custom-header {
+		position: relative;
+		overflow: hidden;
+		border: 1px solid rgba(255, 255, 255, 0.08) !important;
 	}
 
 	.demon-slayer-header::before {

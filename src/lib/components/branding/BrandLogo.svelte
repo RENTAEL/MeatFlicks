@@ -68,6 +68,17 @@
 		} else {
 			themeStore.setBrandTheme(branding);
 		}
+		// Premium: set data-branding for immersive backgrounds (all brands get equal polish)
+		// Sune's view is the template, but each brand gets its own premium treatment.
+		const activeBranding = previewBranding && previewBranding !== 'streamium' ? previewBranding : branding;
+		if (typeof document !== 'undefined') {
+			const el = document.documentElement;
+			if (activeBranding) el.setAttribute('data-branding', activeBranding);
+			else el.removeAttribute('data-branding');
+			// Also reflect effective theme for Sune parity: any impersonation shows premium
+			if (impersonated) el.setAttribute('data-premium', 'true');
+			else el.removeAttribute('data-premium');
+		}
 	});
 </script>
 
