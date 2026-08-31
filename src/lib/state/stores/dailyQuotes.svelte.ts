@@ -1,8 +1,7 @@
 import { browser } from '$app/environment';
+import { getFallbackQuote, type QuoteCategory } from '$lib/quotes/fallbackQuotes';
 
-export const QUOTE_CATEGORIES = ['funny', 'deep', 'dark', 'general', 'dating'] as const;
-
-export type QuoteCategory = (typeof QUOTE_CATEGORIES)[number];
+export { QUOTE_CATEGORIES, type QuoteCategory } from '$lib/quotes/fallbackQuotes';
 
 export const QUOTE_CATEGORY_LABELS: Record<QuoteCategory, string> = {
 	funny: 'Funny',
@@ -49,8 +48,14 @@ function writeLocalCache(category: QuoteCategory, quote: DailyQuoteClient) {
 	}
 }
 
+function pickLocalFallback(category: QuoteCategory, day: string): DailyQuoteClient {
+	const entry = getFallbackQuote(category, day);
+	return { quote: entry.quote, author: entry.author, category, day, source: 'fallback' };
+}
+
 export async function fetchDailyQuote(category: QuoteCategory): Promise<DailyQuoteClient> {
-	const memKey = `${category}:${todayUtc()}`;
+	const day = todayUtc();
+	const memKey = `${category}:${day}`;
 	const mem = inMemoryCache.get(memKey);
 	if (mem) return mem;
 
@@ -60,10 +65,24 @@ export async function fetchDailyQuote(category: QuoteCategory): Promise<DailyQuo
 		return cached;
 	}
 
-	const response = await fetch(`/api/quotes/daily?category=${encodeURIComponent(category)}`);
-	if (!response.ok) throw new Error('Failed to load daily quote');
-	const data = (await response.json()) as DailyQuoteClient;
-	inMemoryCache.set(memKey, data);
-	writeLocalCache(category, data);
-	return data;
+	try {
+		const response = await fetch(`/api/quotes/daily?category=${encodeURIComponent(category)}`);
+		if (response.ok) {
+			const data = (await response.json()) as DailyQuoteClient;
+			// Basic validation — ensure we have a quote
+			if (typeof data.quote === 'string' && data.quote.trim().length >= 2) {
+				inMemoryCache.set(memKey, data);
+				writeLocalCache(category, data);
+				return data;
+			}
+		}
+	} catch {
+		// network failure -> fallback below
+	}
+
+	// Graceful local fallback — never throw, never blank
+	const fallback = pickLocalFallback(category, day);
+	inMemoryCache.set(memKey, fallback);
+	writeLocalCache(category, fallback);
+	return fallback;
 }

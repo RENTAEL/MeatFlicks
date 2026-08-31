@@ -14,6 +14,7 @@
 	import ShareButton from '$lib/components/utils/ShareButton.svelte';
 	import QuoteBannerShare from './QuoteBannerShare.svelte';
 	import { buildQuoteShareUrl } from '$lib/utils/quoteShare';
+	import { getFallbackQuote } from '$lib/quotes/fallbackQuotes';
 
 	let { onclose }: { onclose: () => void } = $props();
 
@@ -39,7 +40,9 @@
 		try {
 			quote = await fetchDailyQuote(cat);
 		} catch {
-			loadError = true;
+			const day = new Date().toISOString().slice(0, 10);
+			const fallback = getFallbackQuote(cat, day);
+			quote = { quote: fallback.quote, author: fallback.author, category: cat, day, source: 'fallback' };
 		} finally {
 			loading = false;
 		}

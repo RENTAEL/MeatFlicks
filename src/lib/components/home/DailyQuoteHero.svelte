@@ -4,8 +4,8 @@
 	import { browser } from '$app/environment';
 	import { page } from '$app/state';
 	import { Quote as QuoteIcon, Bookmark, Check, LogIn, Sparkles, Shuffle } from '@lucide/svelte';
-	import { preferences } from '$lib/state/stores/preferencesStore';
-	import {
+import { preferences } from '$lib/state/stores/preferencesStore';
+import {
 		fetchDailyQuote,
 		QUOTE_CATEGORY_LABELS,
 		type DailyQuoteClient
@@ -13,6 +13,7 @@
 	import { savedQuotesStore, type SavedQuote } from '$lib/state/stores/savedQuotesStore.svelte';
 	import ShareButton from '$lib/components/utils/ShareButton.svelte';
 	import { buildQuoteShareUrl } from '$lib/utils/quoteShare';
+	import { getFallbackQuote } from '$lib/quotes/fallbackQuotes';
 
 	let { onopen }: { onopen: () => void } = $props();
 
@@ -33,7 +34,10 @@
 		try {
 			quote = await fetchDailyQuote(cat);
 		} catch {
-			loadError = true;
+			// Client store now guarantees a quote, but keep UI never-blank as safety net
+			const day = new Date().toISOString().slice(0, 10);
+			const fallback = getFallbackQuote(cat, day);
+			quote = { quote: fallback.quote, author: fallback.author, category: cat, day, source: 'fallback' };
 		} finally {
 			loading = false;
 		}
