@@ -2,12 +2,6 @@
 @import 'tw-animate-css';
 @import '$lib/css/safe-area.css';
 @import '@fontsource-variable/inter';
-/* Premium serif for Sune Rose Court — loaded locally, font-display swap, no render-blocking */
-@import '@fontsource/playfair-display/latin-400.css';
-@import '@fontsource/playfair-display/latin-700.css';
-@import '@fontsource/cormorant-garamond/latin-400.css';
-@import '@fontsource/cormorant-garamond/latin-500.css';
-@import '@fontsource/cormorant-garamond/latin-400-italic.css';
 
 @custom-variant dark (&:is(.dark *));
 
