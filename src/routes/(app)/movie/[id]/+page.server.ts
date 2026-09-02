@@ -1,3 +1,4 @@
+import { error, isHttpError } from '@sveltejs/kit';
 import { htmlCacheControl } from '$lib/server/caching';
 import { env } from '$lib/config/env';
 import { withCache, buildCacheKey, CACHE_TTL_LONG_SECONDS } from '$lib/server/cache';
@@ -19,6 +20,15 @@ export async function load({ params, fetch, locals, setHeaders }) {
 					fetch(`${TMDB_BASE}/movie/${id}/similar?api_key=${env.TMDB_API_KEY}`)
 				]);
 
+				// TMDB answers an unknown id with 404 and a body that is still valid
+				// JSON, so `.json()` resolves and we would build a movie out of an
+				// error payload. Bail out here instead. `withCache` is called without
+				// `cacheOnError`, so a throw from this factory is never written to the
+				// cache — see src/lib/server/cache.ts.
+				if (!movieRes.ok) throw error(404, 'Movie not found');
+
+				// credits/similar stay tolerant: they are non-critical and must never
+				// turn the page into a 404.
 				const [movie, credits, similar] = await Promise.all([
 					movieRes.json(),
 					creditsRes.json(),
@@ -60,6 +70,9 @@ export async function load({ params, fetch, locals, setHeaders }) {
 
 		return payload;
 	} catch (e) {
+		// `error()` throws an HttpError; let it through so a bad id renders the
+		// real 404 page instead of the generic fallback below.
+		if (isHttpError(e)) throw e;
 		return {
 			movie: null,
 			similarMovies: [],

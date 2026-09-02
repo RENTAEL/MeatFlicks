@@ -195,7 +195,9 @@
 	.fab-btn.active .fab-avatar { background: #fff; color: #312e81; }
 
 	@media (max-width: 640px) {
-		.fab-container { bottom: 16px; right: 16px; }
+		/* The FAB sits above the bottom tab bar (z-index 500 vs 100) and covers
+		 * the Profile tab. Profile is reachable as a tab here, so hide it. */
+		.fab-container { display: none; }
 		.fab-panel { width: calc(100vw - 32px); max-width: 300px; }
 		.fab-btn { width: 44px; height: 44px; border-radius: 12px; }
 	}

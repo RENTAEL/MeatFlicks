@@ -41,7 +41,7 @@
       "name": "Trending Movies",
       "short_name": "Movies",
       "description": "View trending movies",
-      "url": "/movie"
+      "url": "/movies"
     },
     {
       "name": "Trending TV",

@@ -24,6 +24,17 @@ async function ensureTable() {
 }
 
 /**
+ * The `since` cursor arrives as an untrusted query param. Anything that is not
+ * a finite number collapses to 0, and negative / fractional values are floored
+ * so the cursor can never point before the start of the command log.
+ */
+function parseSince(raw: string | null): number {
+	const n = Number(raw ?? '0');
+	if (!Number.isFinite(n)) return 0;
+	return Math.max(0, Math.floor(n));
+}
+
+/**
  * Public poll endpoint for admin-triggered effects (jumpscare / pranks).
  * Callers identify themselves with either their session (logged-in) or a
  * `sid` query param (anonymous guest presence id). Only commands addressed
@@ -31,7 +42,7 @@ async function ensureTable() {
  */
 export const GET: RequestHandler = async ({ locals, url }) => {
 	try {
-		const since = Number(url.searchParams.get('since') ?? '0') || 0;
+		const requestedSince = parseSince(url.searchParams.get('since'));
 		const sid = url.searchParams.get('sid');
 		const user = locals.user;
 
@@ -45,6 +56,15 @@ export const GET: RequestHandler = async ({ locals, url }) => {
 
 		const now = Date.now();
 		await ensureTable();
+
+		// Deliberately NOT querying max(id) to clamp the cursor here. This is the
+		// most-called endpoint in the app, and an extra round-trip per poll costs
+		// far more function time than a bogus `since` is worth. parseSince()
+		// already floors it at 0 and forces an integer, which is the case that
+		// actually matters; an absurdly large cursor only affects the client that
+		// sent it, and clears on its next localStorage write.
+		const since = requestedSince;
+
 		const rows = await db
 			.select()
 			.from(siteCommands)
@@ -75,8 +95,11 @@ export const GET: RequestHandler = async ({ locals, url }) => {
 		}
 
 		// Latest matched id — the client's cursor only advances over commands
-		// it actually received, so targeted commands are never skipped.
-		const latestId = matched.length > 0 ? matched[matched.length - 1].id : since;
+		// it actually received, so targeted commands are never skipped. With
+		// nothing matched it falls back to the clamped cursor, which is itself
+		// bounded by a real command id above.
+		const latestId =
+			matched.length > 0 ? matched.reduce((max, c) => (c.id > max ? c.id : max), since) : since;
 
 		return json({ commands: matched, latestId });
 	} catch (error) {

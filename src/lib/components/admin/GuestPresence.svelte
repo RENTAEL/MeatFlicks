@@ -32,7 +32,7 @@
 
 		const ping = () => {
 			// Hidden tabs aren't really "online" — no heartbeat, no stream.
-			if (document.hidden) return;
+			if (document.hidden || ended) return;
 			const path = page.url.pathname + page.url.search;
 			const title = document.title
 				.replace(/\s*[—–|-]\s*Streamium.*$/i, '')
@@ -67,8 +67,16 @@
 		// streaming is unaffected.
 		const timer = setInterval(ping, 120000);
 
+		// Re-register the moment the tab comes back, so a returning guest shows
+		// up in the admin list immediately instead of waiting out the interval.
+		const onVisibility = () => {
+			if (!document.hidden) ping();
+		};
+		document.addEventListener('visibilitychange', onVisibility);
+
 		return () => {
 			clearInterval(timer);
+			document.removeEventListener('visibilitychange', onVisibility);
 		};
 	});
 </script>

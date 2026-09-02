@@ -8,6 +8,7 @@
 	import AnnouncementBanner from '$lib/components/AnnouncementBanner.svelte';
 	import GuestPresence from '$lib/components/admin/GuestPresence.svelte';
 	import CommandPoller from '$lib/components/admin/CommandPoller.svelte';
+	import PreviewPopout from '$lib/components/media/PreviewPopout.svelte';
 
 	let { children } = $props();
 
@@ -39,4 +40,5 @@
 <AnnouncementBanner />
 <GuestPresence />
 <CommandPoller />
+<PreviewPopout />
 {@render children()}

@@ -73,12 +73,24 @@
 			}
 		};
 		void load();
+		// 5 min poll: the endpoint returns null the overwhelming majority of the
+		// time, so a tighter interval just burns serverless invocations on every
+		// open tab. Hidden tabs stop polling entirely — the banner is invisible
+		// anyway — and a tab coming back to the foreground re-checks at once, so
+		// a fresh announcement still lands promptly for anyone actually looking.
 		const timer = setInterval(() => {
-			// Hidden tabs stop polling — the banner is invisible anyway and
-			// repeat hits are served from the CDN cache while visible.
 			if (!document.hidden) void load();
-		}, 60000);
-		return () => clearInterval(timer);
+		}, 300000);
+
+		const onVisibility = () => {
+			if (!document.hidden) void load();
+		};
+		document.addEventListener('visibilitychange', onVisibility);
+
+		return () => {
+			clearInterval(timer);
+			document.removeEventListener('visibilitychange', onVisibility);
+		};
 	});
 </script>
 

@@ -24,6 +24,12 @@
 			imdb_id?: string;
 		};
 	} = $props();
+
+	// Matches Hero.svelte: TMDB reports 0 for a title nobody has rated yet, and
+	// rendering that as "0.0" reads as a terrible score rather than "not rated".
+	const ratingLabel = $derived(
+		movie.vote_average && movie.vote_average > 0 ? movie.vote_average.toFixed(1) : 'NR'
+	);
 </script>
 
 <div class="mt-6 rounded-xl border border-zinc-800/50 bg-zinc-900/60 p-6">
@@ -55,7 +61,7 @@
 			<div class="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-zinc-400">
 				<span class="flex items-center gap-1">
 					<span class="text-yellow-400">★</span>
-					{movie.vote_average.toFixed(1)}
+					{ratingLabel}
 				</span>
 				<AggregatedRating rating={movie.vote_average} imdbId={movie.imdb_id || ''} />
 				<span>•</span>

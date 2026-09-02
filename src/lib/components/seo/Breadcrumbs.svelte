@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { SITE_URL } from '$lib/config/site';
 	import { ChevronRight, Home } from '@lucide/svelte';
 
 type BreadcrumbItem = {
@@ -20,7 +21,7 @@ type BreadcrumbItem = {
 	}
 
 	const structuredData = $derived.by(() => {
-		const baseUrl = 'https://streamium.app';
+		const baseUrl = SITE_URL;
 
 		return {
 			'@context': 'https://schema.org',

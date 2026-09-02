@@ -1,174 +1,80 @@
 <script lang="ts">
+	import { popoutPreviewStore } from '$lib/state/stores/previewStore.svelte';
+	import { fade, fly } from 'svelte/transition';
 	import { browser } from '$app/environment';
-	import { popoutPreviewStore, closePopout } from '$lib/state/stores/popoutPreviewStore.svelte';
+	import { Star } from '@lucide/svelte';
 
-	let videoEl: HTMLVideoElement | undefined = $state();
-	let iframeEl: HTMLIFrameElement | undefined = $state();
-
-	let canHover = $state(false);
-	let visible = $state(false);
-	let entered = $state(false);
-	let leaveTimer: ReturnType<typeof setTimeout> | null = null;
-	let pos = $state({ left: 0, top: 0, origin: 'top' });
+	let rect = $state({ top: 0, left: 0, width: 0, height: 0 });
 
 	$effect(() => {
-		if (!browser) return;
-		canHover = window.matchMedia('(hover: hover) and (pointer: fine)').matches;
-	});
-
-	const WIDTH = 400;
-	const MARGIN = 12;
-	const TITLEBAR = 40;
-
-	const anchorEl = $derived(popoutPreviewStore.anchorEl);
-	const title = $derived(popoutPreviewStore.title || 'Preview');
-	const src = $derived(popoutPreviewStore.src);
-
-	let youtubeKey = $derived.by(() => {
-		if (!src) return null;
-		const ytMatch = src.match(
-			/(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([a-zA-Z0-9_-]+)/
-		);
-		if (ytMatch) return ytMatch[1];
-		if (/^[a-zA-Z0-9_-]{11}$/.test(src)) return src;
-		return null;
-	});
-
-	let isMp4 = $derived(!!src && !youtubeKey && /\.(mp4|webm|ogv|m4v)(\?|#|$)/i.test(src));
-
-	function computePos(el: HTMLElement) {
-		const r = el.getBoundingClientRect();
-		const vw = window.innerWidth;
-		const vh = window.innerHeight;
-		const height = Math.round((WIDTH * 9) / 16) + TITLEBAR;
-		let top = r.bottom + 10;
-		let origin = 'top';
-		if (top + height > vh - MARGIN) {
-			top = r.top - height - 10;
-			origin = 'bottom';
-		}
-		top = Math.max(MARGIN, Math.min(top, vh - height - MARGIN));
-		const left = Math.max(MARGIN, Math.min(r.left + r.width / 2 - WIDTH / 2, vw - WIDTH - MARGIN));
-		return { left, top, origin };
-	}
-
-	function applyPosition() {
-		const el = anchorEl;
-		if (!el) return;
-		pos = computePos(el);
-	}
-
-	function stopMedia() {
-		if (videoEl) {
-			videoEl.pause();
-			videoEl.currentTime = 0;
-		}
-		if (iframeEl) iframeEl.removeAttribute('src');
-	}
-
-	$effect(() => {
-		if (!browser || !canHover) return;
-		const el = anchorEl;
-		const mediaSrc = src;
-		if (el && mediaSrc && (youtubeKey || isMp4)) {
-			if (leaveTimer) {
-				clearTimeout(leaveTimer);
-				leaveTimer = null;
-			}
-			visible = true;
-			requestAnimationFrame(() => requestAnimationFrame(() => (entered = true)));
-			applyPosition();
-			if (youtubeKey) {
-				if (!iframeEl || !iframeEl.src.includes(youtubeKey)) {
-					if (iframeEl) {
-						iframeEl.src = `https://www.youtube-nocookie.com/embed/${youtubeKey}?autoplay=1&mute=1&loop=1&playlist=${youtubeKey}&controls=0&showinfo=0&rel=0&iv_load_policy=3&modestbranding=1&playsinline=1`;
-					}
-				}
-			} else if (isMp4 && videoEl) {
-				if (videoEl.src !== mediaSrc) videoEl.src = mediaSrc;
-				videoEl.muted = true;
-				videoEl.play().catch(() => {});
-			}
-			let raf = 0;
-			const onScroll = () => {
-				if (raf) return;
-				raf = requestAnimationFrame(() => {
-					raf = 0;
-					applyPosition();
-				});
+		if (popoutPreviewStore.anchorEl && browser) {
+			const r = popoutPreviewStore.anchorEl.getBoundingClientRect();
+			rect = {
+				top: r.top,
+				left: r.left,
+				width: r.width,
+				height: r.height
 			};
-			window.addEventListener('scroll', onScroll, true);
-			window.addEventListener('resize', onScroll);
-			return () => {
-				window.removeEventListener('scroll', onScroll, true);
-				window.removeEventListener('resize', onScroll);
-				if (raf) cancelAnimationFrame(raf);
-			};
-		} else {
-			entered = false;
-			stopMedia();
-			if (visible) {
-				leaveTimer = setTimeout(() => {
-					visible = false;
-					leaveTimer = null;
-				}, 190);
-			}
 		}
 	});
+
+	const isOpen = $derived(popoutPreviewStore.anchorEl !== null);
 </script>
 
-{#if canHover}
+{#if isOpen}
 	<div
-		class="preview-popout fixed z-[90] pointer-events-none"
-		class:entered
-		hidden={!visible}
-		style="left: {pos.left}px; top: {pos.top}px; width: {WIDTH}px; transform-origin: center {pos.origin};"
-		aria-hidden="true"
+		transition:fade={{ duration: 200 }}
+		class="fixed inset-0 z-[100] pointer-events-none flex items-start justify-start"
 	>
-		{#if youtubeKey || isMp4}
-			<div
-				class="overflow-hidden rounded-2xl border border-white/10 bg-[#101018] shadow-[0_24px_60px_oklch(0_0_0/0.6)]"
-			>
-				<div class="truncate px-3 py-2 text-sm font-semibold text-white/90">{title}</div>
-				{#if youtubeKey}
-					<iframe
-						bind:this={iframeEl}
-						class="preview-popout-frame block aspect-video w-full"
-						style="pointer-events: none;"
-						hidden={!entered}
-						allow="autoplay; encrypted-media"
-						{title}
-						tabindex="-1"
-					></iframe>
-				{:else if isMp4}
-					<video
-						bind:this={videoEl}
-						class="preview-popout-video block aspect-video w-full object-cover"
-						preload="none"
-						muted
-						playsinline
-						loop
-						hidden={!visible}
-						onerror={() => {
-							closePopout();
-						}}
-					></video>
+		<div
+			transition:fly={{ y: 10, duration: 300 }}
+			class="absolute pointer-events-auto overflow-hidden rounded-2xl bg-black shadow-2xl ring-1 ring-white/20"
+			style="
+				top: {Math.max(10, rect.top - 20)}px;
+				left: {Math.max(10, rect.left)}px;
+				width: {Math.min(window?.innerWidth ?? 1280 - 20, 320)}px;
+				height: {Math.min(window?.innerHeight ?? 800 - 20, 180)}px;
+			"
+		>
+			{#if popoutPreviewStore.src}
+				<video
+					src={popoutPreviewStore.src}
+					autoplay
+					muted
+					loop
+					playsinline
+					class="h-full w-full object-cover opacity-80"
+				/>
+			{/if}
+
+			<div class="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent pointer-events-none" />
+			
+			<div class="absolute bottom-0 left-0 right-0 p-4">
+				<h4 class="text-lg font-bold text-white truncate drop-shadow-lg">
+					{popoutPreviewStore.title}
+				</h4>
+				
+				<div class="mt-1 flex flex-wrap items-center gap-2 text-xs text-white/80">
+					{#if popoutPreviewStore.rating}
+						<span class="flex items-center gap-1">
+							<Star class="size-3 text-yellow-400" fill="currentColor" />
+							{popoutPreviewStore.rating}
+						</span>
+					{/if}
+					{#if popoutPreviewStore.year}
+						<span>{popoutPreviewStore.year}</span>
+					{/if}
+					{#if popoutPreviewStore.genres.length > 0}
+						<span class="truncate max-w-[180px]">{popoutPreviewStore.genres.slice(0, 3).join(' · ')}</span>
+					{/if}
+				</div>
+
+				{#if popoutPreviewStore.overview}
+					<p class="mt-2 text-xs leading-relaxed text-white/70 line-clamp-2">
+						{popoutPreviewStore.overview}
+					</p>
 				{/if}
 			</div>
-		{/if}
+		</div>
 	</div>
 {/if}
-
-<style>
-	.preview-popout {
-		transform: translateY(12px) scale(0.88);
-		opacity: 0;
-		transition:
-			transform 180ms cubic-bezier(0.2, 0.75, 0.3, 1),
-			opacity 180ms ease-out;
-	}
-	.preview-popout.entered {
-		transform: translateY(0) scale(1);
-		opacity: 1;
-	}
-</style>

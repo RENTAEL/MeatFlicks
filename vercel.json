@@ -17,6 +17,78 @@
 					"value": "no-cache, no-store, max-age=0"
 				}
 			]
+		},
+		{
+			"source": "/sounds/(.*)",
+			"headers": [
+				{
+					"key": "Cache-Control",
+					"value": "public, max-age=604800"
+				}
+			]
+		},
+		{
+			"source": "/personal/(.*)",
+			"headers": [
+				{
+					"key": "Cache-Control",
+					"value": "public, max-age=604800"
+				}
+			]
+		},
+		{
+			"source": "/icon-192.png",
+			"headers": [
+				{
+					"key": "Cache-Control",
+					"value": "public, max-age=604800"
+				}
+			]
+		},
+		{
+			"source": "/icon-512.png",
+			"headers": [
+				{
+					"key": "Cache-Control",
+					"value": "public, max-age=604800"
+				}
+			]
+		},
+		{
+			"source": "/icon-192.svg",
+			"headers": [
+				{
+					"key": "Cache-Control",
+					"value": "public, max-age=604800"
+				}
+			]
+		},
+		{
+			"source": "/icon-512.svg",
+			"headers": [
+				{
+					"key": "Cache-Control",
+					"value": "public, max-age=604800"
+				}
+			]
+		},
+		{
+			"source": "/favicon.png",
+			"headers": [
+				{
+					"key": "Cache-Control",
+					"value": "public, max-age=604800"
+				}
+			]
+		},
+		{
+			"source": "/favicon.svg",
+			"headers": [
+				{
+					"key": "Cache-Control",
+					"value": "public, max-age=604800"
+				}
+			]
 		}
 	],
 	"crons": [

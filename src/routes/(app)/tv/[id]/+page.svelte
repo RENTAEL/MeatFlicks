@@ -196,7 +196,7 @@
 		<meta property="og:type" content="video.tv_show" />
 		<meta property="og:title" content={data.movie.title} />
 		{#if data.movie.posterPath}
-			<meta property="og:image" content={`https://streamium-cosmic.vercel.app${getImageUrl(data.movie.posterPath, 'w780')}`} />
+			<meta property="og:image" content={getImageUrl(data.movie.posterPath, 'w780')} />
 		{/if}
 	{/if}
 </svelte:head>

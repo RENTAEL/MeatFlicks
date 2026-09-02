@@ -5,9 +5,14 @@ import { getLiveSnapshot, registerLiveConnection } from '$lib/server/usage';
 import { errorHandler } from '$lib/server';
 
 const PUSH_MS = 20_000;
-const MAX_LIFETIME_MS = 5 * 60_000;
+// This was 5 minutes against a 60s maxDuration, so the timeout could never
+// fire: every connection ran the platform limit and was killed mid-write,
+// which meant finish() never ran and release() never decremented the live
+// connection count. Keep the lifetime under maxDuration so the stream always
+// closes itself cleanly and the admin EventSource reconnects.
+const MAX_LIFETIME_MS = 25_000;
 
-export const config = { maxDuration: 60, memory: 256 };
+export const config = { maxDuration: 30, memory: 256 };
 
 export const GET: RequestHandler = async ({ locals, request }) => {
 	try {

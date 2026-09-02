@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { SITE_URL } from '$lib/config/site';
 	import type { MediaType } from '$lib/streaming/types';
 
 	type StructuredDataProps = {
@@ -24,7 +25,7 @@
 	let { media, mediaType, canonicalUrl }: StructuredDataProps = $props();
 
 	const structuredData = $derived.by(() => {
-		const baseUrl = 'https://streamium.app';
+		const baseUrl = SITE_URL;
 		const url = canonicalUrl || `${baseUrl}/${mediaType}/${media.id}`;
 
 		const imageUrl = media.posterPath?.startsWith('http')

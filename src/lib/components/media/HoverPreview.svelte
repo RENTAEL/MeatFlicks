@@ -1,17 +1,19 @@
 <script lang="ts">
 	import { browser } from '$app/environment';
-	import { onDestroy } from 'svelte';
-	import { openPopout, closePopout } from '$lib/state/stores/popoutPreviewStore.svelte';
+	import { openPopout, closePopout } from '$lib/state/stores/previewStore.svelte';
+	import type { PopoutPreviewState } from '$lib/state/stores/previewStore.svelte';
 
 	let {
 		src,
 		alt = 'Preview',
 		active = false,
+		metadata = {},
 		class: wrapperClass = ''
 	}: {
 		src?: string | null;
 		alt?: string;
 		active?: boolean;
+		metadata?: Partial<PopoutPreviewState>;
 		class?: string;
 	} = $props();
 
@@ -55,14 +57,10 @@
 
 	$effect(() => {
 		if (active && isNear && hasSrc && canHover && rootEl && src) {
-			openPopout(rootEl, src, alt.replace(/\s*Trailer$/i, ''));
+			openPopout(rootEl, src, alt.replace(/\s*Trailer$/i, ''), metadata);
 		} else {
 			closePopout();
 		}
-	});
-
-	onDestroy(() => {
-		closePopout();
 	});
 </script>
 

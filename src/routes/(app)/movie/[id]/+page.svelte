@@ -85,7 +85,7 @@
 		{#if data.movie.poster_path}
 			<meta
 				property="og:image"
-				content={`https://streamium-cosmic.vercel.app${getImageUrl(data.movie.poster_path, 'w780')}`}
+				content={getImageUrl(data.movie.poster_path, 'w780')}
 			/>
 		{/if}
 	{/if}

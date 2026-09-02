@@ -9,6 +9,14 @@
 	let debounceTimer: ReturnType<typeof setTimeout> | undefined;
 	let inputEl = $state<HTMLInputElement | undefined>();
 
+	// The input is rendered in the same tick the overlay opens, so wait a frame
+	// before focusing — otherwise focus lands before the element is in the DOM.
+	$effect(() => {
+		if (!$searchOpen) return;
+		const raf = requestAnimationFrame(() => inputEl?.focus());
+		return () => cancelAnimationFrame(raf);
+	});
+
 	async function search(q: string) {
 		if (q.length < 2) { results = []; return; }
 		isLoading = true;

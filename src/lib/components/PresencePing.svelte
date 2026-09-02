@@ -50,16 +50,20 @@
 
 	onMount(() => {
 		ping();
-		// 45s heartbeat + 90s prune window = one missed ping tolerated.
-		// Heartbeat runs in the background too: it's a tiny POST (sub-second,
-		// negligible memory) and must NOT be visibility-gated or the server
-		// prunes the presence row after STALE_MS and the "who's online" list
-		// goes stale whenever a tab is backgrounded. Only the heavy SSE/polls
-		// are gated on visibility. No SSE is held open, so a tab costs nothing
-		// on Fluid Compute beyond the occasional heartbeat invocation.
+		// 60s heartbeat + 150s prune window = one missed ping tolerated.
+		// Hidden tabs stop beating entirely: a backgrounded tab isn't really
+		// "online", and every beat is a serverless invocation billed as Fluid
+		// Active CPU. Returning to the tab pings immediately (visibilitychange
+		// below), so the "who's online" list is live again within a second.
 		const timer = setInterval(() => {
-			if (!kicked) ping();
-		}, 45000);
+			if (document.hidden || kicked) return;
+			ping();
+		}, 60000);
+
+		const onVisibility = () => {
+			if (!document.hidden && !kicked) ping();
+		};
+		document.addEventListener('visibilitychange', onVisibility);
 
 		const onHide = () => {
 			try {
@@ -71,6 +75,7 @@
 		window.addEventListener('pagehide', onHide);
 		return () => {
 			clearInterval(timer);
+			document.removeEventListener('visibilitychange', onVisibility);
 			window.removeEventListener('pagehide', onHide);
 		};
 	});

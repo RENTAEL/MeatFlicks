@@ -2,8 +2,9 @@
  * Server-side presence registry — who's online right now.
  *
  * Logged-in clients send a heartbeat (POST /api/presence/heartbeat) every
- * ~25s while the app is open, carrying their current page. Entries that go
- * silent past STALE_MS are pruned, so the list reflects live connections.
+ * ~60s while the app is open and visible, carrying their current page. Entries
+ * that go silent past STALE_MS are pruned, so the list reflects live
+ * connections — a backgrounded tab drops off and re-registers on return.
  *
  * Heartbeats are persisted to the DB so the list survives serverless
  * instance shuffling — the admin live view reads the same rows regardless
@@ -31,8 +32,9 @@ export type PresenceSnapshotUser = PresenceUser & {
 	roomMemberSince: number | null;
 };
 
-// Logged-in presence: 90s tolerates one missed 45s heartbeat before prune.
-const STALE_MS = 90_000;
+// Logged-in presence: the client heartbeat is 60s (and pauses on hidden tabs),
+// so 150s still tolerates one missed beat before prune.
+const STALE_MS = 150_000;
 // Guest presence: heartbeat is 120s, so tolerate ~2 missed beats (240s) to
 // avoid pruning a still-active guest mid-interval (flickers the admin list and
 // can drop a pending kick signal). Guest-kick lag ~4 min max.

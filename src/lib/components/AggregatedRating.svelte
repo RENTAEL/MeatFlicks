@@ -3,6 +3,13 @@
 
   let { rating = 0, imdbId = '' }: { rating: string | number; imdbId: string } = $props();
 
+  // TMDB reports 0 for a title nobody has rated yet. Showing "0" reads as a
+  // terrible score rather than "not rated", so match Hero.svelte and show NR.
+  const ratingLabel = $derived.by(() => {
+    const n = typeof rating === 'number' ? rating : Number(rating);
+    return Number.isFinite(n) && n > 0 ? String(rating) : 'NR';
+  });
+
   let rtRating = $state<string | null>(null);
   let metaRating = $state<string | null>(null);
 
@@ -29,7 +36,7 @@
 
 {#if isEnabled('RATING_AGGREGATOR')}
   <div class="aggregated-ratings">
-    <span class="rating imdb" title="IMDb">&#11088; {rating}</span>
+    <span class="rating imdb" title="IMDb">&#11088; {ratingLabel}</span>
     {#if rtRating}
       <span class="rating rt" title="Rotten Tomatoes">&#127813; {rtRating}</span>
     {/if}
@@ -38,7 +45,7 @@
     {/if}
   </div>
 {:else}
-  <span class="rating">&#11088; {rating}</span>
+  <span class="rating">&#11088; {ratingLabel}</span>
 {/if}
 
 <style>

@@ -5,9 +5,13 @@ import { db } from '$lib/server/db';
 import { users } from '$lib/server/db/schema';
 import { errorHandler } from '$lib/server';
 
-// SSE that mostly idle-waits: 256MB keeps Fluid Provisioned Memory 4x lower
-// than the ~1GB default for this runtime.
-export const config = { maxDuration: 60, memory: 256 };
+// SSE that mostly idle-waits. NOTE: `memory` is ignored on Hobby + Fluid —
+// every instance is pinned at 2GB — so the only lever on Provisioned Memory
+// is how long the instance is held. Admin-only, so volume is low, but a
+// shorter lifetime still halves the GB-Hrs each open panel costs.
+const MAX_LIFETIME_MS = 25_000;
+
+export const config = { maxDuration: 30, memory: 256 };
 
 export const GET: RequestHandler = async ({ locals, request }) => {
 	try {
@@ -76,14 +80,12 @@ export const GET: RequestHandler = async ({ locals, request }) => {
 							closed = true;
 						}
 					}
-				}, 25_000);
+				}, 15_000);
 
-				const timeout = setTimeout(() => {
-					closed = true;
-					try {
-						controller.close();
-					} catch {}
-				}, 55_000);
+				// Route the lifetime cap through cleanup so both intervals are
+				// cleared. Closing the controller on its own left them armed,
+				// which kept the Fluid instance alive after the stream ended.
+				const timeout = setTimeout(() => cleanup(), MAX_LIFETIME_MS);
 
 				const cleanup = () => {
 					closed = true;

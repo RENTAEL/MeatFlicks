@@ -11,9 +11,11 @@ import { errorHandler } from '$lib/server';
 
 const REFRESH_MS = 15000;
 const HEARTBEAT_MS = 15000;
-const MAX_LIFETIME_MS = 55000;
+// Admin-only stream, so volume is low, but each open connection still holds a
+// 2GB Fluid instance for its whole lifetime. Half the hold, half the GB-Hrs.
+const MAX_LIFETIME_MS = 25000;
 
-export const config = { maxDuration: 60, memory: 256 };
+export const config = { maxDuration: 30, memory: 256 };
 
 type Snapshot = {
 	users: PresenceSnapshotUser[];
@@ -118,10 +120,12 @@ export const GET: RequestHandler = async ({ locals, request }) => {
 				// poll on a short refresh and dedupe by signature.
 				const refreshTimer = setInterval(() => void push(), REFRESH_MS);
 				const heartbeatTimer = setInterval(() => send(': ping\n\n'), HEARTBEAT_MS);
-				const timeout = setTimeout(() => {
-					settled = true;
-					controller.close();
-				}, MAX_LIFETIME_MS);
+				// Route the lifetime cap through cleanup so the intervals are
+				// cleared and the room subscription is released. Closing the
+				// controller on its own left both timers armed and the global
+				// listener registered, keeping the instance alive after the
+				// stream had already ended.
+				const timeout = setTimeout(() => cleanup(), MAX_LIFETIME_MS);
 
 				const cleanup = () => {
 					clearInterval(refreshTimer);

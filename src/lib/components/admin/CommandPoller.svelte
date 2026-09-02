@@ -4,7 +4,6 @@
 	import {
 		playSoundEffect,
 		unlockAudio,
-		preloadSounds,
 		isSoundUnlocked
 	} from '$lib/watch-party/sounds';
 
@@ -63,7 +62,12 @@
 		if (Object.keys(audioPool).length > 0 || typeof document === 'undefined') return;
 		for (const [kind, src] of Object.entries(EFFECT_FILES)) {
 			const el = new Audio(src);
-			el.preload = 'auto';
+			// 'none', not 'auto': this pool exists to be unlocked by a gesture,
+			// not to be prefetched. Every visitor (logged out included) mounts
+			// this component, and 'auto' downloaded all four files up front.
+			// The element still loads on demand when .play() is called, so both
+			// unlockMedia() and tryPlaySound() keep working.
+			el.preload = 'none';
 			el.volume = 0.85;
 			audioPool[kind] = el;
 		}
@@ -172,8 +176,10 @@
 	}
 
 	onMount(() => {
-		// Warm the audio buffers immediately so effects fire without delay.
-		preloadSounds();
+		// Audio buffers are NOT warmed here. preloadSounds() fetches all four
+		// effect files (~437KB) and this component mounts for every visitor,
+		// logged out included. unlockAudio() already calls preloadSounds() on
+		// the first user gesture, which is early enough for effects to fire.
 		initAudioPool();
 		window.addEventListener('pointerdown', onGesture, { passive: true });
 		window.addEventListener('keydown', onGesture);
@@ -195,8 +201,34 @@
 			} catch {}
 		};
 
+		// Every poll is a serverless invocation that hits the database, and this
+		// component mounts for every visitor on every page. A flat 4s interval
+		// meant one idle background tab burned ~900 invocations an hour, which is
+		// what pushed the project past its function-CPU quota. Three guards:
+		// never poll a hidden tab, start slower, and back off while nothing is
+		// happening — resetting the moment a command actually arrives.
+		const BASE_DELAY = 8000;
+		const MAX_DELAY = 60000;
+		let delay = BASE_DELAY;
+
+		function schedule(next: number) {
+			if (stopped) return;
+			clearTimeout(timer);
+			timer = setTimeout(poll, next);
+		}
+
 		async function poll() {
 			if (stopped) return;
+
+			// A hidden tab cannot show an effect, so there is nothing to poll for.
+			// onVisible() polls immediately when the tab comes back.
+			if (typeof document !== 'undefined' && document.hidden) {
+				// visibilitychange is what actually wakes this back up; the long
+				// timer is only a fallback for browsers that miss the event.
+				schedule(MAX_DELAY);
+				return;
+			}
+
 			const sid = guestSid();
 			try {
 				const params = new URLSearchParams({ since: String(lastIdRaw()) });
@@ -204,20 +236,36 @@
 				const res = await fetch(`/api/commands?${params}`, { credentials: 'include' });
 				if (res.ok) {
 					const data = (await res.json()) as { commands: Command[]; latestId: number };
-					for (const cmd of data.commands ?? []) fire(cmd.type, cmd.payload);
+					const commands = data.commands ?? [];
+					for (const cmd of commands) fire(cmd.type, cmd.payload);
 					if (typeof data.latestId === 'number') setLastId(data.latestId);
+					// Something happened — go back to responsive polling.
+					delay = commands.length > 0 ? BASE_DELAY : Math.min(delay * 1.5, MAX_DELAY);
+				} else {
+					delay = Math.min(delay * 1.5, MAX_DELAY);
 				}
 			} catch {
 				// polling is best-effort
+				delay = Math.min(delay * 1.5, MAX_DELAY);
 			} finally {
-				if (!stopped) timer = setTimeout(poll, 4000);
+				schedule(delay);
 			}
 		}
+
+		function onVisible() {
+			if (stopped || document.hidden) return;
+			// Back to attentive polling, and check right away for anything missed.
+			delay = BASE_DELAY;
+			schedule(0);
+		}
+		document.addEventListener('visibilitychange', onVisible);
+
 		void poll();
 
 		return () => {
 			stopped = true;
 			clearTimeout(timer);
+			document.removeEventListener('visibilitychange', onVisible);
 			if (ghostTimer) clearTimeout(ghostTimer);
 			if (ghostTicker) clearInterval(ghostTicker);
 			window.removeEventListener('pointerdown', onGesture);

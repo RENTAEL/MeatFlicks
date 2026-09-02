@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { SITE_URL } from '$lib/config/site';
 	type SEOHeadProps = {
 		title: string;
 		description: string;
@@ -31,7 +32,7 @@
 		modifiedTime
 	}: SEOHeadProps = $props();
 
-	const baseUrl = 'https://streamium.app';
+	const baseUrl = SITE_URL;
 	const siteName = 'Streamium';
 	const twitterHandle = '@streamium';
 

@@ -39,13 +39,26 @@
 	}
 
 	$effect(() => {
+		// Reconnect probe. A hidden tab has nothing to reload into, so it stops
+		// probing; bringing the tab back retries straight away.
 		const interval = setInterval(() => {
+			if (document.hidden) return;
 			if (navigator.onLine) {
 				handleRetryConnection();
 			}
 		}, 30000);
 
-		return () => clearInterval(interval);
+		const onVisibility = () => {
+			if (!document.hidden && navigator.onLine) {
+				handleRetryConnection();
+			}
+		};
+		document.addEventListener('visibilitychange', onVisibility);
+
+		return () => {
+			clearInterval(interval);
+			document.removeEventListener('visibilitychange', onVisibility);
+		};
 	});
 </script>
 

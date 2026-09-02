@@ -72,6 +72,7 @@
 	let kickMessage = '';
 	let kickTimer: ReturnType<typeof setTimeout> | null = null;
 	let refetchTimer: ReturnType<typeof setInterval> | null = null;
+	let onRefetchVisibility: (() => void) | null = null;
 
 	let eventSource: EventSource | null = null;
 	let streamOpened = false;
@@ -190,20 +191,32 @@
 			// EventSource reconnects automatically; onopen catches us up
 		};
 		let refetchInFlight = false;
+		const refetchNow = () => {
+			// Never pile up overlapping polls — a slow response must not
+			// queue a burst of stale catch-ups behind it.
+			if (refetchInFlight) return;
+			refetchInFlight = true;
+			api<RoomState>(`/watch-party/rooms/${roomId}?since=${lastMessageId}`)
+				.then((s) => {
+					if (s) handleState(s);
+				})
+				.finally(() => {
+					refetchInFlight = false;
+				});
+		};
 		if (!refetchTimer) {
+			// Backstop for the SSE stream. A party is live, so this stays fast
+			// (15s) while the tab is in front — but a hidden tab isn't watching
+			// anything, so it stops polling and catches up in a single request
+			// the moment it comes back.
 			refetchTimer = setInterval(() => {
-				// Never pile up overlapping polls — a slow response must not
-				// queue a burst of stale catch-ups behind it.
-				if (refetchInFlight) return;
-				refetchInFlight = true;
-				api<RoomState>(`/watch-party/rooms/${roomId}?since=${lastMessageId}`)
-					.then((s) => {
-						if (s) handleState(s);
-					})
-					.finally(() => {
-						refetchInFlight = false;
-					});
+				if (document.hidden) return;
+				refetchNow();
 			}, 15000);
+			onRefetchVisibility = () => {
+				if (!document.hidden) refetchNow();
+			};
+			document.addEventListener('visibilitychange', onRefetchVisibility);
 		}
 	}
 
@@ -265,6 +278,10 @@
 	onDestroy(() => {
 		if (kickTimer) clearTimeout(kickTimer);
 		if (refetchTimer) clearInterval(refetchTimer);
+		if (onRefetchVisibility) {
+			document.removeEventListener('visibilitychange', onRefetchVisibility);
+			onRefetchVisibility = null;
+		}
 		if (queueSearchTimer) clearTimeout(queueSearchTimer);
 		if (eventSource) eventSource.close();
 		if (browser) {

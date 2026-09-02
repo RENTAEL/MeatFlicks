@@ -1,11 +1,12 @@
 import { db } from '$lib/server/db';
 import { media } from '$lib/server/db/schema';
 import { desc } from 'drizzle-orm';
+import { SITE_URL } from '$lib/config/site';
 
 // We want this to be dynamic since our media library grows
 export const prerender = false;
 
-const website = 'https://streamium.app';
+const website = SITE_URL;
 
 const staticPages = [
 	{ url: '/', changefreq: 'daily', priority: '1.0' },

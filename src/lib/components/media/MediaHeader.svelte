@@ -62,6 +62,13 @@
 
 	const formattedReleaseYear = $derived(parseReleaseYear(movie?.releaseDate));
 
+	// Matches Hero.svelte: a missing, zero or non-numeric rating reads as
+	// "not rated", never as 0.0.
+	const ratingLabel = $derived.by(() => {
+		const rating = typeof movie?.rating === 'number' ? movie.rating : null;
+		return rating && rating > 0 && Number.isFinite(rating) ? rating.toFixed(1) : 'NR';
+	});
+
 	function getRuntimeLabel() {
 		if (!movie) return null;
 		if (movie.mediaType === 'movie') {
@@ -138,10 +145,10 @@
 					{/if}
 
 					<div class="mt-4 flex items-center gap-4 text-lg">
-						{#if movie?.rating}
+						{#if movie}
 							<div class="flex items-center gap-2 text-yellow-500">
 								<Star class="size-6 fill-current" />
-								<span class="font-bold text-foreground">{movie.rating.toFixed(1)}</span>
+								<span class="font-bold text-foreground">{ratingLabel}</span>
 							</div>
 						{/if}
 

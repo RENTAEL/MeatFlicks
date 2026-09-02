@@ -2,4 +2,4 @@ User-agent: *
 Allow: /
 Disallow: /api/
 
-Sitemap: https://streamium.app/sitemap.xml
+Sitemap: https://streamium-cosmic.vercel.app/sitemap.xml

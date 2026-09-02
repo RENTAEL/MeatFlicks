@@ -11,10 +11,16 @@ import { subscribeRoom } from '$lib/server/watch-party/events';
 // full lifetime.)
 const TICK_MS = 5000;
 const HEARTBEAT_MS = 15000;
-const MAX_LIFETIME_MS = 50000;
+// Hobby + Fluid pins every instance at 2GB, so Provisioned Memory can only be
+// cut by holding the instance for less time. A shorter lifetime means the
+// client reconnects more often, which is the cheap side of this account's
+// budget (invocations) traded against the expensive one (GB-Hrs).
+// Must stay comfortably under maxDuration so we close cleanly instead of
+// being killed mid-write.
+const MAX_LIFETIME_MS = 20000;
 
 export const config = {
-	maxDuration: 60,
+	maxDuration: 25,
 	memory: 256
 };
 
@@ -97,14 +103,12 @@ export const GET: RequestHandler = async ({ params, locals, request }) => {
 					void touchMemberActivity(roomId, user.id);
 				}, HEARTBEAT_MS);
 
-				const timeout = setTimeout(() => {
-					settled = true;
-					try {
-						controller.close();
-					} catch {
-						// already closed
-					}
-				}, MAX_LIFETIME_MS);
+				// The lifetime cap has to run the full cleanup, not just close the
+				// controller. Closing alone left both intervals armed and the room
+				// subscription registered, so the heartbeat kept writing
+				// touchMemberActivity every 15s for a client that was already gone
+				// — holding the 2GB Fluid instance alive doing nothing.
+				const timeout = setTimeout(() => cleanup(), MAX_LIFETIME_MS);
 
 				const cleanup = () => {
 					if (settled) return;
