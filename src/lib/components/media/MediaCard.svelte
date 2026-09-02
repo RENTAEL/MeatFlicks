@@ -176,7 +176,7 @@
 							srcset={getSrcSet(movie.posterPath)}
 							sizes={POSTER_SIZES}
 							alt={`${movie.title} Poster`}
-							class="absolute inset-0 h-full w-full object-cover transition-opacity duration-400"
+							class="absolute inset-0 h-full w-full object-cover transition-[opacity,transform] duration-400 ease-out will-change-transform group-hover:scale-[1.03]"
 							class:opacity-0={!imageLoaded}
 							loading={priority ? 'eager' : 'lazy'}
 							decoding="async"
@@ -190,6 +190,25 @@
 						</div>
 					{/if}
 				</a>
+
+				<!-- Quick hover overlay — metadata fades in instantly, compositor-only,
+				     no pointer capture, hidden once the full trailer preview opens -->
+				{#if movie}
+					<div
+						class="card-quick-meta pointer-events-none absolute inset-x-0 bottom-0 z-20 bg-gradient-to-t from-black/90 via-black/55 to-transparent px-2 pb-2.5 pt-8 opacity-0 transition-opacity duration-300 ease-out group-hover:opacity-100"
+						class:meta-hidden={showPreview}
+						aria-hidden="true"
+					>
+						<p class="truncate text-[11px] font-semibold text-white/90">
+							{[releaseYear, genreNames.slice(0, 2).join(' · ')].filter(Boolean).join('  •  ')}
+						</p>
+						{#if movie.overview}
+							<p class="mt-0.5 truncate text-[10px] leading-snug text-white/70">
+								{movie.overview}
+							</p>
+						{/if}
+					</div>
+				{/if}
 
 				{#if progressPercent != null && progressPercent > 0 && progressPercent < 100}
 					<div class="absolute bottom-0 left-0 right-0 z-30">
@@ -205,18 +224,20 @@
 					</div>
 				{/if}
 
-				<!-- Rating badge (top-left desktop, bottom-left mobile) -->
+				<!-- Rating badge — always visible, screen-reader labelled -->
 				<div
-					class="mobile-rating-badge absolute top-3 left-3 z-30 opacity-0 transition-all duration-400 ease-out group-hover:opacity-100 {showPreview
+					class="mobile-rating-badge absolute top-3 left-3 z-30 transition-all duration-400 ease-out {showPreview
 						? '!opacity-100'
 						: ''}"
+					aria-label={`Rated ${ratingLabel ?? 'unrated'} out of 10`}
 				>
 					<Badge
 						variant="secondary"
 						class="flex items-center gap-1 bg-black/70 text-white backdrop-blur-sm"
 					>
-						<Star class="size-3.5 text-yellow-500" fill="currentColor" stroke="currentColor" />
+						<Star class="size-3.5 text-yellow-500" fill="currentColor" stroke="currentColor" aria-hidden="true" />
 						{ratingLabel ?? 'N/A'}
+						<span class="sr-only">out of 10</span>
 					</Badge>
 				</div>
 
@@ -316,11 +337,27 @@
 	.card-inner {
 		transform-origin: center bottom;
 	}
+	.meta-hidden {
+		opacity: 0 !important;
+	}
 	:global(.line-clamp-2) {
 		display: -webkit-box;
 		-webkit-line-clamp: 2;
 		-webkit-box-orient: vertical;
 		overflow: hidden;
 		line-clamp: 2;
+	}
+
+	/* Reduced motion — no hover scale, no fades; everything stays usable */
+	@media (prefers-reduced-motion: reduce) {
+		.media-card img,
+		.card-inner,
+		.card-quick-meta {
+			transition: none !important;
+		}
+		.media-card:hover img,
+		.media-card:hover .card-inner {
+			transform: none !important;
+		}
 	}
 </style>

@@ -316,6 +316,30 @@
 
 	const gridKey = (m: any) => `${m.mediaType ?? m.media_type ?? 'movie'}:${m.id}`;
 
+	// Client-side genre quick-filter — instant, on already-loaded data, no API/navigation.
+	// (Server-side genre filtering still works via URL, e.g. /movies?genre=28.)
+	const activeGenreDef = $derived(
+		GENRES[section].find((g) => g.value !== null && g.value === genre) ?? null
+	);
+
+	const filteredCards = $derived.by(() => {
+		if (!activeGenreDef) return gridCards;
+		const gid = Number(activeGenreDef.value);
+		const label = activeGenreDef.label.toLowerCase();
+		return (gridCards as any[]).filter((m) => {
+			if (Array.isArray(m.genre_ids) && m.genre_ids.includes(gid)) return true;
+			const gs = m.genres;
+			if (Array.isArray(gs)) {
+				return gs.some((x) =>
+					typeof x === 'string'
+						? x.toLowerCase() === label
+						: String((x as any)?.name ?? '').toLowerCase() === label
+				);
+			}
+			return false;
+		});
+	});
+
 	async function rollPick() {
 		if (picking) return;
 		picking = true;
@@ -502,7 +526,7 @@
 								class="chip text-xs"
 								class:chip-active={genre === g.value}
 								aria-pressed={genre === g.value}
-								onclick={() => applyFilters({ genre: g.value })}
+								onclick={() => (genre = g.value)}
 							>{g.label}</button>
 						{/each}
 					</div>
@@ -560,24 +584,32 @@
 						title="Nothing found"
 						subtitle="Try different filters"
 					/>
+				{:else if filteredCards.length === 0 && activeGenreDef && !query}
+					<EmptyState
+						icon="search"
+						title={`No ${activeGenreDef.label.toLowerCase()} titles here`}
+						subtitle="This genre isn't in the loaded selection — clear the filter or load more."
+						actionLabel="Clear filter"
+						onAction={() => (genre = null)}
+					/>
 				{:else}
 					{#if navigating}
-						<div class="grid grid-cols-3 gap-4 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6">
+						<div class="browse-grid" aria-busy="true" aria-live="polite">
 							{#each Array(20) as _, i}
 								<div class={i > 11 ? 'hidden sm:block' : ''}>
-									<div class="w-full animate-pulse overflow-hidden rounded-xl bg-zinc-800/70" style="aspect-ratio:2/3"></div>
+									<div class="skel" role="presentation"></div>
 								</div>
 							{/each}
 						</div>
 					{:else}
-						<div class="grid grid-cols-3 gap-4 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6">
-							{#each gridCards as item (gridKey(item))}
+						<div class="browse-grid">
+							{#each filteredCards as item (gridKey(item))}
 								<MediaCard movie={toLibraryMovie(item)} />
 							{/each}
 							{#if loadingMore}
 								{#each Array(6) as _, i}
 									<div class="hidden sm:block">
-										<div class="w-full animate-pulse overflow-hidden rounded-xl bg-zinc-800/70" style="aspect-ratio:2/3"></div>
+										<div class="skel" role="presentation"></div>
 									</div>
 								{/each}
 							{/if}
@@ -790,5 +822,59 @@
 		color: #d4d4d8;
 		padding: 0.4rem 0.6rem;
 		font-size: 0.8rem;
+	}
+
+	/* Refined browse grid — auto-fill adapts cleanly across breakpoints */
+	.browse-grid {
+		display: grid;
+		gap: 1rem;
+		grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+	}
+	@media (min-width: 640px) {
+		.browse-grid {
+			gap: 1.25rem;
+			grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+		}
+	}
+
+	/* Shimmer skeleton — subtle, GPU-friendly (background-position only) */
+	.skel {
+		aspect-ratio: 2 / 3;
+		width: 100%;
+		border-radius: 0.75rem;
+		background: linear-gradient(
+			110deg,
+			rgb(39 39 42) 25%,
+			rgb(63 63 70) 50%,
+			rgb(39 39 42) 75%
+		);
+		background-size: 200% 100%;
+		animation: skel-shimmer 1.5s linear infinite;
+	}
+	@keyframes skel-shimmer {
+		to {
+			background-position: -200% 0;
+		}
+	}
+
+	.chip:focus-visible {
+		outline: 2px solid var(--sec);
+		outline-offset: 2px;
+	}
+	.active-chip:focus-visible,
+	.chip-active:focus-visible {
+		outline-color: var(--sec-ink);
+	}
+
+	@media (prefers-reduced-motion: reduce) {
+		.skel {
+			animation: none;
+		}
+		.chip,
+		.active-chip,
+		.more-btn,
+		.kies-btn {
+			transition: none;
+		}
 	}
 </style>
