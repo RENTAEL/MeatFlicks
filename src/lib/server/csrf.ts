@@ -283,10 +283,20 @@ export function csrfMiddleware() {
 			const isApiRequest = event.url.pathname.includes('/api/');
 			const isPublicPage = isPublicPagePath(event.url.pathname);
 
+			// Rotation is deferred until after validation below. `cookies.get`
+			// reads back whatever was last written in this request, so rotating
+			// here would hand validateSecureCsrfToken the NEW token and compare it
+			// against the still-valid OLD one the form submitted — rejecting a
+			// legitimate POST with a spurious 403 once the cookie passed 20h.
+			let rotateAfterValidation = false;
+
 			if (!isApiRequest) {
 				const csrfCookie = event.cookies.get(CSRF_COOKIE_NAME);
 
 				if (!csrfCookie) {
+					// Minting immediately is safe: a POST arriving without a cookie has
+					// no valid token to present and is rejected below either way, and
+					// issuing one now lets the client's retry succeed.
 					const csrfToken = generateSecureCsrfToken();
 					const csrfCookie = createSecureCsrfCookie(csrfToken);
 					event.cookies.set(csrfCookie.name, csrfCookie.value, csrfCookie.attributes);
@@ -294,9 +304,7 @@ export function csrfMiddleware() {
 					try {
 						const tokenData = JSON.parse(csrfCookie) as Partial<CsrfTokenPayload>;
 						if (tokenData.expires && Date.now() > tokenData.expires - CSRF_TOKEN_ROTATION_INTERVAL) {
-							const newTokenData = generateSecureCsrfToken();
-							const newCsrfCookie = createSecureCsrfCookie(newTokenData);
-							event.cookies.set(newCsrfCookie.name, newCsrfCookie.value, newCsrfCookie.attributes);
+							rotateAfterValidation = true;
 						}
 					} catch {
 						const csrfToken = generateSecureCsrfToken();
@@ -321,6 +329,14 @@ export function csrfMiddleware() {
 					}
 				});
 			}
+		}
+
+		// Validation has passed (or did not apply), so the old token has served
+		// its purpose and can be replaced for subsequent requests.
+		if (rotateAfterValidation) {
+			const newTokenData = generateSecureCsrfToken();
+			const newCsrfCookie = createSecureCsrfCookie(newTokenData);
+			event.cookies.set(newCsrfCookie.name, newCsrfCookie.value, newCsrfCookie.attributes);
 		}
 
 		const response = await resolve(event);
