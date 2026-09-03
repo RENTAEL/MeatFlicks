@@ -53,7 +53,57 @@ const ensureDirectory = (dbPath: string) => {
 	} catch {}
 };
 
-const runInitSql = async (client: Client) => {
+/**
+ * Bump this whenever runInitSql gains a statement an existing database must
+ * pick up (a new table, index, or ALTER). Anything else leaves it alone.
+ */
+const SCHEMA_VERSION = 1;
+
+/**
+ * runInitSql is ~90 sequential statements, every one a separate round-trip to
+ * Turso, and it used to run at module scope on EVERY cold start. On Vercel that
+ * meant seconds of latency before the handler executed a single line — the
+ * dominant cost in the function-duration bill. The statements are all
+ * idempotent DDL, so after the first run they are ~90 guaranteed no-ops (worse:
+ * the ALTER TABLE ones throw every time, since the column already exists).
+ *
+ * This reduces the steady-state cold start to ONE round-trip: read the recorded
+ * schema version and, if it matches, skip the whole thing.
+ */
+const isSchemaCurrent = async (client: Client): Promise<boolean> => {
+	// Escape hatch: set DB_FORCE_INIT=1 to replay the full init once, for a
+	// database that drifted (a table dropped by hand, a bad partial migration).
+	if (process.env.DB_FORCE_INIT === '1') return false;
+	try {
+		const result = await client.execute(
+			`SELECT "value" FROM schema_meta WHERE "key" = 'schema_version'`
+		);
+		const value = result.rows[0]?.value;
+		return value !== undefined && Number(value) === SCHEMA_VERSION;
+	} catch {
+		// Table absent — this database has never been initialised.
+		return false;
+	}
+};
+
+const markSchemaCurrent = async (client: Client) => {
+	try {
+		await client.execute(`CREATE TABLE IF NOT EXISTS schema_meta (
+			"key" TEXT PRIMARY KEY NOT NULL,
+			"value" TEXT NOT NULL
+		)`);
+		await client.execute({
+			sql: `INSERT INTO schema_meta ("key", "value") VALUES ('schema_version', ?)
+				ON CONFLICT("key") DO UPDATE SET "value" = excluded."value"`,
+			args: [String(SCHEMA_VERSION)]
+		});
+	} catch (err) {
+		// Non-fatal: init simply runs again on the next cold start.
+		logger.warn({ err }, 'Could not record schema version');
+	}
+};
+
+const runInitSql = async (client: Client): Promise<boolean> => {
 	try {
 		if (!isTurso()) {
 			await client.execute('PRAGMA journal_mode = WAL');
@@ -579,19 +629,28 @@ const runInitSql = async (client: Client) => {
 		}
 
 		logger.info('Database initialization completed successfully');
+		return true;
 	} catch (err) {
 		logger.warn({ err }, 'Database init SQL warning (non-fatal)');
+		return false;
 	}
 };
 
-// Initialize database eagerly before any module imports complete
+// Initialize database eagerly before any module imports complete.
+// Steady state is a single round-trip: the version check short-circuits the
+// ~90-statement init. Only a fresh database, or a SCHEMA_VERSION bump, pays the
+// full cost — and it pays it once, not on every cold start.
 const initUrl = resolveDatabaseUrl();
 ensureDirectory(initUrl);
 const initClient = createClient({
 	url: initUrl,
 	authToken: isTurso() ? getAuthToken() : undefined
 });
-await runInitSql(initClient);
+if (await isSchemaCurrent(initClient)) {
+	logger.debug('Database schema already current — skipping init SQL');
+} else if (await runInitSql(initClient)) {
+	await markSchemaCurrent(initClient);
+}
 await initClient.close();
 
 export const runMaintenance = async () => {
