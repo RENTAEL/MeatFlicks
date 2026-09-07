@@ -9,6 +9,7 @@
 	import GuestPresence from '$lib/components/admin/GuestPresence.svelte';
 	import CommandPoller from '$lib/components/admin/CommandPoller.svelte';
 	import PreviewPopout from '$lib/components/media/PreviewPopout.svelte';
+	import BmcWidget from '$lib/components/support/BmcWidget.svelte';
 
 	let { children } = $props();
 
@@ -41,4 +42,5 @@
 <GuestPresence />
 <CommandPoller />
 <PreviewPopout />
+<BmcWidget />
 {@render children()}

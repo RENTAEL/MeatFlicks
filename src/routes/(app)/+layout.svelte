@@ -33,7 +33,6 @@
 	import UserFab from '$lib/components/UserFab.svelte';
 	import DeveloperBadge from '$lib/components/DeveloperBadge.svelte';
 	import SuneLoading from '$lib/components/branding/SuneLoading.svelte';
-	import CoffeeFab from '$lib/components/support/CoffeeFab.svelte';
 
 	// Fewer ambient particles on small screens — heavy blurred layers over
 	// video cost frames on low-end phones.
@@ -220,7 +219,6 @@
 			<OfflineIndicator />
 		<UserFab />
 		<DeveloperBadge />
-		<CoffeeFab />
 			<MediaDetailSheet />
 		</ErrorContext>
 	</WatchlistContext>
