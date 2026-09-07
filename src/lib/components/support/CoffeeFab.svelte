@@ -1,140 +1,235 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { fade } from 'svelte/transition';
-	import { SUPPORT_URL, SUPPORT_LABEL, pickSupportTooltip } from '$lib/config/support';
+	import { fade, fly } from 'svelte/transition';
+	import { SUPPORT_URL, SUPPORT_LABEL, SUPPORT_TOOLTIPS } from '$lib/config/support';
+	import CoffeeCup from './CoffeeCup.svelte';
 
-	let tooltip = $state('');
+	let tipIndex = 0;
 	let showTip = $state(false);
+	let isTouch = $state(false);
+	let hideTimer: ReturnType<typeof setTimeout> | null = null;
+	let tipEl: HTMLElement | null = $state(null);
 
 	onMount(() => {
-		tooltip = pickSupportTooltip();
+		tipIndex = Math.floor(Math.random() * SUPPORT_TOOLTIPS.length);
+		const onTouch = () => (isTouch = true);
+		window.addEventListener('touchstart', onTouch, { once: true, passive: true });
+		return () => {
+			window.removeEventListener('touchstart', onTouch);
+			if (hideTimer) clearTimeout(hideTimer);
+		};
 	});
 
+	const tooltip = $derived(SUPPORT_TOOLTIPS[tipIndex]);
+
 	function reveal() {
-		if (!tooltip) tooltip = pickSupportTooltip();
+		if (hideTimer) {
+			clearTimeout(hideTimer);
+			hideTimer = null;
+		}
 		showTip = true;
 	}
 
-	function hide() {
+	function scheduleHide() {
+		if (hideTimer) clearTimeout(hideTimer);
+		hideTimer = setTimeout(() => (showTip = false), 160);
+	}
+
+	function hideNow() {
+		if (hideTimer) {
+			clearTimeout(hideTimer);
+			hideTimer = null;
+		}
 		showTip = false;
+	}
+
+	function onDismissOutside(e: Event) {
+		if (!showTip) return;
+		const target = e.target as Node;
+		if (target && (tipEl?.contains(target) || (e.currentTarget as HTMLElement)?.contains?.(target))) return;
+		hideNow();
+	}
+
+	function onTapOrClick(e: MouseEvent) {
+		if (!isTouch) return; // desktop: let the anchor open the link
+		// Mobile: first tap reveals the tooltip, second tap opens the link
+		if (!showTip) {
+			e.preventDefault();
+			reveal();
+			// auto-dismiss so it never lingers
+			if (hideTimer) clearTimeout(hideTimer);
+			hideTimer = setTimeout(hideNow, 2600);
+		} else {
+			hideNow(); // second tap: proceed with navigation
+		}
 	}
 </script>
 
+<svelte:window onclick={onDismissOutside} ontouchstart={onDismissOutside} />
+
 <div class="coffee-fab-wrap">
-	{#if showTip}
-		<span class="coffee-tip" role="tooltip" transition:fade={{ duration: 140 }}>{tooltip}</span>
-	{/if}
 	<a
 		href={SUPPORT_URL}
 		target="_blank"
 		rel="noopener noreferrer"
 		class="coffee-fab"
 		aria-label={`${SUPPORT_LABEL} to support the developer`}
-		aria-expanded={showTip}
+		aria-describedby={showTip ? 'coffee-tip' : undefined}
 		onmouseenter={reveal}
+		onmouseleave={scheduleHide}
 		onfocus={reveal}
-		onmouseleave={hide}
-		onblur={hide}
-		onclick={hide}
+		onblur={scheduleHide}
+		onclick={onTapOrClick}
 	>
-		<svg
-			class="coffee-cup"
-			viewBox="0 0 24 24"
-			fill="none"
-			stroke="currentColor"
-			stroke-width="2"
-			stroke-linecap="round"
-			stroke-linejoin="round"
-			aria-hidden="true"
-		>
-			<path d="M17 8h1a4 4 0 1 1 0 8h-1" />
-			<path d="M3 8h14v9a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4Z" />
-			<line x1="6" x2="6" y1="2" y2="4" />
-			<line x1="10" x2="10" y1="2" y2="4" />
-			<line x1="14" x2="14" y1="2" y2="4" />
-		</svg>
+		<span class="coffee-fab-sheen" aria-hidden="true"></span>
+		<CoffeeCup size={19} />
 	</a>
+
+	{#if showTip}
+		<span
+			bind:this={tipEl}
+			id="coffee-tip"
+			class="coffee-tip"
+			role="tooltip"
+			in:fly={{ y: 4, duration: 180 }}
+			out:fade={{ duration: 120 }}
+		>
+			{tooltip}
+			<span class="coffee-tip-arrow" aria-hidden="true"></span>
+		</span>
+	{/if}
 </div>
 
 <style>
 	.coffee-fab-wrap {
 		position: fixed;
-		left: 14px;
-		bottom: calc(var(--nav-height, 64px) + env(safe-area-inset-bottom, 0px) + 14px);
-		z-index: 490;
+		right: 24px;
+		bottom: 88px;
+		z-index: 480;
 		display: flex;
 		align-items: center;
 		gap: 10px;
-		pointer-events: none;
+		/* entrance: gentle fade + rise, once */
+		animation: fab-enter 0.55s cubic-bezier(0.22, 1, 0.36, 1) 0.6s both;
 	}
 
 	.coffee-fab {
-		pointer-events: auto;
+		position: relative;
 		display: flex;
 		align-items: center;
 		justify-content: center;
-		width: 40px;
-		height: 40px;
+		width: 44px;
+		height: 44px;
 		border-radius: 999px;
 		color: #e7c663;
-		background: rgba(20, 13, 18, 0.88);
-		border: 1px solid rgba(142, 29, 46, 0.35);
+		background:
+			radial-gradient(circle at 30% 25%, rgba(212, 175, 55, 0.1), transparent 55%),
+			linear-gradient(180deg, rgba(42, 26, 32, 0.92), rgba(20, 13, 18, 0.92));
+		border: 1px solid rgba(212, 175, 55, 0.24);
 		box-shadow:
-			0 4px 16px rgba(0, 0, 0, 0.4),
-			0 0 12px rgba(142, 29, 46, 0.12);
-		backdrop-filter: blur(8px);
-		-webkit-backdrop-filter: blur(8px);
+			0 2px 6px rgba(0, 0, 0, 0.35),
+			0 10px 24px rgba(0, 0, 0, 0.45),
+			inset 0 1px 0 rgba(255, 255, 255, 0.06);
+		backdrop-filter: blur(10px);
+		-webkit-backdrop-filter: blur(10px);
+		overflow: hidden;
 		transition:
-			border-color 0.2s ease,
-			box-shadow 0.2s ease,
-			color 0.2s ease;
+			transform 0.28s cubic-bezier(0.22, 1, 0.36, 1),
+			border-color 0.28s ease,
+			color 0.28s ease,
+			box-shadow 0.28s ease;
+	}
+
+	/* sheen — reads as a real button surface */
+	.coffee-fab-sheen {
+		position: absolute;
+		inset: 0;
+		background: linear-gradient(160deg, rgba(255, 255, 255, 0.09) 0%, transparent 42%);
+		pointer-events: none;
 	}
 
 	.coffee-fab:hover {
-		color: #f3d9a4;
-		border-color: rgba(142, 29, 46, 0.6);
+		transform: translateY(-2px);
+		color: #e0576f; /* readable burgundy shift */
+		border-color: rgba(142, 29, 46, 0.65);
 		box-shadow:
-			0 6px 20px rgba(0, 0, 0, 0.45),
-			0 0 18px rgba(142, 29, 46, 0.28);
+			0 4px 10px rgba(0, 0, 0, 0.4),
+			0 14px 30px rgba(0, 0, 0, 0.5),
+			0 0 22px rgba(142, 29, 46, 0.32),
+			inset 0 1px 0 rgba(255, 255, 255, 0.08);
+	}
+
+	.coffee-fab:active {
+		transform: translateY(0);
 	}
 
 	.coffee-fab:focus-visible {
 		outline: 2px solid rgba(212, 175, 55, 0.9);
-		outline-offset: 2px;
+		outline-offset: 3px;
 	}
 
-	.coffee-cup {
-		width: 18px;
-		height: 18px;
-	}
-
+	/* Polished tooltip — styled element with arrow, not a title attribute */
 	.coffee-tip {
-		pointer-events: none;
 		position: absolute;
-		left: calc(100% + 10px);
-		bottom: 2px;
-		max-width: min(240px, 60vw);
-		padding: 0.45rem 0.7rem;
-		border-radius: 10px;
-		background: #140d12;
-		border: 1px solid rgba(212, 175, 55, 0.22);
+		right: calc(100% + 12px);
+		top: 50%;
+		transform: translateY(-50%);
+		width: max-content;
+		max-width: min(250px, 62vw);
+		padding: 0.55rem 0.8rem;
+		border-radius: 12px;
+		background: linear-gradient(180deg, #2a1a20, #140d12);
+		border: 1px solid rgba(212, 175, 55, 0.26);
+		box-shadow:
+			0 10px 28px rgba(0, 0, 0, 0.55),
+			0 0 18px rgba(142, 29, 46, 0.14);
 		color: #f6edf0;
-		font-size: 0.78rem;
-		line-height: 1.35;
-		white-space: normal;
-		box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+		font-size: 0.8rem;
+		font-weight: 500;
+		line-height: 1.4;
+		text-align: left;
 	}
 
-	@media (min-width: 769px) {
+	.coffee-tip-arrow {
+		position: absolute;
+		right: -5px;
+		top: 50%;
+		width: 9px;
+		height: 9px;
+		background: #22141a;
+		border-right: 1px solid rgba(212, 175, 55, 0.26);
+		border-top: 1px solid rgba(212, 175, 55, 0.26);
+		transform: translateY(-50%) rotate(45deg);
+	}
+
+	@keyframes fab-enter {
+		from {
+			opacity: 0;
+			transform: translateY(10px);
+		}
+		to {
+			opacity: 1;
+			transform: translateY(0);
+		}
+	}
+
+	@media (max-width: 768px) {
 		.coffee-fab-wrap {
-			left: 22px;
-			bottom: 22px;
+			right: 16px;
+			bottom: calc(var(--nav-height, 64px) + env(safe-area-inset-bottom, 0px) + 72px);
 		}
 	}
 
 	@media (prefers-reduced-motion: reduce) {
-		.coffee-fab {
-			transition: none;
+		.coffee-fab-wrap {
+			animation: none;
+		}
+		.coffee-fab,
+		.coffee-tip {
+			transition: none !important;
+		}
+		.coffee-fab:hover {
+			transform: none;
 		}
 	}
 </style>

@@ -12,6 +12,7 @@
 	import type { OverrideToken, ThemeOverrides } from '$lib/stores/theme';
 	import AdminPanel from '$lib/components/admin/AdminPanel.svelte';
 	import { SUPPORT_URL, SUPPORT_LABEL } from '$lib/config/support';
+	import CoffeeCup from '$lib/components/support/CoffeeCup.svelte';
 	import { isDesktopDevice } from '$lib/utils/device';
 
 	$: user = $page.data?.user;
@@ -324,7 +325,7 @@
 			rel="noopener noreferrer"
 			class="support-link"
 		>
-			<span aria-hidden="true">☕</span> {SUPPORT_LABEL}
+			<CoffeeCup size={16} /> {SUPPORT_LABEL}
 		</a>
 	</div>
 
@@ -400,12 +401,14 @@
 	.support-link {
 		display: inline-flex;
 		align-items: center;
-		gap: 0.45rem;
+		gap: 0.5rem;
 		align-self: flex-start;
-		padding: 0.5rem 1.1rem;
+		padding: 0.55rem 1.15rem;
 		border-radius: var(--radius-full);
-		border: 1px solid rgba(142, 29, 46, 0.35);
-		background: rgba(142, 29, 46, 0.08);
+		border: 1px solid rgba(212, 175, 55, 0.2);
+		background:
+			radial-gradient(circle at 30% 25%, rgba(212, 175, 55, 0.07), transparent 55%),
+			rgba(142, 29, 46, 0.07);
 		color: var(--text-secondary);
 		font-size: 0.9rem;
 		font-weight: var(--font-weight-semibold, 600);
@@ -414,19 +417,30 @@
 			color var(--transition-fast),
 			border-color var(--transition-fast),
 			box-shadow var(--transition-fast),
-			background var(--transition-fast);
+			background var(--transition-fast),
+			transform var(--transition-fast);
 	}
 
 	.support-link:hover {
-		color: #e7c663;
+		color: #e0576f;
 		border-color: rgba(142, 29, 46, 0.6);
-		background: rgba(142, 29, 46, 0.14);
-		box-shadow: 0 0 16px rgba(142, 29, 46, 0.25);
+		background: rgba(142, 29, 46, 0.13);
+		box-shadow: 0 0 18px rgba(142, 29, 46, 0.26);
+		transform: translateY(-1px);
 	}
 
 	.support-link:focus-visible {
 		outline: 2px solid rgba(212, 175, 55, 0.9);
 		outline-offset: 2px;
+	}
+
+	@media (prefers-reduced-motion: reduce) {
+		.support-link {
+			transition: none;
+		}
+		.support-link:hover {
+			transform: none;
+		}
 	}
 
 	.st-toggle-row {

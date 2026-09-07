@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { SUPPORT_URL, SUPPORT_LABEL } from '$lib/config/support';
+	import CoffeeCup from '$lib/components/support/CoffeeCup.svelte';
 
 	let { class: className = '' }: { class?: string } = $props();
 </script>
@@ -20,7 +21,7 @@
 		</div>
 
 		<a class="footer-coffee" href={SUPPORT_URL} target="_blank" rel="noopener noreferrer">
-			<span aria-hidden="true">☕</span> {SUPPORT_LABEL}
+			<CoffeeCup size={15} /> {SUPPORT_LABEL}
 		</a>
 
 		<div class="footer-links">
@@ -87,28 +88,41 @@
 	.footer-coffee {
 		display: inline-flex;
 		align-items: center;
-		gap: 0.35rem;
-		padding: 0.3rem 0.85rem;
+		gap: 0.4rem;
+		padding: 0.35rem 0.9rem;
 		border-radius: var(--radius-full);
-		border: 1px solid transparent;
+		border: 1px solid rgba(212, 175, 55, 0.18);
+		background: rgba(212, 175, 55, 0.05);
 		color: var(--text-tertiary);
 		font-size: 0.8rem;
 		text-decoration: none;
 		transition:
 			color var(--transition-fast),
 			border-color var(--transition-fast),
-			box-shadow var(--transition-fast);
+			box-shadow var(--transition-fast),
+			transform var(--transition-fast);
 	}
 
 	.footer-coffee:hover {
-		color: #e7c663;
-		border-color: rgba(142, 29, 46, 0.4);
-		box-shadow: 0 0 14px rgba(142, 29, 46, 0.22);
+		color: #e0576f;
+		border-color: rgba(142, 29, 46, 0.55);
+		background: rgba(142, 29, 46, 0.08);
+		box-shadow: 0 0 16px rgba(142, 29, 46, 0.25);
+		transform: translateY(-1px);
 	}
 
 	.footer-coffee:focus-visible {
 		outline: 2px solid rgba(212, 175, 55, 0.9);
 		outline-offset: 2px;
+	}
+
+	@media (prefers-reduced-motion: reduce) {
+		.footer-coffee {
+			transition: none;
+		}
+		.footer-coffee:hover {
+			transform: none;
+		}
 	}
 
 	.creator-name {
