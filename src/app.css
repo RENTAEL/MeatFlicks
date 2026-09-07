@@ -2369,15 +2369,17 @@ textarea {
 	box-shadow: 0 8px 32px rgba(168, 85, 247, 0.22) !important;
 }
 
-/* Official BMC widget — lift clear of UserFab (bottom-right) and bottom nav.
-   The widget injects #bmc-wbtn with inline bottom/right (18px margins); the
-   !important rules below win over inline styles without touching widget config. */
+/* Official BMC widget - stacked above the Surprise-Me pill (bottom-right),
+   clear of UserFab and the mobile bottom nav. The widget injects #bmc-wbtn
+   with inline bottom/right (18px margins); the !important rules below win
+   over inline styles without touching widget config. */
 #bmc-wbtn {
-	bottom: 88px !important;
+	bottom: 156px !important;
 }
 @media (max-width: 768px) {
 	#bmc-wbtn {
-		bottom: calc(var(--nav-height, 64px) + env(safe-area-inset-bottom, 0px) + 74px) !important;
+		right: 12px !important;
+		bottom: 138px !important;
 	}
 }
 @media (prefers-reduced-motion: reduce) {
