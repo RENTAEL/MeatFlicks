@@ -11,6 +11,7 @@
 	import { themes, SOFIA_THEME } from '$lib/themes';
 	import type { OverrideToken, ThemeOverrides } from '$lib/stores/theme';
 	import AdminPanel from '$lib/components/admin/AdminPanel.svelte';
+	import { SUPPORT_URL, SUPPORT_LABEL } from '$lib/config/support';
 	import { isDesktopDevice } from '$lib/utils/device';
 
 	$: user = $page.data?.user;
@@ -313,6 +314,20 @@
 		<a href="/profile" class="btn btn-secondary">Go to Profile →</a>
 	</div>
 
+	<!-- Support (optional tip jar — never gated, never nagging) -->
+	<div class="settings-section settings-section-support">
+		<h2 class="st-heading">Support the project</h2>
+		<p class="st-sub">If you're enjoying this, a coffee keeps the lights on.</p>
+		<a
+			href={SUPPORT_URL}
+			target="_blank"
+			rel="noopener noreferrer"
+			class="support-link"
+		>
+			<span aria-hidden="true">☕</span> {SUPPORT_LABEL}
+		</a>
+	</div>
+
 	{#if user?.role === 'ADMIN'}
 		<!-- Admin Panel -->
 		<div class="settings-section settings-section-admin">
@@ -374,6 +389,44 @@
 		font-size: 0.85rem;
 		color: var(--text-tertiary);
 		margin: 0 0 1rem;
+	}
+
+	/* Support — quiet tip-jar row, burgundy on hover */
+	.settings-section-support {
+		display: flex;
+		flex-direction: column;
+	}
+
+	.support-link {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.45rem;
+		align-self: flex-start;
+		padding: 0.5rem 1.1rem;
+		border-radius: var(--radius-full);
+		border: 1px solid rgba(142, 29, 46, 0.35);
+		background: rgba(142, 29, 46, 0.08);
+		color: var(--text-secondary);
+		font-size: 0.9rem;
+		font-weight: var(--font-weight-semibold, 600);
+		text-decoration: none;
+		transition:
+			color var(--transition-fast),
+			border-color var(--transition-fast),
+			box-shadow var(--transition-fast),
+			background var(--transition-fast);
+	}
+
+	.support-link:hover {
+		color: #e7c663;
+		border-color: rgba(142, 29, 46, 0.6);
+		background: rgba(142, 29, 46, 0.14);
+		box-shadow: 0 0 16px rgba(142, 29, 46, 0.25);
+	}
+
+	.support-link:focus-visible {
+		outline: 2px solid rgba(212, 175, 55, 0.9);
+		outline-offset: 2px;
 	}
 
 	.st-toggle-row {
