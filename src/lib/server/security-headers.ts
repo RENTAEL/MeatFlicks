@@ -8,7 +8,7 @@ import { env } from '$lib/config/env';
 export const SECURITY_HEADERS = {
 	'Content-Security-Policy': `
 		default-src 'self';
-		script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://unpkg.com blob:;
+		script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://unpkg.com https://cdnjs.buymeacoffee.com blob:;
 		style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
 		img-src 'self' data: https: blob:;
 		font-src 'self' https://fonts.gstatic.com;
