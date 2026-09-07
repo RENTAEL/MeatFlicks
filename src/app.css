@@ -2381,6 +2381,10 @@ textarea {
 		right: 12px !important;
 		bottom: 138px !important;
 	}
+	/* Mobile: icon-only button — the description label sprawls full-width */
+	#bmc-wbtn .bmc-btn-text {
+		display: none !important;
+	}
 }
 @media (prefers-reduced-motion: reduce) {
 	#bmc-wbtn {
