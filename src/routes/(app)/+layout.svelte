@@ -149,6 +149,7 @@
 
 <!-- Demon Slayer custom background for aftermidnight — gated to demon_slayer theme -->
 <div class="demon-slayer-bg" class:ambient-frozen={videoLive} aria-hidden="true">
+	<div class="demon-slayer-bg-image" aria-hidden="true"></div>
 	<div class="demon-slayer-bg-overlay"></div>
 </div>
 
@@ -404,24 +405,31 @@
 		background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
 	}
 
-	/* Demon Slayer custom background — aftermidnight only, reversible via data-theme */
-	.demon-slayer-bg {
-		position: fixed;
-		inset: 0;
-		z-index: -1;
-		pointer-events: none;
-		background-image: url('/demon-slayer-aftermidnight.jpg');
-		background-size: cover;
-		background-position: center 32%;
-		background-repeat: no-repeat;
-		image-rendering: -webkit-optimize-contrast;
-		image-rendering: high-quality;
-		opacity: 0;
-		transition: opacity 0.6s ease;
-		will-change: opacity;
-		/* Keep image clear and sharp — light touch, not heavy wash. Pixelation hidden by overlay, not blur. */
-		filter: brightness(0.94) saturate(1.04) contrast(1.04);
-	}
+/* Demon Slayer custom background — aftermidnight only, reversible via data-theme */
+.demon-slayer-bg {
+	position: fixed;
+	inset: 0;
+	z-index: -1;
+	pointer-events: none;
+	opacity: 0;
+	transition: opacity 0.6s ease;
+	will-change: opacity;
+	overflow: hidden;
+}
+
+.demon-slayer-bg-image {
+	position: absolute;
+	inset: -4%;
+	background-image: url('/demon-slayer-aftermidnight.jpg');
+	background-size: cover;
+	background-position: center 32%;
+	background-repeat: no-repeat;
+	image-rendering: -webkit-optimize-contrast;
+	image-rendering: high-quality;
+	filter: brightness(0.94) saturate(1.04) contrast(1.04);
+	will-change: transform;
+	animation: demonKenBurns 48s ease-in-out infinite alternate;
+}
 
 	:global([data-theme='demon_slayer']) .demon-slayer-bg {
 		opacity: 1;
@@ -534,9 +542,19 @@
 		}
 	}
 
+	@keyframes demonKenBurns {
+		0% {
+			transform: scale(1) translate(0, 0);
+		}
+		100% {
+			transform: scale(1.08) translate(-1%, 0.5%);
+		}
+	}
+
 	@media (prefers-reduced-motion: reduce) {
 		.sune-bg-image,
-		.sune-bg-gradient {
+		.sune-bg-gradient,
+		.demon-slayer-bg-image {
 			animation: none !important;
 		}
 	}
