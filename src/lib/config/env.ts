@@ -14,6 +14,7 @@ const privateEnv = {
 	TURSO_DATABASE_URL: process.env.TURSO_DATABASE_URL,
 	TURSO_AUTH_TOKEN: process.env.TURSO_AUTH_TOKEN,
 	CRON_SECRET: process.env.CRON_SECRET,
+	BUY_ME_A_COFFEE_SIGNING_SECRET: process.env.BUY_ME_A_COFFEE_SIGNING_SECRET,
 	PUBLIC_BASE_URL: process.env.PUBLIC_BASE_URL,
 	PUBLIC_TMDB_API_KEY: process.env.PUBLIC_TMDB_API_KEY,
 	PUBLIC_TMDB_IMAGE_BASE_URL: process.env.PUBLIC_TMDB_IMAGE_BASE_URL,
@@ -37,7 +38,8 @@ const serverSchema = z.object({
 	TMDB_STILL_SIZE: z.string().min(1).default('w300'),
 	TURSO_DATABASE_URL: z.string().min(1).optional(),
 	TURSO_AUTH_TOKEN: z.string().min(1).optional(),
-	CRON_SECRET: z.string().min(1).optional()
+	CRON_SECRET: z.string().min(1).optional(),
+	BUY_ME_A_COFFEE_SIGNING_SECRET: z.string().min(1).optional()
 });
 
 const serverResult = serverSchema.safeParse({
@@ -55,7 +57,8 @@ const serverResult = serverSchema.safeParse({
 	TMDB_STILL_SIZE: privateEnv.TMDB_STILL_SIZE || 'w300',
 	TURSO_DATABASE_URL: privateEnv.TURSO_DATABASE_URL,
 	TURSO_AUTH_TOKEN: privateEnv.TURSO_AUTH_TOKEN,
-	CRON_SECRET: privateEnv.CRON_SECRET
+	CRON_SECRET: privateEnv.CRON_SECRET,
+	BUY_ME_A_COFFEE_SIGNING_SECRET: privateEnv.BUY_ME_A_COFFEE_SIGNING_SECRET
 });
 
 if (!serverResult.success) {
